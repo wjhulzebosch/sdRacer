@@ -464,6 +464,12 @@ function loadLevel(levelId) {
             }
             loadDefaultCode();
             
+            // Display level instructions
+            const instructionsDiv = document.getElementById('instructions');
+            if (instructionsDiv && levelData.Instructions) {
+                instructionsDiv.innerHTML = `<h3>Instructions:</h3><p>${levelData.Instructions}</p>`;
+            }
+            
             // Reset game state when loading new level
             resetGame();
         })
