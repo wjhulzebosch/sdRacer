@@ -1,0 +1,78 @@
+// ==== Program ====
+program         = { line } ;
+line            = [ statement ], [ comment ] ;              // Statement optionally followed by comment
+comment         = "//", { anyCharacterExceptNewline } ;
+
+// ==== Statements ====
+statement       = variableDeclaration
+                | assignment
+                | functionDeclaration
+                | functionCall
+                | ifStatement
+                | whileStatement
+                | forStatement
+                | switchStatement
+                | tryCatch
+                | returnStatement
+                | breakStatement
+                | continueStatement ;
+
+// ==== Variables ====
+variableDeclaration = type, identifier, "=", expression, ";" ; // e.g. int x = 5;
+assignment          = identifier, "=", expression, ";" ;       // e.g. x = x + 1;
+
+// ==== Functions ====
+functionDeclaration = type, identifier, "(", [ parameterList ], ")", block ; // e.g. void f(int x) { ... }
+parameterList       = parameter, { ",", parameter } ;
+parameter           = type, identifier ;
+
+functionCall        = identifier, "(", [ argumentList ], ")", ";" ;          // e.g. moveForward();
+argumentList        = expression, { ",", expression } ;
+
+// ==== Control Flow ====
+ifStatement     = "if", "(", expression, ")", block,
+                  { "else if", "(", expression, ")", block },
+                  [ "else", block ] ;
+
+whileStatement  = "while", "(", expression, ")", block ;
+
+forStatement    = "for", "(", variableDeclaration, expression, ";", assignment, ")", block ;
+
+// ==== Switch ====
+switchStatement = "switch", "(", expression, ")", "{",
+                    { "case", literal, ":", { statement }, "break", ";" },
+                    [ "default", ":", { statement } ],
+                  "}" ;
+
+// ==== Exceptions ====
+tryCatch        = "try", block, "catch", "(", identifier, ")", block ;
+
+// ==== Other Statements ====
+returnStatement     = "return", [ expression ], ";" ;
+breakStatement      = "break", ";" ;
+continueStatement   = "continue", ";" ;
+
+// ==== Blocks ====
+block           = "{", { line }, "}" ;
+
+// ==== Expressions ====
+expression      = literal
+                | identifier
+                | functionCall
+                | expression, operator, expression
+                | "(", expression, ")" ;
+
+// ==== Literals and Types ====
+literal         = number | string | "true" | "false" | "null" ;
+operator        = "+" | "-" | "*" | "/" | "%" | "==" | "!=" | "<" | "<=" | ">" | ">=" | "&&" | "||" ;
+type            = "int" | "double" | "string" | "array" | "list" | "priorityList" | "queue" | "void" ;
+
+// ==== Tokens ====
+identifier      = letter, { letter | digit | "_" } ;
+number          = digit, { digit }, [ ".", digit, { digit } ] ;
+string          = '"', { anyCharacterExceptQuote }, '"' ;
+
+letter          = "a" | ... | "z" | "A" | ... | "Z" ;
+digit           = "0" | ... | "9" ;
+anyCharacterExceptQuote   = ? any character except " and newline ? ;
+anyCharacterExceptNewline = ? any character except newline ? ;

@@ -253,11 +253,15 @@ async function playCode() {
 function resetCode() {
     if (car && currentLevelId) {
         const gameDiv = document.getElementById('game');
-        car.remove();
+        // Remove the car element from DOM
+        const carElement = gameDiv.querySelector('.car');
+        if (carElement) {
+            carElement.remove();
+        }
         // Find the current level data
         const levelData = allLevels.find(lvl => lvl.id === currentLevelId);
         if (levelData && levelData.start && Array.isArray(levelData.start)) {
-            car = new Car({ position: { x: levelData.start[0], y: levelData.start[1] }, direction: 'N' });
+            car = new Car({ position: { x: levelData.start[1] + 1, y: levelData.start[0] + 1 }, direction: 'N' });
             car.render(gameDiv);
         }
     }
