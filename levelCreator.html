@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Level Creator</title>
+    <link rel="stylesheet" href="Assets/Styles/levelCreator.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Level Creator</h1>
+        <div class="flex-row">
+            <div class="form-section">
+                <label>Breedte (kolommen): <input type="number" id="width" min="1" value="4"></label>
+                <label>Hoogte (rijen): <input type="number" id="height" min="1" value="4"></label>
+                <label>Naam: <input type="text" id="name" value=""></label>
+                <label>Beschrijving: <input type="text" id="description" value=""></label>
+                <label>Instructies: <textarea id="instructions"></textarea></label>
+                <label>Startpositie (rij, kolom): <input type="text" id="start" value="0,0"></label>
+                <label>Eindpositie (rij, kolom): <input type="text" id="end" value="3,3"></label>
+                <label>Default code: <textarea id="defaultCode"></textarea></label>
+                <div class="button-row">
+                    <button id="showJsonBtn">Show JSON</button>
+                    <button id="loadJsonBtn">Load JSON</button>
+                </div>
+                <label>Level JSON:</label>
+                <textarea id="jsonArea"></textarea>
+            </div>
+            <div class="grid-section">
+                <div style="margin-bottom: 16px;">
+                    <span id="carIcon" class="car-icon" style="background-image:url('Assets/Textures/Car.png');" title="Plaats auto"></span>
+                    <span id="finishIcon" class="finish-icon" style="background-image:url('Assets/Textures/Finish.png');" title="Plaats finish"></span>
+                </div>
+                <div id="levelGrid" class="level-grid"></div>
+            </div>
+        </div>
+    </div>
+    <script src="Assets/Scripts/levelCreator.js"></script>
+</body>
+</html>
