@@ -2,6 +2,7 @@
     "levels": [
         {
             "id": "1",
+            "category": "Tutorial",
             "name": "Tutorial - Level 1",
             "Description": "Tutorial for moving",
             "defaultCode": "rotate(270);\\nmoveForward();",
@@ -17,6 +18,7 @@
         },
         {
             "id": "2",
+            "category": "Tutorial",
             "name": "Tutorial - Level 2",
             "Description": "Tutorial for rotating",
             "defaultCode": "rotate(90);\\nmoveForward();\\nrotate(90);\\nmoveForward();",
@@ -32,6 +34,7 @@
         },
         {
             "id": "3",
+            "category": "Test",
             "name": "Test level 3",
             "Description": "1e level met levelgenerator",
             "Instructions": "Bla",
@@ -70,6 +73,6 @@
                 "0000"
               ]
             ]
-          }
+        }
     ]
 }
