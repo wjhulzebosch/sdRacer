@@ -29,7 +29,7 @@ class CarLangEngine {
         // Map CarLang function names to Car.js methods
         this.functionMap = {
             'moveForward': () => this.car.moveForward(this.level, this.gameDiv),
-            'moveBackward': () => this.car.moveBackward(),
+            'moveBackward': () => this.car.moveBackward(this.level, this.gameDiv),
             'rotate': (degree) => this.car.rotate(degree, this.gameDiv),
             'explode': () => this.car.crash(this.gameDiv),
             'canMove': () => this.car.canMove(this.level)
@@ -80,6 +80,25 @@ class CarLangEngine {
             
             // Check if we're in a while context and have finished the loop body
             if (this.currentContext.type === 'while' && this.currentContext.currentIndex >= this.currentContext.statements.length) {
+                const condition = this.evaluateExpression(this.currentContext.loopStatement.condition);
+                if (condition) {
+                    // Continue loop, reset to beginning of loop body
+                    this.currentContext.currentIndex = 0;
+                    // Continue with the first statement in the reset loop
+                    const firstStatement = this.currentContext.statements[0];
+                    // Update currentStatement to the first statement in the reset loop
+                    currentStatement = firstStatement;
+                    // Don't return, continue with execution
+                } else {
+                    // Loop finished, pop back to parent
+                    return this.popExecutionContext();
+                }
+            }
+            
+            // Check if we're in a for context and have finished the loop body
+            if (this.currentContext.type === 'for' && this.currentContext.currentIndex >= this.currentContext.statements.length) {
+                // Loop body finished, execute increment and check condition
+                this.executeAssignment(this.currentContext.loopStatement.increment);
                 const condition = this.evaluateExpression(this.currentContext.loopStatement.condition);
                 if (condition) {
                     // Continue loop, reset to beginning of loop body
