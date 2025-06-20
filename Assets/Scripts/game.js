@@ -398,6 +398,63 @@ function showLevelSelector() {
         selector.appendChild(categoryDiv);
     });
     
+    // Add custom buttons after the levels
+    const buttonContainer = document.createElement('div');
+    buttonContainer.style.cssText = `
+        display: flex;
+        gap: 12px;
+        margin-top: 24px;
+        justify-content: center;
+    `;
+    
+    const createLevelBtn = document.createElement('button');
+    createLevelBtn.textContent = 'Create Your Own Level';
+    createLevelBtn.style.cssText = `
+        background: #4CAF50;
+        color: white;
+        border: none;
+        padding: 12px 20px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: background 0.2s;
+    `;
+    createLevelBtn.onmouseenter = () => {
+        createLevelBtn.style.background = '#45a049';
+    };
+    createLevelBtn.onmouseleave = () => {
+        createLevelBtn.style.background = '#4CAF50';
+    };
+    createLevelBtn.onclick = () => {
+        window.open('levelCreator.html', '_blank');
+    };
+    
+    const loadCustomBtn = document.createElement('button');
+    loadCustomBtn.textContent = 'Load Custom Level';
+    loadCustomBtn.style.cssText = `
+        background: #2196F3;
+        color: white;
+        border: none;
+        padding: 12px 20px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: background 0.2s;
+    `;
+    loadCustomBtn.onmouseenter = () => {
+        loadCustomBtn.style.background = '#1976D2';
+    };
+    loadCustomBtn.onmouseleave = () => {
+        loadCustomBtn.style.background = '#2196F3';
+    };
+    loadCustomBtn.onclick = () => {
+        showCustomLevelLoader(overlay);
+    };
+    
+    buttonContainer.appendChild(createLevelBtn);
+    buttonContainer.appendChild(loadCustomBtn);
+    selector.appendChild(buttonContainer);
+    
     overlay.appendChild(selector);
     document.body.appendChild(overlay);
     
@@ -409,14 +466,184 @@ function showLevelSelector() {
     };
 }
 
+function showCustomLevelLoader(overlay) {
+    // Create custom level loader overlay
+    const loaderOverlay = document.createElement('div');
+    loaderOverlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.9);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1001;
+    `;
+    
+    const loaderContent = document.createElement('div');
+    loaderContent.style.cssText = `
+        background: #23272b;
+        border-radius: 12px;
+        padding: 24px;
+        max-width: 500px;
+        width: 90%;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    `;
+    
+    const loaderTitle = document.createElement('h3');
+    loaderTitle.textContent = 'Load Custom Level';
+    loaderTitle.style.cssText = `
+        color: #f0f0f0;
+        margin: 0 0 16px 0;
+        text-align: center;
+    `;
+    
+    const instructionText = document.createElement('p');
+    instructionText.textContent = 'Paste your level JSON here:';
+    instructionText.style.cssText = `
+        color: #ccc;
+        margin: 0 0 12px 0;
+        font-size: 14px;
+    `;
+    
+    const textarea = document.createElement('textarea');
+    textarea.placeholder = 'Paste your level JSON here...';
+    textarea.style.cssText = `
+        width: 100%;
+        height: 200px;
+        background: #1a1e22;
+        color: #f0f0f0;
+        border: 1px solid #444;
+        border-radius: 6px;
+        padding: 12px;
+        font-family: monospace;
+        font-size: 12px;
+        resize: vertical;
+        margin-bottom: 16px;
+    `;
+    
+    const buttonContainer = document.createElement('div');
+    buttonContainer.style.cssText = `
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+    `;
+    
+    const loadBtn = document.createElement('button');
+    loadBtn.textContent = 'Load Level';
+    loadBtn.style.cssText = `
+        background: #4CAF50;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+    `;
+    loadBtn.onclick = () => {
+        try {
+            const levelData = JSON.parse(textarea.value);
+            if (levelData.id && levelData.rows) {
+                // Load the custom level
+                loadCustomLevel(levelData);
+                loaderOverlay.remove();
+                overlay.remove();
+            } else {
+                alert('Invalid level format. Please make sure the JSON contains "id" and "rows" fields.');
+            }
+        } catch (e) {
+            alert('Invalid JSON format. Please check your level data.');
+        }
+    };
+    
+    const cancelBtn = document.createElement('button');
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.style.cssText = `
+        background: #666;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+    `;
+    cancelBtn.onclick = () => {
+        loaderOverlay.remove();
+    };
+    
+    buttonContainer.appendChild(loadBtn);
+    buttonContainer.appendChild(cancelBtn);
+    
+    loaderContent.appendChild(loaderTitle);
+    loaderContent.appendChild(instructionText);
+    loaderContent.appendChild(textarea);
+    loaderContent.appendChild(buttonContainer);
+    
+    loaderOverlay.appendChild(loaderContent);
+    document.body.appendChild(loaderOverlay);
+    
+    // Focus on textarea
+    textarea.focus();
+    
+    // Close loader when clicking outside
+    loaderOverlay.onclick = (e) => {
+        if (e.target === loaderOverlay) {
+            loaderOverlay.remove();
+        }
+    };
+}
+
+function loadCustomLevel(levelData) {
+    // Set current level ID to custom
+    currentLevelId = 'custom';
+    
+    // Create level object
+    level = new Level({
+        instruction: levelData.Instructions || '',
+        defaultCode: levelData.defaultCode || '',
+        tiles: levelData.rows
+    });
+    
+    const gameDiv = document.getElementById('game');
+    
+    // Set finish position
+    finishPos = Array.isArray(levelData.end) ? [levelData.end[1] + 1, levelData.end[0] + 1] : undefined;
+    level.render(gameDiv, finishPos);
+    
+    // Create and render the car
+    if (levelData.start && Array.isArray(levelData.start)) {
+        car = new Car({ position: { x: levelData.start[1] + 1, y: levelData.start[0] + 1 }, direction: 'N' });
+        car.render(gameDiv);
+    }
+    
+    // Load default code
+    loadDefaultCode();
+    
+    // Display level instructions
+    const instructionsDiv = document.getElementById('instructions');
+    if (instructionsDiv && levelData.Instructions) {
+        instructionsDiv.innerHTML = `<h3>Instructions:</h3><p>${levelData.Instructions}</p>`;
+    }
+    
+    // Reset game state
+    resetGame();
+    
+    // Update URL to show custom level
+    const url = new URL(window.location);
+    url.searchParams.set('levelId', 'custom');
+    window.history.pushState({}, '', url);
+}
+
 function resetGame() {
     // Reset interpreter if it exists
     if (window.currentInterpreter) {
         window.currentInterpreter.reset();
     }
     
-    // Reset car position if we have a current level
-    if (car && currentLevelId && allLevels.length > 0) {
+    // Reset car position if we have a current level (but not for custom levels)
+    if (car && currentLevelId && currentLevelId !== 'custom' && allLevels.length > 0) {
         const gameDiv = document.getElementById('game');
         // Remove the car element from DOM
         const carElement = gameDiv.querySelector('.car');
