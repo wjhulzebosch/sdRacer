@@ -12,8 +12,17 @@
             <div class="form-section">
                 <label>Breedte (kolommen): <input type="number" id="width" min="1" value="4"></label>
                 <label>Hoogte (rijen): <input type="number" id="height" min="1" value="4"></label>
-                <label>Naam: <input type="text" id="name" value=""></label>
-                <label>Beschrijving: <input type="text" id="description" value=""></label>
+                <label>ID: <input type="text" id="id" value=""></label>
+                <label>Category: <input type="text" id="category" value=""></label>
+                <label>Name: <input type="text" id="name" value=""></label>
+                <label>Author: <input type="text" id="author" value=""></label>
+                <label>Win Condition: 
+                    <select id="winCondition">
+                        <option value="IsAtFinish()">IsAtFinish()</option>
+                        <option value="IsParked()">IsParked()</option>
+                        <option value="DestroyObject()">DestroyObject()</option>
+                    </select>
+                </label>
                 <label>Instructies: <textarea id="instructions"></textarea></label>
                 <label>Startpositie (rij, kolom): <input type="text" id="start" value="0,0"></label>
                 <label>Eindpositie (rij, kolom): <input type="text" id="end" value="3,3"></label>
@@ -21,7 +30,6 @@
                 <div class="button-row">
                     <button id="showJsonBtn">Show JSON</button>
                     <button id="loadJsonBtn">Load JSON</button>
-                    <button id="fixIndentationBtn">Fix Indentation</button>
                 </div>
                 <label>Level JSON:</label>
                 <textarea id="jsonArea"></textarea>

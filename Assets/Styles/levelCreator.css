@@ -31,7 +31,7 @@ h1 {
     margin-bottom: 4px;
     font-weight: 600;
 }
-.form-section input, .form-section textarea {
+.form-section input, .form-section textarea, .form-section select {
     width: 100%;
     padding: 8px;
     border-radius: 6px;
