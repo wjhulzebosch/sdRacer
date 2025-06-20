@@ -13,6 +13,7 @@
         <div class="right-panel">
             <div class="code-container">
                 <div class="button-row">
+                    <button id="infoBtn">Info</button>
                     <button id="saveBtn">Save</button>
                     <button id="loadBtn">Load</button>
                     <button id="checkCodeBtn">Check Code</button>
@@ -35,11 +36,36 @@
             </div>
         </div>
     </div>
+    <div id="info-overlay" class="info-overlay">
+        <div class="info-content">
+            <div class="info-header">
+                <h2>sdRacer - Info</h2>
+                <button id="closeInfoBtn" class="close-btn">×</button>
+            </div>
+            <div class="info-body">
+                <p>sdRacer is een spel waarin je code schrijft om een auto te besturen. De auto moet de finishlijn bereiken zonder te crashen.</p>
+                <p>De auto kan verschillende bewegingen uitvoeren, zoals vooruit rijden, achteruit rijden, en draaien.</p>
+                <p>Schrijf jouw code in het codeveld, druk op "Check code" om je code te controleren en druk op "Play" om de code uit te voeren.</p>
+                <p>Je kunt je code opslaan en laden met de "Save" en "Load" knoppen.</p>
+                <p>Je kunt je code resetten met de "Reset" knop.</p>
+                <h3>Beschikbare commando's:</h3>
+                <ul>
+                    <li><code>moveForward()</code> - rijdt vooruit</li>
+                    <li><code>moveBackward()</code> - rijdt achteruit</li>
+                    <li><code>rotate(degrees)</code> - draait de auto naar links of rechts. Degree moet 90, 180 of 270 zijn.</li>
+                    <li><code>canMove()</code> - controleert of de auto vooruit kan bewegen</li>
+                    <li><code>if (condition) { ... }</code> - voert code uit als de conditie waar is</li>
+                    <li><code>while (condition) { ... }</code> - voert code uit zolang de conditie waar is</li>
+                    <li><code>for (int i = 0; i < 10; i = i + 1) { ... }</code> - voert code uit 10 keer</li>
+                </ul>
+            </div>
+        </div>
+    </div>
     <script src="Assets/Scripts/Car.js"></script>
     <script src="Assets/Scripts/level.js"></script>
-    <script src="Assets/Scripts/ui-parser.js"></script>
-    <script src="Assets/Scripts/ast-execution.js"></script>
-    <script src="Assets/Scripts/CarLang-Parser.js"></script>
+    <script src="Assets/Scripts/code-validator.js"></script>
+    <script src="Assets/Scripts/carlang-engine.js"></script>
+    <script src="Assets/Scripts/carlang-parser.js"></script>
     <script src="Assets/Scripts/game.js"></script>
 </body>
 </html>

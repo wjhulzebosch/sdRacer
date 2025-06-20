@@ -7,7 +7,7 @@ class Car {
     }
 
     // Move the car forward by 1 tile
-    MoveForward() {
+    moveForward() {
         switch (this.direction) {
             case 'N': this.currentPosition.y -= 1; break;
             case 'E': this.currentPosition.x += 1; break;
@@ -17,7 +17,7 @@ class Car {
     }
 
     // Move the car backward by 1 tile
-    MoveBackward() {
+    moveBackward() {
         switch (this.direction) {
             case 'N': this.currentPosition.y += 1; break;
             case 'E': this.currentPosition.x -= 1; break;

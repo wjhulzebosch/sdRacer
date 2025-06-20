@@ -1,9 +1,9 @@
 /**
- * Live Parser for CarLang
- * Provides syntax highlighting and error feedback via manual check button
+ * Code Validator for CarLang
+ * Provides syntax highlighting, error feedback, and AST display via manual check button
  */
 
-class LiveParser {
+class CodeValidator {
     constructor() {
         this.codeTextarea = null;
         this.parserDisplay = null;
@@ -51,9 +51,9 @@ class LiveParser {
             // Check if there are any parsing errors
             const hasParseErrors = ast.errors && ast.errors.length > 0;
             
-            // Create interpreter for validation (without car/level for now)
-            const interpreter = new CarLangInterpreter(null, null, null);
-            const validation = interpreter.validate(ast);
+            // Create engine for validation (without car/level for now)
+            const engine = new CarLangEngine(null, null, null);
+            const validation = engine.validate(ast);
             const hasValidationErrors = validation.errors && validation.errors.length > 0;
             const hasWarnings = validation.warnings && validation.warnings.length > 0;
             
@@ -164,5 +164,5 @@ class LiveParser {
 
 // Initialize live parser when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    window.liveParser = new LiveParser();
+    window.liveParser = new CodeValidator();
 }); 
