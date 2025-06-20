@@ -2,6 +2,187 @@
 function emptyGrid(rows, cols) {
     return Array.from({length: rows}, () => Array(cols).fill('0000'));
 }
+
+// Indentation settings
+const INDENT_SIZE = 4; // Number of spaces per indentation level
+const INDENT_CHAR = ' '.repeat(INDENT_SIZE);
+
+// Auto-indentation functions
+function getIndentationLevel(line) {
+    let level = 0;
+    for (let i = 0; i < line.length; i++) {
+        if (line[i] === ' ') {
+            level++;
+        } else {
+            break;
+        }
+    }
+    return Math.floor(level / INDENT_SIZE);
+}
+
+function getIndentationString(level) {
+    return INDENT_CHAR.repeat(level);
+}
+
+function handleAutoIndentation(event) {
+    const textarea = event.target;
+    const key = event.key;
+    
+    if (key === 'Enter') {
+        event.preventDefault();
+        
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const value = textarea.value;
+        
+        // Get the current line
+        const beforeCursor = value.substring(0, start);
+        const lines = beforeCursor.split('\n');
+        const currentLine = lines[lines.length - 1];
+        
+        // Calculate current indentation level
+        let currentIndentLevel = getIndentationLevel(currentLine);
+        
+        // Check if current line ends with {
+        const trimmedLine = currentLine.trim();
+        if (trimmedLine.endsWith('{')) {
+            currentIndentLevel++;
+        }
+        
+        // Create the new line with proper indentation
+        const newLine = '\n' + getIndentationString(currentIndentLevel);
+        
+        // Insert the new line
+        const newValue = value.substring(0, start) + newLine + value.substring(end);
+        textarea.value = newValue;
+        
+        // Set cursor position after the indentation
+        const newCursorPos = start + newLine.length;
+        textarea.setSelectionRange(newCursorPos, newCursorPos);
+        
+        return false;
+    }
+    
+    return true;
+}
+
+function handleBraceIndentation(event) {
+    const textarea = event.target;
+    const key = event.key;
+    
+    if (key === '}') {
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const value = textarea.value;
+        
+        // Get the current line
+        const beforeCursor = value.substring(0, start);
+        const lines = beforeCursor.split('\n');
+        const currentLine = lines[lines.length - 1];
+        
+        // Calculate current indentation level
+        let currentIndentLevel = getIndentationLevel(currentLine);
+        
+        // If we're at the beginning of the line (after indentation), decrease indentation
+        const trimmedBeforeCursor = currentLine.trim();
+        if (trimmedBeforeCursor === '') {
+            // We're at the beginning of the line, decrease indentation
+            currentIndentLevel = Math.max(0, currentIndentLevel - 1);
+            
+            // Replace the current line's indentation
+            const newIndentation = getIndentationString(currentIndentLevel);
+            const lineStart = start - (currentLine.length - currentLine.trimStart().length);
+            const newValue = value.substring(0, lineStart) + newIndentation + '}' + value.substring(end);
+            textarea.value = newValue;
+            
+            // Set cursor position after the }
+            const newCursorPos = lineStart + newIndentation.length + 1;
+            textarea.setSelectionRange(newCursorPos, newCursorPos);
+            
+            // Prevent the default behavior to avoid duplicate }
+            event.preventDefault();
+            return false;
+        }
+    }
+    
+    return true;
+}
+
+function setupAutoIndentation() {
+    const textarea = document.getElementById('defaultCode');
+    if (textarea) {
+        textarea.addEventListener('keydown', (event) => {
+            if (!handleAutoIndentation(event)) {
+                return;
+            }
+            if (!handleBraceIndentation(event)) {
+                return;
+            }
+        });
+    }
+}
+
+function fixIndentation() {
+    const textarea = document.getElementById('defaultCode');
+    if (!textarea) return;
+    
+    const originalCode = textarea.value;
+    
+    try {
+        // Test the code first using the CarLang parser
+        const parser = new CarLangParser();
+        const result = parser.parse(originalCode);
+        
+        if (result.errors && result.errors.length > 0) {
+            alert('Cannot fix indentation: Code has errors:\n' + result.errors.join('\n'));
+            return;
+        }
+        
+        // If no errors, proceed to fix indentation
+        const lines = originalCode.split('\n');
+        const fixedLines = [];
+        let currentIndentLevel = 0;
+        
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            const trimmedLine = line.trim();
+            
+            // Skip empty lines but preserve them
+            if (trimmedLine === '') {
+                fixedLines.push('');
+                continue;
+            }
+            
+            // Check if this line should decrease indentation (closing brace)
+            if (trimmedLine.startsWith('}')) {
+                currentIndentLevel = Math.max(0, currentIndentLevel - 1);
+            }
+            
+            // Add the line with proper indentation
+            const indentation = getIndentationString(currentIndentLevel);
+            fixedLines.push(indentation + trimmedLine);
+            
+            // Check if this line should increase indentation (opening brace)
+            if (trimmedLine.endsWith('{')) {
+                currentIndentLevel++;
+            }
+        }
+        
+        // Update the textarea with fixed indentation
+        textarea.value = fixedLines.join('\n');
+        
+        // Show success message
+        const fixBtn = document.getElementById('fixIndentationBtn');
+        if (fixBtn) {
+            fixBtn.textContent = 'Fixed!';
+            setTimeout(() => fixBtn.textContent = 'Fix Indentation', 1000);
+        }
+        
+    } catch (error) {
+        alert('Cannot fix indentation: ' + error.message);
+    }
+}
+
 let grid = emptyGrid(4, 4);
 let rows = 4, cols = 4;
 const gridDiv = document.getElementById('levelGrid');
@@ -164,3 +345,9 @@ document.getElementById('loadJsonBtn').onclick = () => {
         alert('Invalid JSON');
     }
 }; 
+
+// Set up fix indentation button
+document.getElementById('fixIndentationBtn').onclick = fixIndentation;
+
+// Set up auto-indentation for the defaultCode textarea
+setupAutoIndentation(); 
