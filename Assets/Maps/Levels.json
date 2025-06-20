@@ -6,7 +6,7 @@
             "name": "Level 1 - A showcase",
             "author": "sdRacer",
             "WinCondition": "IsAtFinish()",
-            "Instructions": "Move the car to the finish line using the moveForward() function.",
+            "Instructions": "This is a showcase level that implements all current CarLang features: comments, variables, for- and while-loops, if, else if, else, operators and function-calls. It has a syntax and error-checking system (press play now to see an error, remove the first line of code to fix it)",
             "start": [3, 0],
             "end": [0, 0],
             "defaultCode": "ErrorCauser(RemoveThisLine);\nint runs = 0;\nwhile(true) {\n    if (canMove()) {\n        moveForward();\n        if(runs == 0) {\n            moveBackward();\n        } else if(runs == 1){\n            for(int i = 0; i < 4; i = i + 1) {\n                turnRight();\n            }            \n        }\n        runs = runs + 1;\n    } else {\n        turnRight();\n    }\n}",
