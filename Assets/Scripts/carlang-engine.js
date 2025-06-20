@@ -1,17 +1,22 @@
 /**
- * CarLang Interpreter & Validator
+ * CarLang Engine & Validator
  * Executes parsed CarLang AST by calling Car.js functions
  * Also validates AST for semantic errors
  */
 
-class CarLangInterpreter {
+class CarLangEngine {
     constructor(car, level, gameDiv) {
         this.car = car;
         this.level = level;
         this.gameDiv = gameDiv;
         this.variables = {};
         this.functions = {};
-        this.stepDelay = 1000; // ms between steps
+        
+        // Execution state
+        this.ast = null;
+        this.executionStack = []; // Stack of execution contexts
+        this.currentContext = null;
+        this.isExecuting = false;
         
         // Commands that should have a visual delay (car movement/rotation)
         this.delayedCommands = [
@@ -24,7 +29,7 @@ class CarLangInterpreter {
         // Map CarLang function names to Car.js methods
         this.functionMap = {
             'moveForward': () => this.car.moveForward(this.level, this.gameDiv),
-            'moveBackward': () => this.car.MoveBackward(),
+            'moveBackward': () => this.car.moveBackward(),
             'rotate': (degree) => this.car.rotate(degree, this.gameDiv),
             'explode': () => this.car.crash(this.gameDiv),
             'canMove': () => this.car.canMove(this.level)
@@ -38,6 +43,131 @@ class CarLangInterpreter {
             'explode': { args: 0, description: 'Make car crash' },
             'canMove': { args: 0, description: 'Check if car can move forward' }
         };
+    }
+
+    /**
+     * Initialize execution with an AST
+     * @param {Object} ast - The parsed AST from CarLangParser
+     */
+    initializeExecution(ast) {
+        this.ast = ast;
+        this.executionStack = [];
+        this.variables = {};
+        this.functions = {};
+        this.isExecuting = true;
+        
+        // Create initial execution context for the main body
+        this.currentContext = {
+            type: 'main',
+            statements: ast.body,
+            currentIndex: 0,
+            parent: null
+        };
+    }
+
+    /**
+     * Execute the next command in the AST
+     * @returns {Object} - Execution status with details
+     */
+    executeNext() {
+        if (!this.isExecuting || !this.currentContext) {
+            return { status: 'COMPLETE' };
+        }
+
+        try {
+            // Get current statement
+            let currentStatement = this.currentContext.statements[this.currentContext.currentIndex];
+            
+            // Check if we're in a while context and have finished the loop body
+            if (this.currentContext.type === 'while' && this.currentContext.currentIndex >= this.currentContext.statements.length) {
+                const condition = this.evaluateExpression(this.currentContext.loopStatement.condition);
+                if (condition) {
+                    // Continue loop, reset to beginning of loop body
+                    this.currentContext.currentIndex = 0;
+                    // Continue with the first statement in the reset loop
+                    const firstStatement = this.currentContext.statements[0];
+                    // Update currentStatement to the first statement in the reset loop
+                    currentStatement = firstStatement;
+                    // Don't return, continue with execution
+                } else {
+                    // Loop finished, pop back to parent
+                    return this.popExecutionContext();
+                }
+            }
+            
+            if (!currentStatement) {
+                // No more statements in current context, pop stack
+                return this.popExecutionContext();
+            }
+
+            // Capture old context values BEFORE executing the statement
+            const oldContextType = this.currentContext.type;
+            const oldContextIndex = this.currentContext.currentIndex;
+
+            // Execute the current statement
+            const result = this.executeStatement(currentStatement.statement);
+            
+            // Move to next statement only if we didn't create a new context
+            // Check if this was a delayed command
+            if (this.shouldDelay(currentStatement.statement)) {
+                // Only increment if we're still in the same context
+                if (this.currentContext.type === oldContextType && this.currentContext.currentIndex === oldContextIndex) {
+                    this.currentContext.currentIndex++;
+                }
+                return { 
+                    status: 'PAUSED', 
+                    commandType: currentStatement.statement.type,
+                    functionName: currentStatement.statement.type === 'FunctionCall' ? currentStatement.statement.name : null,
+                    result: result 
+                };
+            }
+            
+            // Only increment if we're still in the same context
+            if (this.currentContext.type === oldContextType && this.currentContext.currentIndex === oldContextIndex) {
+                this.currentContext.currentIndex++;
+            }
+            return { 
+                status: 'CONTINUE', 
+                commandType: currentStatement.statement.type,
+                functionName: currentStatement.statement.type === 'FunctionCall' ? currentStatement.statement.name : null,
+                result: result 
+            };
+            
+        } catch (error) {
+            this.isExecuting = false;
+            return { 
+                status: 'ERROR', 
+                error: error.message 
+            };
+        }
+    }
+
+    /**
+     * Pop execution context and return to parent
+     */
+    popExecutionContext() {
+        if (this.currentContext.parent) {
+            // Advance the parent's currentIndex so we don't re-execute the same statement
+            this.currentContext.parent.currentIndex++;
+            this.currentContext = this.currentContext.parent;
+            return { status: 'CONTINUE' };
+        } else {
+            // No more contexts, execution complete
+            this.isExecuting = false;
+            return { status: 'COMPLETE' };
+        }
+    }
+
+    /**
+     * Reset execution state
+     */
+    reset() {
+        this.ast = null;
+        this.executionStack = [];
+        this.currentContext = null;
+        this.isExecuting = false;
+        this.variables = {};
+        this.functions = {};
     }
 
     /**
@@ -101,7 +231,7 @@ class CarLangInterpreter {
      * Execute a single statement
      * @param {Object} statement - The statement AST node
      */
-    async executeStatement(statement) {
+    executeStatement(statement) {
         switch (statement.type) {
             case 'VariableDeclaration':
                 return this.executeVariableDeclaration(statement);
@@ -135,7 +265,6 @@ class CarLangInterpreter {
             type: statement.varType,
             value: value
         };
-        console.log(`Declared ${statement.varType} ${statement.name} = ${value}`);
     }
 
     /**
@@ -147,7 +276,6 @@ class CarLangInterpreter {
             type: 'auto',
             value: value
         };
-        console.log(`Assigned ${statement.name} = ${value}`);
     }
 
     /**
@@ -157,7 +285,6 @@ class CarLangInterpreter {
         const args = statement.arguments.map(arg => this.evaluateExpression(arg));
         
         if (this.functionMap[statement.name]) {
-            console.log(`Calling ${statement.name}(${args.join(', ')})`);
             return this.functionMap[statement.name](...args);
         } else {
             console.warn(`Unknown function: ${statement.name}`);
@@ -167,24 +294,41 @@ class CarLangInterpreter {
     /**
      * Execute if statement
      */
-    async executeIfStatement(statement) {
+    executeIfStatement(statement) {
         const condition = this.evaluateExpression(statement.condition);
         
         if (condition) {
-            await this.executeBlock(statement.thenBody);
+            // Create new execution context for then block
+            this.currentContext = {
+                type: 'if-then',
+                statements: statement.thenBody.statements,
+                currentIndex: 0,
+                parent: this.currentContext
+            };
         } else {
             // Check else-if conditions
             for (const elseIf of statement.elseIfs) {
                 const elseIfCondition = this.evaluateExpression(elseIf.condition);
                 if (elseIfCondition) {
-                    await this.executeBlock(elseIf.body);
+                    // Create new execution context for else-if block
+                    this.currentContext = {
+                        type: 'if-elseif',
+                        statements: elseIf.body.statements,
+                        currentIndex: 0,
+                        parent: this.currentContext
+                    };
                     return;
                 }
             }
             
             // Execute else block if it exists
             if (statement.elseBody) {
-                await this.executeBlock(statement.elseBody);
+                this.currentContext = {
+                    type: 'if-else',
+                    statements: statement.elseBody.statements,
+                    currentIndex: 0,
+                    parent: this.currentContext
+                };
             }
         }
     }
@@ -192,41 +336,77 @@ class CarLangInterpreter {
     /**
      * Execute while statement
      */
-    async executeWhileStatement(statement) {
-        let iterations = 0;
-        const maxIterations = 1000; // Prevent infinite loops
-        
-        while (this.evaluateExpression(statement.condition) && iterations < maxIterations) {
-            await this.executeBlock(statement.body);
-            iterations++;
-        }
-        
-        if (iterations >= maxIterations) {
-            console.warn('While loop exceeded maximum iterations');
+    executeWhileStatement(statement) {
+        // Check if we're already in this loop
+        if (this.currentContext.type === 'while' && this.currentContext.loopStatement === statement) {
+            // We're continuing the loop, check if we've finished the loop body
+            if (this.currentContext.currentIndex >= this.currentContext.statements.length) {
+                // Loop body finished, check condition again
+                const condition = this.evaluateExpression(statement.condition);
+                if (condition) {
+                    // Continue loop, reset to beginning of loop body
+                    this.currentContext.currentIndex = 0;
+                } else {
+                    // Loop finished, pop back to parent and continue from next statement
+                    this.currentContext = this.currentContext.parent;
+                    // Don't re-execute the while statement, just continue
+                    return;
+                }
+            }
+            // If we haven't finished the loop body yet, just continue normally
+        } else {
+            // Starting new loop
+            const condition = this.evaluateExpression(statement.condition);
+            if (condition) {
+                // Create new execution context for loop body
+                this.currentContext = {
+                    type: 'while',
+                    statements: statement.body.statements,
+                    currentIndex: 0,
+                    parent: this.currentContext,
+                    loopStatement: statement,
+                    iterations: 0
+                };
+            }
         }
     }
 
     /**
      * Execute for statement
      */
-    async executeForStatement(statement) {
-        // Execute initialization
-        this.executeVariableDeclaration(statement.initialization);
-        
-        let iterations = 0;
-        const maxIterations = 1000; // Prevent infinite loops
-        
-        while (this.evaluateExpression(statement.condition) && iterations < maxIterations) {
-            await this.executeBlock(statement.body);
-            
-            // Execute increment
-            this.executeAssignment(statement.increment);
-            
-            iterations++;
-        }
-        
-        if (iterations >= maxIterations) {
-            console.warn('For loop exceeded maximum iterations');
+    executeForStatement(statement) {
+        // Check if we're already in this loop
+        if (this.currentContext.type === 'for' && this.currentContext.loopStatement === statement) {
+            // We're continuing the loop, check if we've finished the loop body
+            if (this.currentContext.currentIndex >= this.currentContext.statements.length) {
+                // Loop body finished, execute increment and check condition
+                this.executeAssignment(statement.increment);
+                const condition = this.evaluateExpression(statement.condition);
+                if (condition) {
+                    // Continue loop, reset to beginning of loop body
+                    this.currentContext.currentIndex = 0;
+                } else {
+                    // Loop finished, pop back to parent
+                    this.currentContext = this.currentContext.parent;
+                }
+            }
+            // If we haven't finished the loop body yet, just continue normally
+        } else {
+            // Starting new loop
+            this.executeVariableDeclaration(statement.initialization);
+            const condition = this.evaluateExpression(statement.condition);
+            if (condition) {
+                // Create new execution context for loop body
+                this.currentContext = {
+                    type: 'for',
+                    statements: statement.body.statements,
+                    currentIndex: 0,
+                    parent: this.currentContext,
+                    loopStatement: statement,
+                    iterations: 0
+                };
+            }
+            // If condition is false, don't create context (loop body won't execute)
         }
     }
 
@@ -296,10 +476,8 @@ class CarLangInterpreter {
     executeReturnStatement(statement) {
         if (statement.value) {
             const value = this.evaluateExpression(statement.value);
-            console.log(`Returning: ${value}`);
             return value;
         }
-        console.log('Returning: undefined');
         return undefined;
     }
 
@@ -307,7 +485,6 @@ class CarLangInterpreter {
      * Execute break statement
      */
     executeBreakStatement(statement) {
-        console.log('Breaking from loop');
         // This would need to be handled by the calling loop
         throw new Error('BREAK');
     }
@@ -316,7 +493,6 @@ class CarLangInterpreter {
      * Execute continue statement
      */
     executeContinueStatement(statement) {
-        console.log('Continuing loop');
         // This would need to be handled by the calling loop
         throw new Error('CONTINUE');
     }
@@ -613,5 +789,5 @@ class CarLangInterpreter {
 
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = CarLangInterpreter;
+    module.exports = CarLangEngine;
 } 

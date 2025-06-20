@@ -35,11 +35,28 @@
             </div>
         </div>
     </div>
+    <div id="info">
+        <h1>sdRacer - info</h1>
+        <p>sdRacer is een spel waarin je code schrijft om een auto te besturen. De auto moet de finishlijn bereiken zonder te crashen.</p>
+        <p>De auto kan verschillende bewegingen uitvoeren, zoals vooruit rijden, achteruit rijden, en draaien.</p>
+        <p>Schrijf jouw code in het codeveld, druk op "Check code" om je code te controleren en druk op "Play" om de code uit te voeren.</p>
+        <p>Je kunt je code opslaan en laden met de "Save" en "Load" knoppen.</p>
+        <p>Je kunt je code resetten met de "Reset" knop.</p>
+        <p>Je kunt de volgende commandos gebruiken:</p>
+        <ul>
+            <li>moveForward() - rijdt vooruit</li>
+            <li>moveBackward() - rijdt achteruit</li>
+            <li>rotate(degrees) - draait de auto naar links of rechts. Degree moet 90, 180 of 270 zijn.</li>
+            <li>if (condition) { ... } - voert code uit als de conditie waar is</li>
+            <li>while (condition) { ... } - voert code uit als long as de conditie waar is</li>
+            <li>for (var i = 0; i < 10; i++) { ... } - voert code uit 10 keer</li>
+        </ul>
+    </div>
     <script src="Assets/Scripts/Car.js"></script>
     <script src="Assets/Scripts/level.js"></script>
-    <script src="Assets/Scripts/ui-parser.js"></script>
-    <script src="Assets/Scripts/ast-execution.js"></script>
-    <script src="Assets/Scripts/CarLang-Parser.js"></script>
+    <script src="Assets/Scripts/code-validator.js"></script>
+    <script src="Assets/Scripts/carlang-engine.js"></script>
+    <script src="Assets/Scripts/carlang-parser.js"></script>
     <script src="Assets/Scripts/game.js"></script>
 </body>
 </html>

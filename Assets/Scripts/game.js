@@ -43,6 +43,14 @@ function loadCode() {
     }
 }
 
+function loadDefaultCode() {
+    if (level && level.defaultCode) {
+        codeArea.value = level.defaultCode;
+    } else {
+        codeArea.value = DEFAULT_CODE;
+    }
+}
+
 function saveCode() {
     localStorage.setItem('sdRacer_code_' + currentLevelId, codeArea.value);
     saveBtn.textContent = 'Saved!';
@@ -80,7 +88,7 @@ function setupWinButtons() {
     const nextLevelBtn = document.getElementById('nextLevelBtn');
     retryBtn.onclick = () => {
         hideWinMessage();
-        loadLevel(currentLevelId);
+        resetGame();
     };
     nextLevelBtn.onclick = () => {
         hideWinMessage();
@@ -217,6 +225,34 @@ function showLevelSelector() {
     };
 }
 
+function resetGame() {
+    // Reset interpreter if it exists
+    if (window.currentInterpreter) {
+        window.currentInterpreter.reset();
+    }
+    
+    // Reset car position if we have a current level
+    if (car && currentLevelId && allLevels.length > 0) {
+        const gameDiv = document.getElementById('game');
+        // Remove the car element from DOM
+        const carElement = gameDiv.querySelector('.car');
+        if (carElement) {
+            carElement.remove();
+        }
+        // Find the current level data
+        const levelData = allLevels.find(lvl => lvl.id === currentLevelId);
+        if (levelData && levelData.start && Array.isArray(levelData.start)) {
+            car = new Car({ position: { x: levelData.start[1] + 1, y: levelData.start[0] + 1 }, direction: 'N' });
+            car.render(gameDiv);
+        }
+    }
+    
+    // Reset execution state
+    isRunning = false;
+    playBtn.disabled = false;
+    playBtn.textContent = 'Play';
+}
+
 function loadLevel(levelId) {
     fetch('Assets/Maps/Levels.json')
         .then(response => response.json())
@@ -242,7 +278,10 @@ function loadLevel(levelId) {
                 car = new Car({ position: { x: levelData.start[1] + 1, y: levelData.start[0] + 1 }, direction: 'N' });
                 car.render(gameDiv);
             }
-            loadCode();
+            loadDefaultCode();
+            
+            // Reset game state when loading new level
+            resetGame();
         })
         .catch(err => console.error('Failed to load level: ' + err));
 }
@@ -268,45 +307,70 @@ async function playCode() {
         }
         
         // Validate before execution
-        const interpreter = new CarLangInterpreter(car, level, gameDiv);
+        const interpreter = new CarLangEngine(car, level, gameDiv);
         const validation = interpreter.validate(ast);
         
         if (!validation.valid) {
             throw new Error(`Validation errors: ${validation.errors.join(', ')}`);
         }
         
-        // Execute if validation passes
-        await interpreter.execute(ast);
+        // Store interpreter globally for reset functionality
+        window.currentInterpreter = interpreter;
         
-        if (isAtFinish()) {
-            showWinMessage();
-        }
-        playBtn.textContent = 'Played!';
-        setTimeout(() => playBtn.textContent = 'Play', 1000);
+        // Initialize execution with the AST
+        interpreter.initializeExecution(ast);
+        
+        // Game loop for step-by-step execution
+        const gameLoop = () => {
+            const result = interpreter.executeNext();
+            
+            switch (result.status) {
+                case 'CONTINUE':
+                    // Continue immediately
+                    requestAnimationFrame(gameLoop);
+                    break;
+                    
+                case 'PAUSED':
+                    // Wait for delay then continue
+                    setTimeout(() => {
+                        // Check win condition after movement commands
+                        if (result.functionName && ['moveForward', 'moveBackward'].includes(result.functionName)) {
+                            if (isAtFinish()) {
+                                showWinMessage();
+                                return; // Stop execution on win
+                            }
+                        }
+                        requestAnimationFrame(gameLoop);
+                    }, 1000); // 1 second delay for visual commands
+                    break;
+                    
+                case 'COMPLETE':
+                    // Execution finished
+                    playBtn.textContent = 'Played!';
+                    setTimeout(() => playBtn.textContent = 'Play', 1000);
+                    break;
+                    
+                case 'ERROR':
+                    // Error occurred
+                    throw new Error(result.error);
+            }
+        };
+        
+        // Start the game loop
+        gameLoop();
+        
     } catch (e) {
         console.error('Error in code: ' + e.message);
         alert('Error: ' + e.message);
-    } finally {
         playBtn.disabled = false;
     }
 }
 
 function resetCode() {
-    if (car && currentLevelId) {
-        const gameDiv = document.getElementById('game');
-        // Remove the car element from DOM
-        const carElement = gameDiv.querySelector('.car');
-        if (carElement) {
-            carElement.remove();
-        }
-        // Find the current level data
-        const levelData = allLevels.find(lvl => lvl.id === currentLevelId);
-        if (levelData && levelData.start && Array.isArray(levelData.start)) {
-            car = new Car({ position: { x: levelData.start[1] + 1, y: levelData.start[0] + 1 }, direction: 'N' });
-            car.render(gameDiv);
-        }
-    }
-    codeArea.value = DEFAULT_CODE;
+    resetGame();
+    
+    // Reset code to level default
+    loadDefaultCode();
     resetBtn.textContent = 'Reset!';
     setTimeout(() => resetBtn.textContent = 'Reset', 1000);
 }

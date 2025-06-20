@@ -5,7 +5,7 @@
             "category": "Tutorial",
             "name": "Tutorial - Level 1",
             "Description": "Tutorial for moving",
-            "defaultCode": "rotate(270);\nmoveForward();",
+            "defaultCode": "while(true) {\nif (canMove()) {\nthisCausesAnError(3)?;\nmoveForward();\n } else { \nrotate(90);\n }\n}",
             "start": [0, 0],
             "end": [3, 0],
             "Instructions": "Move the car forward using the moveForward() function.",
