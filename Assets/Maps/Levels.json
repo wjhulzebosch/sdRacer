@@ -1,0 +1,34 @@
+{
+    "levels": [
+        {
+            "id": "1",
+            "name": "Tutorial - Level 1",
+            "Description": "Tutorial for moving",
+            "defaultCode": "rotate(270);\\nmoveForward();",
+            "start": [0, 0],
+            "end": [3, 0],
+            "Instructions": "Move the car forward using the moveForward() function.",
+            "rows": [
+                ["1010"],
+                ["1010"],
+                ["1010"],
+                ["1010"]
+            ]
+        },
+        {
+            "id": "2",
+            "name": "Tutorial - Level 2",
+            "Description": "Tutorial for rotating",
+            "defaultCode": "rotate(90);\\nmoveForward();\\nrotate(90);\\nmoveForward();",
+            "start": [0, 0],
+            "end": [3, 3],
+            "Instructions": "Navigate through the maze to reach the finish.",
+            "rows": [
+                ["1010", "1010", "1010", "1010"],
+                ["1010", "1111", "1010", "1010"],
+                ["1010", "1010", "1010", "1010"],
+                ["1010", "1010", "1010", "1010"]
+            ]
+        }
+    ]
+}
