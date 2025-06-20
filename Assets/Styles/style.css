@@ -44,7 +44,39 @@ body {
     font-size: 1rem;
     padding: 12px;
     resize: none;
+    line-height: 1.4;
 }
+
+/* Line highlighting styles */
+.code-line {
+    padding: 2px 0;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+}
+
+.code-line.current {
+    background-color: #3b82f6;
+    color: #ffffff;
+    font-weight: 600;
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.3);
+}
+
+.code-line.current::before {
+    content: "▶";
+    color: #ffffff;
+    margin-right: 8px;
+    font-weight: bold;
+}
+
+/* Line number styles */
+.line-number {
+    padding: 2px 4px;
+    text-align: right;
+    transition: all 0.2s ease;
+    border-radius: 4px;
+    margin: 1px 0;
+}
+
 .parser-display {
     width: 100%;
     max-height: 500px;

@@ -11,6 +11,9 @@ let allLevels = [];
 let carlangInterpreter = null;
 let isRunning = false;
 
+// Line highlighting variables
+let currentHighlightedLine = null;
+
 // Indentation settings
 const INDENT_SIZE = 4; // Number of spaces per indentation level
 const INDENT_CHAR = ' '.repeat(INDENT_SIZE);
@@ -227,6 +230,7 @@ function loadDefaultCode() {
     } else {
         codeArea.value = DEFAULT_CODE;
     }
+    updateLineNumbers();
 }
 
 function saveCode() {
@@ -634,6 +638,9 @@ function loadCustomLevel(levelData) {
     const url = new URL(window.location);
     url.searchParams.set('levelId', 'custom');
     window.history.pushState({}, '', url);
+    
+    // Update line numbers
+    updateLineNumbers();
 }
 
 function resetGame() {
@@ -741,6 +748,11 @@ async function playCode() {
         const gameLoop = () => {
             const result = interpreter.executeNext();
             
+            // Highlight the current line
+            if (result.currentLine) {
+                highlightLine(result.currentLine);
+            }
+            
             switch (result.status) {
                 case 'CONTINUE':
                     // Continue immediately
@@ -763,12 +775,14 @@ async function playCode() {
                     
                 case 'COMPLETE':
                     // Execution finished
+                    clearLineHighlighting();
                     playBtn.textContent = 'Played!';
                     setTimeout(() => playBtn.textContent = 'Play', 1000);
                     break;
                     
                 case 'ERROR':
                     // Error occurred
+                    clearLineHighlighting();
                     throw new Error(result.error);
             }
         };
@@ -788,6 +802,7 @@ function resetCode() {
     
     // Reset code to level default
     loadDefaultCode();
+    clearLineHighlighting();
     resetBtn.textContent = 'Reset!';
     setTimeout(() => resetBtn.textContent = 'Reset', 1000);
 }
@@ -810,6 +825,16 @@ function startGame() {
     
     // Set up auto-indentation for the code editor
     setupAutoIndentation();
+    
+    // Set up line number updates
+    codeArea.addEventListener('input', updateLineNumbers);
+    codeArea.addEventListener('scroll', () => {
+        const lineNumbersDiv = document.getElementById('line-numbers');
+        lineNumbersDiv.scrollTop = codeArea.scrollTop;
+    });
+    
+    // Initialize line numbers
+    updateLineNumbers();
     
     // Set up info overlay buttons
     const infoBtn = document.getElementById('infoBtn');
@@ -841,6 +866,60 @@ function startGame() {
 function goHome() {
     // Navigate to root URL to show level selector
     window.location.href = '/sdRacer/';
+}
+
+// Line highlighting functions
+function updateLineNumbers() {
+    const lineNumbersDiv = document.getElementById('line-numbers');
+    const codeText = codeArea.value;
+    const lines = codeText.split('\n');
+    
+    let lineNumbersHTML = '';
+    for (let i = 1; i <= lines.length; i++) {
+        lineNumbersHTML += `<div class="line-number">${i}</div>`;
+    }
+    
+    lineNumbersDiv.innerHTML = lineNumbersHTML;
+}
+
+function highlightLine(lineNumber) {
+    // Clear previous highlighting
+    clearLineHighlighting();
+    
+    if (lineNumber && lineNumber > 0) {
+        // Create a temporary div to hold the highlighted line
+        const codeText = codeArea.value;
+        const lines = codeText.split('\n');
+        
+        if (lineNumber <= lines.length) {
+            // Create a visual indicator for the highlighted line
+            const lineNumbersDiv = document.getElementById('line-numbers');
+            const lineNumberElements = lineNumbersDiv.querySelectorAll('.line-number');
+            
+            if (lineNumberElements[lineNumber - 1]) {
+                lineNumberElements[lineNumber - 1].style.backgroundColor = '#3b82f6';
+                lineNumberElements[lineNumber - 1].style.color = '#ffffff';
+                lineNumberElements[lineNumber - 1].style.fontWeight = 'bold';
+                lineNumberElements[lineNumber - 1].style.borderRadius = '4px';
+                currentHighlightedLine = lineNumber;
+            }
+        }
+    }
+}
+
+function clearLineHighlighting() {
+    if (currentHighlightedLine) {
+        const lineNumbersDiv = document.getElementById('line-numbers');
+        const lineNumberElements = lineNumbersDiv.querySelectorAll('.line-number');
+        
+        if (lineNumberElements[currentHighlightedLine - 1]) {
+            lineNumberElements[currentHighlightedLine - 1].style.backgroundColor = '';
+            lineNumberElements[currentHighlightedLine - 1].style.color = '#666';
+            lineNumberElements[currentHighlightedLine - 1].style.fontWeight = '';
+            lineNumberElements[currentHighlightedLine - 1].style.borderRadius = '';
+        }
+        currentHighlightedLine = null;
+    }
 }
 
 window.addEventListener('DOMContentLoaded', startGame);

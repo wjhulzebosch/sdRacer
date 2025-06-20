@@ -23,7 +23,10 @@
                     <button id="resetBtn">Reset</button>
                 </div>
                 <div id="instructions"></div>
-                <textarea id="code" spellcheck="false"></textarea>
+                <div id="code-editor-container" style="position: relative; background: #23272b; border: 2px solid #333; border-radius: 8px; font-family: 'Fira Mono', 'Consolas', monospace; font-size: 1rem;">
+                    <div id="line-numbers" style="position: absolute; left: 0; top: 0; width: 40px; background: #1a1e22; color: #666; padding: 12px 8px; border-right: 1px solid #333; border-radius: 6px 0 0 6px; font-size: 0.78rem; line-height: 1.4; user-select: none; z-index: 1;"></div>
+                    <textarea id="code" spellcheck="false" style="margin-left: 60px; width: calc(100% - 60px); height: 500px; background: #23272b; color: #e0e0e0; border: none; border-radius: 0 6px 6px 0; font-family: 'Fira Mono', 'Consolas', monospace; font-size: 1rem; padding: 12px; resize: none; line-height: 1.4; outline: none;"></textarea>
+                </div>
                 <div id="parser-display" class="parser-display"></div>
             </div>
         </div>

@@ -141,6 +141,7 @@ class CarLangEngine {
                 }
                 return { 
                     status: 'PAUSED', 
+                    currentLine: currentStatement.statement.line,
                     commandType: currentStatement.statement.type,
                     functionName: currentStatement.statement.type === 'FunctionCall' ? currentStatement.statement.name : null,
                     result: result 
@@ -153,6 +154,7 @@ class CarLangEngine {
             }
             return { 
                 status: 'CONTINUE', 
+                currentLine: currentStatement.statement.line,
                 commandType: currentStatement.statement.type,
                 functionName: currentStatement.statement.type === 'FunctionCall' ? currentStatement.statement.name : null,
                 result: result 

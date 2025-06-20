@@ -329,7 +329,8 @@ class CarLangParser {
             type: 'VariableDeclaration',
             varType: type.value,
             name: identifier.value,
-            value: expression
+            value: expression,
+            line: type.line
         };
     }
 
@@ -342,7 +343,8 @@ class CarLangParser {
         return {
             type: 'Assignment',
             name: identifier.value,
-            value: expression
+            value: expression,
+            line: identifier.line
         };
     }
 
@@ -364,7 +366,8 @@ class CarLangParser {
         return {
             type: 'FunctionCall',
             name: name.value,
-            arguments: args
+            arguments: args,
+            line: name.line
         };
     }
 
@@ -375,7 +378,7 @@ class CarLangParser {
     }
 
     parseIfStatement() {
-        this.match('KEYWORD', 'if');
+        const ifKeyword = this.match('KEYWORD', 'if');
         this.match('PUNCTUATION', '(');
         const condition = this.parseExpression();
         this.match('PUNCTUATION', ')');
@@ -406,12 +409,13 @@ class CarLangParser {
             condition: condition,
             thenBody: thenBlock,
             elseIfs: elseIfs,
-            elseBody: elseBlock
+            elseBody: elseBlock,
+            line: ifKeyword.line
         };
     }
 
     parseWhileStatement() {
-        this.match('KEYWORD', 'while');
+        const whileKeyword = this.match('KEYWORD', 'while');
         this.match('PUNCTUATION', '(');
         const condition = this.parseExpression();
         this.match('PUNCTUATION', ')');
@@ -420,12 +424,13 @@ class CarLangParser {
         return {
             type: 'WhileStatement',
             condition: condition,
-            body: body
+            body: body,
+            line: whileKeyword.line
         };
     }
 
     parseForStatement() {
-        this.match('KEYWORD', 'for');
+        const forKeyword = this.match('KEYWORD', 'for');
         this.match('PUNCTUATION', '(');
         const init = this.parseVariableDeclaration();
         const condition = this.parseExpression();
@@ -441,7 +446,8 @@ class CarLangParser {
             initialization: init,
             condition: condition,
             increment: increment,
-            body: body
+            body: body,
+            line: forKeyword.line
         };
     }
 
@@ -453,7 +459,8 @@ class CarLangParser {
         return {
             type: 'Assignment',
             name: identifier.value,
-            value: expression
+            value: expression,
+            line: identifier.line
         };
     }
 
@@ -559,7 +566,7 @@ class CarLangParser {
 
     // Additional parsing methods for remaining grammar rules
     parseSwitchStatement() {
-        this.match('KEYWORD', 'switch');
+        const switchKeyword = this.match('KEYWORD', 'switch');
         this.match('PUNCTUATION', '(');
         const expression = this.parseExpression();
         this.match('PUNCTUATION', ')');
@@ -611,12 +618,13 @@ class CarLangParser {
             type: 'SwitchStatement',
             expression: expression,
             cases: cases,
-            defaultCase: defaultCase
+            defaultCase: defaultCase,
+            line: switchKeyword.line
         };
     }
 
     parseTryCatch() {
-        this.match('KEYWORD', 'try');
+        const tryKeyword = this.match('KEYWORD', 'try');
         const tryBlock = this.parseBlock();
         this.match('KEYWORD', 'catch');
         this.match('PUNCTUATION', '(');
@@ -628,12 +636,13 @@ class CarLangParser {
             type: 'TryCatch',
             tryBody: tryBlock,
             errorVariable: errorVar.value,
-            catchBody: catchBlock
+            catchBody: catchBlock,
+            line: tryKeyword.line
         };
     }
 
     parseReturnStatement() {
-        this.match('KEYWORD', 'return');
+        const returnKeyword = this.match('KEYWORD', 'return');
         let value = null;
         if (!this.check('PUNCTUATION', ';')) {
             value = this.parseExpression();
@@ -642,25 +651,28 @@ class CarLangParser {
         
         return {
             type: 'ReturnStatement',
-            value: value
+            value: value,
+            line: returnKeyword.line
         };
     }
 
     parseBreakStatement() {
-        this.match('KEYWORD', 'break');
+        const breakKeyword = this.match('KEYWORD', 'break');
         this.match('PUNCTUATION', ';');
         
         return {
-            type: 'BreakStatement'
+            type: 'BreakStatement',
+            line: breakKeyword.line
         };
     }
 
     parseContinueStatement() {
-        this.match('KEYWORD', 'continue');
+        const continueKeyword = this.match('KEYWORD', 'continue');
         this.match('PUNCTUATION', ';');
         
         return {
-            type: 'ContinueStatement'
+            type: 'ContinueStatement',
+            line: continueKeyword.line
         };
     }
 }
