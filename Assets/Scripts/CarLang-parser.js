@@ -230,6 +230,30 @@ class CarLangParser {
                 comment: comment
             };
         }
+        
+        // If we get here, we couldn't parse anything on this line
+        // Check if there are any tokens left that aren't whitespace or comments
+        const currentToken = this.peek();
+        if (currentToken && currentToken.type !== 'EOF') {
+            // There's something on this line we couldn't parse - report an error
+            const line = currentToken.line || this.lineNumber;
+            const context = this.getErrorContext(line);
+            this.errors.push(`Line ${line}: Unrecognized statement or syntax error${context}`);
+            
+            // Try to advance past the problematic token to continue parsing
+            this.advance();
+            
+            // Return a placeholder line to indicate there was content
+            return {
+                type: 'Line',
+                statement: {
+                    type: 'Error',
+                    message: `Unrecognized statement at line ${line}`
+                },
+                comment: null
+            };
+        }
+        
         return null;
     }
 
@@ -255,7 +279,7 @@ class CarLangParser {
             if (nextToken && nextToken.value === '=') {
                 return this.parseAssignment();
             } else if (nextToken && nextToken.value === '(') {
-                return this.parseFunctionCall();
+                return this.parseFunctionCallStatement();
             }
         }
         
@@ -336,13 +360,18 @@ class CarLangParser {
         }
         
         this.match('PUNCTUATION', ')');
-        this.match('PUNCTUATION', ';');
         
         return {
             type: 'FunctionCall',
             name: name.value,
             arguments: args
         };
+    }
+
+    parseFunctionCallStatement() {
+        const functionCall = this.parseFunctionCall();
+        this.match('PUNCTUATION', ';');
+        return functionCall;
     }
 
     parseIfStatement() {

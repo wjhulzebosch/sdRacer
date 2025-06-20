@@ -47,6 +47,11 @@ function saveCode() {
     localStorage.setItem('sdRacer_code_' + currentLevelId, codeArea.value);
     saveBtn.textContent = 'Saved!';
     setTimeout(() => saveBtn.textContent = 'Save', 1000);
+    
+    // Trigger live parser update
+    if (window.liveParser) {
+        window.liveParser.checkCode();
+    }
 }
 
 function handleLoadBtn() {
@@ -246,6 +251,12 @@ async function playCode() {
     try {
         playBtn.disabled = true;
         hideWinMessage();
+        
+        // First, run checkCode to show AST and validation
+        if (window.liveParser) {
+            window.liveParser.checkCode();
+        }
+        
         const gameDiv = document.getElementById('game');
         
         // Use new CarLang parser and interpreter
@@ -256,7 +267,15 @@ async function playCode() {
             throw new Error(`Parse errors: ${ast.errors.join(', ')}`);
         }
         
+        // Validate before execution
         const interpreter = new CarLangInterpreter(car, level, gameDiv);
+        const validation = interpreter.validate(ast);
+        
+        if (!validation.valid) {
+            throw new Error(`Validation errors: ${validation.errors.join(', ')}`);
+        }
+        
+        // Execute if validation passes
         await interpreter.execute(ast);
         
         if (isAtFinish()) {

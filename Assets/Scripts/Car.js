@@ -89,4 +89,19 @@ class Car {
         }
         carDiv.style.transform = `rotate(${rotation}deg)`;
     }
+
+    // Check if the car can move forward (is there a road ahead?)
+    canMove(level) {
+        let newX = this.currentPosition.x;
+        let newY = this.currentPosition.y;
+        switch (this.direction) {
+            case 'N': newY -= 1; break;
+            case 'E': newX += 1; break;
+            case 'S': newY += 1; break;
+            case 'W': newX -= 1; break;
+        }
+        const tile = level.getTile(newX, newY);
+        // Return true if the tile exists and is not '0000' (grass)
+        return !!(tile && tile !== '0000');
+    }
 } 
