@@ -55,7 +55,7 @@ class Level {
                 tileDiv.style.top = (y * tileSize) + 'px';
                 tileDiv.style.width = tileSize + 'px';
                 tileDiv.style.height = tileSize + 'px';
-                tileDiv.style.backgroundImage = `url('Assets/Textures/Tiles/Road-${code}.png')`;
+                tileDiv.style.backgroundImage = `url('Assets/Textures/tiles/Road-${code}.png')`;
                 tileDiv.style.backgroundSize = 'cover';
                 tileDiv.style.boxSizing = 'border-box';
                 gameDiv.appendChild(tileDiv);

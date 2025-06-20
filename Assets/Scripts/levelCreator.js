@@ -48,7 +48,7 @@ function renderGrid() {
             cell.className = 'cell';
             cell.style.left = (x * 48) + 'px';
             cell.style.top = (y * 48) + 'px';
-            cell.style.backgroundImage = `url('Assets/Textures/Tiles/Road-${grid[y][x]}.png')`;
+            cell.style.backgroundImage = `url('Assets/Textures/tiles/Road-${grid[y][x]}.png')`;
             cell.style.backgroundSize = 'cover';
             cell.title = grid[y][x];
             if (carPos && carPos[0] === y && carPos[1] === x) cell.classList.add('car-here');
