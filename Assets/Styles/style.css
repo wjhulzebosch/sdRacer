@@ -96,3 +96,98 @@ h1 {
 .car {
     transition: left 1s linear, top 1s linear, transform 1s linear;
 }
+
+/* Info Overlay Styles */
+.info-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.8);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.info-content {
+    background: #23272b;
+    border-radius: 12px;
+    max-width: 600px;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    border: 2px solid #333;
+}
+
+.info-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 2px solid #333;
+    background: #1a1e22;
+    border-radius: 10px 10px 0 0;
+}
+
+.info-header h2 {
+    margin: 0;
+    color: #f0f0f0;
+    font-size: 1.5rem;
+}
+
+.close-btn {
+    background: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    font-size: 1.2rem;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+.close-btn:hover {
+    background: #c82333;
+}
+
+.info-body {
+    padding: 24px;
+    color: #e0e0e0;
+    line-height: 1.6;
+}
+
+.info-body h3 {
+    color: #f0f0f0;
+    margin-top: 24px;
+    margin-bottom: 12px;
+    font-size: 1.2rem;
+}
+
+.info-body p {
+    margin-bottom: 16px;
+}
+
+.info-body ul {
+    margin: 16px 0;
+    padding-left: 24px;
+}
+
+.info-body li {
+    margin-bottom: 8px;
+}
+
+.info-body code {
+    background: #1a1e22;
+    color: #4ade80;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'Fira Mono', 'Consolas', monospace;
+    font-size: 0.9rem;
+}

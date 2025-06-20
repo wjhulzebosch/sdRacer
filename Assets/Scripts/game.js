@@ -78,6 +78,16 @@ function hideWinMessage() {
     winDiv.style.display = 'none';
 }
 
+function showInfoOverlay() {
+    const infoOverlay = document.getElementById('info-overlay');
+    infoOverlay.style.display = 'flex';
+}
+
+function hideInfoOverlay() {
+    const infoOverlay = document.getElementById('info-overlay');
+    infoOverlay.style.display = 'none';
+}
+
 function isAtFinish() {
     if (!car || !finishPos) return false;
     return car.currentPosition.x === finishPos[0] && car.currentPosition.y === finishPos[1];
@@ -386,6 +396,13 @@ function startGame() {
     loadBtn.onclick = handleLoadBtn;
     playBtn.onclick = playCode;
     resetBtn.onclick = resetCode;
+    
+    // Set up info overlay buttons
+    const infoBtn = document.getElementById('infoBtn');
+    const closeInfoBtn = document.getElementById('closeInfoBtn');
+    if (infoBtn) infoBtn.onclick = showInfoOverlay;
+    if (closeInfoBtn) closeInfoBtn.onclick = hideInfoOverlay;
+    
     setupWinButtons();
     
     const levelId = getLevelIdFromURL();
