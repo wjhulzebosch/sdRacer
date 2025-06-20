@@ -22,7 +22,8 @@ class CarLangEngine {
         this.delayedCommands = [
             'moveForward',
             'moveBackward',
-            'rotate'
+            'turnRight',
+            'turnLeft'
             // Add more visual commands here as needed
         ];
         
@@ -30,7 +31,8 @@ class CarLangEngine {
         this.functionMap = {
             'moveForward': () => this.car.moveForward(this.level, this.gameDiv),
             'moveBackward': () => this.car.moveBackward(this.level, this.gameDiv),
-            'rotate': (degree) => this.car.rotate(degree, this.gameDiv),
+            'turnRight': () => this.car.turnRight(this.gameDiv),
+            'turnLeft': () => this.car.turnLeft(this.gameDiv),
             'explode': () => this.car.crash(this.gameDiv),
             'canMove': () => this.car.canMove(this.level)
         };
@@ -39,7 +41,8 @@ class CarLangEngine {
         this.functionValidation = {
             'moveForward': { args: 0, description: 'Move car forward one tile' },
             'moveBackward': { args: 0, description: 'Move car backward one tile' },
-            'rotate': { args: 1, description: 'Rotate car by degrees (must be multiple of 90)' },
+            'turnRight': { args: 0, description: 'Turn car right by 90 degrees' },
+            'turnLeft': { args: 0, description: 'Turn car left by 90 degrees' },
             'explode': { args: 0, description: 'Make car crash' },
             'canMove': { args: 0, description: 'Check if car can move forward' }
         };
@@ -56,10 +59,13 @@ class CarLangEngine {
         this.functions = {};
         this.isExecuting = true;
         
+        // Filter out lines that have no statements (only comments)
+        const statementsWithContent = ast.body.filter(line => line.statement !== null);
+        
         // Create initial execution context for the main body
         this.currentContext = {
             type: 'main',
-            statements: ast.body,
+            statements: statementsWithContent,
             currentIndex: 0,
             parent: null
         };
@@ -654,15 +660,6 @@ class CarLangEngine {
             if (args.length !== validation.args) {
                 const lineNumber = this.getLineNumber(line);
                 errors.push(`Line ${lineNumber}: '${functionName}' expects ${validation.args} argument(s), got ${args.length}`);
-            }
-            
-            // Special validation for rotate
-            if (functionName === 'rotate' && args.length === 1) {
-                const arg = args[0];
-                if (arg.type === 'Literal' && arg.value % 90 !== 0) {
-                    const lineNumber = this.getLineNumber(line);
-                    errors.push(`Line ${lineNumber}: 'rotate' argument must be a multiple of 90`);
-                }
             }
         }
     }

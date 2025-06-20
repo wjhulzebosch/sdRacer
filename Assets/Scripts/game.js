@@ -1,11 +1,6 @@
 // For now, hardcode a level id and default code
 const LEVEL_ID = 'level1';
-const DEFAULT_CODE = `// Write your CarLang code here!
-int steps = 3;
-for (int i = 0; i < steps; i = i + 1) {
-    moveForward();
-    rotate(90);
-}`;
+const DEFAULT_CODE = `// Write your CarLang code here!`;
 
 let codeArea, saveBtn, loadBtn, playBtn, resetBtn;
 let car = null;
@@ -285,11 +280,7 @@ function setupWinButtons() {
     };
     nextLevelBtn.onclick = () => {
         hideWinMessage();
-        const idx = allLevels.findIndex(lvl => lvl.id === currentLevelId);
-        if (idx !== -1 && idx + 1 < allLevels.length) {
-            const nextLevelId = allLevels[idx + 1].id;
-            updateURLAndLoadLevel(nextLevelId);
-        }
+        showLevelSelector();
     };
 }
 

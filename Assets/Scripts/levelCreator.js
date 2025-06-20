@@ -145,21 +145,30 @@ function setLevelDetails(level) {
     document.getElementById('instructions').value = level.Instructions || '';
     carPos = (level.start && level.start.length === 2) ? level.start.slice() : null;
     finishPos = (level.end && level.end.length === 2) ? level.end.slice() : null;
-    document.getElementById('start').value = carPos ? carPos.join(',') : '';
-    document.getElementById('end').value = finishPos ? finishPos.join(',') : '';
     document.getElementById('defaultCode').value = level.defaultCode || '';
     if (level.rows) {
         rows = level.rows.length;
         cols = level.rows[0].length;
         widthInput.value = cols;
         heightInput.value = rows;
-        grid = level.rows.map(row => row.slice());
+        // Ensure all tile codes are strings
+        grid = level.rows.map(row => row.map(cell => String(cell)));
         renderGrid();
     } else {
         renderGrid();
     }
 }
 document.getElementById('showJsonBtn').onclick = () => {
+    // Validate that car and finish positions are set
+    if (!carPos) {
+        alert('Error: Please place the car first by clicking the car icon and then clicking on the grid.');
+        return;
+    }
+    if (!finishPos) {
+        alert('Error: Please place the finish line first by clicking the finish icon and then clicking on the grid.');
+        return;
+    }
+    
     const levelData = getLevelDetails();
     
     // Custom JSON formatter that keeps arrays on single lines
@@ -170,7 +179,14 @@ document.getElementById('showJsonBtn').onclick = () => {
         if (Array.isArray(obj)) {
             if (obj.length === 0) return '[]';
             if (obj.every(item => typeof item === 'string' || typeof item === 'number')) {
-                return '[' + obj.join(', ') + ']';
+                // Format strings with quotes, numbers without
+                const formattedItems = obj.map(item => {
+                    if (typeof item === 'string') {
+                        return JSON.stringify(item);
+                    }
+                    return String(item);
+                });
+                return '[' + formattedItems.join(', ') + ']';
             }
             return '[\n' + obj.map(item => nextSpaces + formatJSON(item, indent + 1)).join(',\n') + '\n' + spaces + ']';
         }

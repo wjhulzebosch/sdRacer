@@ -9,16 +9,47 @@
             "Instructions": "Move the car to the finish line using the moveForward() function.",
             "start": [3, 0],
             "end": [0, 0],
-            "defaultCode": "ErrorCauser(RemoveThisLine);\nint runs = 0;\nwhile(true) {\n    if (canMove()) {\n        moveForward();\n        if(runs == 0) {\n            moveBackward();\n        } else if(runs == 1){\n            for(int i = 0; i < 4; i = i + 1) {\n                rotate(90);\n            }            \n        }\n        runs = runs + 1;\n    } else {\n        rotate(90);\n    }\n}",
+            "defaultCode": "ErrorCauser(RemoveThisLine);\nint runs = 0;\nwhile(true) {\n    if (canMove()) {\n        moveForward();\n        if(runs == 0) {\n            moveBackward();\n        } else if(runs == 1){\n            for(int i = 0; i < 4; i = i + 1) {\n                turnRight();\n            }            \n        }\n        runs = runs + 1;\n    } else {\n        turnRight();\n    }\n}",
             "rows": [
-                [1010],
-                [1010],
-                [1010],
-                [1010]
+                ["1010"],
+                ["1010"],
+                ["1010"],
+                ["1010"]
+            ]
+        },
+        {
+            "id": "2",
+            "category": "Tutorial",
+            "name": "Level 1 - Moving forward",
+            "author": "sdRacer",
+            "WinCondition": "IsAtFinish()",
+            "Instructions": "Move the car to the finish line using the moveForward() function.",
+            "start": [3, 0],
+            "end": [0, 0],
+            "defaultCode": "// Write your CarLang code here, then press \"Check code\" to\n// check your code or \"Play\" to play your code.\nmoveForward();",
+            "rows": [
+                ["1010"],
+                ["1010"],
+                ["1010"],
+                ["1010"]
+            ]
+        },
+        {
+            "id": "3",
+            "category": "Tutorial",
+            "name": "Level 2 - Turning a page",
+            "author": "sdRacer",
+            "WinCondition": "IsAtFinish()",
+            "Instructions": "Move the car to the finish line using the moveForward(), turnRight(), and turnLeft() functions.",
+            "start": [3, 1],
+            "end": [0, 0],
+            "defaultCode": "",
+            "rows": [
+                ["0010", "0000", "0000", "0000"],
+                ["1100", "0011", "0000", "0000"],
+                ["0000", "1010", "0000", "0000"],
+                ["0000", "1000", "0000", "0000"]
             ]
         }
-
-
-
     ]
 }

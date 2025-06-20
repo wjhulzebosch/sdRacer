@@ -4,6 +4,7 @@ class Car {
         this.direction = direction; // 'N', 'E', 'S', 'W'
         this.directions = ['N', 'E', 'S', 'W'];
         this.crashed = false;
+        this.visualRotation = 0; // Track visual rotation separately
     }
 
     // Move the car forward by 1 tile
@@ -26,13 +27,21 @@ class Car {
         }
     }
 
-    // Rotate the car by degree (must be multiple of 90)
-    rotate(degree, gameDiv, tileSize = 64) {
-        if (typeof degree !== 'number' || degree % 90 !== 0) return;
-        const steps = ((degree / 90) % 4 + 4) % 4; // normalize to 0-3
+    // Turn the car right by 90 degrees
+    turnRight(gameDiv, tileSize = 64) {
         let idx = this.directions.indexOf(this.direction);
-        idx = (idx + steps) % 4;
+        idx = (idx + 1) % 4;
         this.direction = this.directions[idx];
+        this.visualRotation += 90; // Increment visual rotation by 90 degrees
+        this.render(gameDiv, tileSize);
+    }
+
+    // Turn the car left by 90 degrees
+    turnLeft(gameDiv, tileSize = 64) {
+        let idx = this.directions.indexOf(this.direction);
+        idx = (idx - 1 + 4) % 4;
+        this.direction = this.directions[idx];
+        this.visualRotation -= 90; // Decrement visual rotation by 90 degrees
         this.render(gameDiv, tileSize);
     }
 
@@ -100,15 +109,8 @@ class Car {
         carDiv.style.left = (this.currentPosition.x * tileSize) + 'px';
         carDiv.style.top = (this.currentPosition.y * tileSize) + 'px';
         carDiv.style.backgroundImage = this.crashed ? "url('Assets/Textures/wreck.png')" : "url('Assets/Textures/Car.png')";
-        // Rotate the car visually
-        let rotation = 0;
-        switch (this.direction) {
-            case 'N': rotation = 0; break;
-            case 'E': rotation = 90; break;
-            case 'S': rotation = 180; break;
-            case 'W': rotation = 270; break;
-        }
-        carDiv.style.transform = `rotate(${rotation}deg)`;
+        // Use the visual rotation value directly
+        carDiv.style.transform = `rotate(${this.visualRotation}deg)`;
     }
 
     // Check if the car can move forward (is there a road ahead?)
