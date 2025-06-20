@@ -6,72 +6,14 @@
             "name": "Tutorial - Level 1",
             "Description": "Tutorial for moving",
             "defaultCode": "while(true) {\nif (canMove()) {\nthisCausesAnError(3)?;\nmoveForward();\n } else { \nrotate(90);\n }\n}",
-            "start": [0, 0],
-            "end": [3, 0],
+            "start": [3, 0],
+            "end": [0, 0],
             "Instructions": "Move the car forward using the moveForward() function.",
             "rows": [
                 ["1010"],
                 ["1010"],
                 ["1010"],
                 ["1010"]
-            ]
-        },
-        {
-            "id": "2",
-            "category": "Tutorial",
-            "name": "Tutorial - Level 2",
-            "Description": "Tutorial for rotating",
-            "defaultCode": "rotate(90);\nmoveForward();\nrotate(90);\nmoveForward();",
-            "start": [0, 0],
-            "end": [3, 3],
-            "Instructions": "Navigate through the maze to reach the finish.",
-            "rows": [
-                ["1010", "1010", "1010", "1010"],
-                ["1010", "1111", "1010", "1010"],
-                ["1010", "1010", "1010", "1010"],
-                ["1010", "1010", "1010", "1010"]
-            ]
-        },
-        {
-            "id": "3",
-            "category": "Test",
-            "name": "Test level 3",
-            "Description": "1e level met levelgenerator",
-            "Instructions": "Bla",
-            "start": [
-              0,
-              0
-            ],
-            "end": [
-              3,
-              1
-            ],
-            "defaultCode": "moveForward();",
-            "rows": [
-              [
-                "0010",
-                "0000",
-                "0000",
-                "0000"
-              ],
-              [
-                "1010",
-                "0000",
-                "0000",
-                "0000"
-              ],
-              [
-                "1010",
-                "0000",
-                "0000",
-                "0000"
-              ],
-              [
-                "1100",
-                "0001",
-                "0000",
-                "0000"
-              ]
             ]
         }
     ]

@@ -403,6 +403,10 @@ function startGame() {
     if (infoBtn) infoBtn.onclick = showInfoOverlay;
     if (closeInfoBtn) closeInfoBtn.onclick = hideInfoOverlay;
     
+    // Set up home button
+    const homeBtn = document.getElementById('homeBtn');
+    if (homeBtn) homeBtn.onclick = goHome;
+    
     setupWinButtons();
     
     const levelId = getLevelIdFromURL();
@@ -418,6 +422,11 @@ function startGame() {
             })
             .catch(err => console.error('Failed to load levels: ' + err));
     }
+}
+
+function goHome() {
+    // Navigate to root URL to show level selector
+    window.location.href = '/sdRacer/';
 }
 
 window.addEventListener('DOMContentLoaded', startGame);
