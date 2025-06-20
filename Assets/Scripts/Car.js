@@ -62,6 +62,27 @@ class Car {
         this.render(gameDiv, tileSize);
     }
 
+    moveBackward(level, gameDiv, tileSize = 64) {
+        // Calculate new position
+        let newX = this.currentPosition.x;
+        let newY = this.currentPosition.y;
+        switch (this.direction) {
+            case 'N': newY += 1; break;
+            case 'E': newX -= 1; break;
+            case 'S': newY -= 1; break;
+            case 'W': newX += 1; break;
+        }
+        // Check if new position is a road
+        const tile = level.getTile(newX, newY);
+        if (!tile || tile === '0000') {
+            this.currentPosition = { x: newX, y: newY };
+            this.crash(gameDiv, tileSize);
+            return;
+        }
+        this.currentPosition = { x: newX, y: newY };
+        this.render(gameDiv, tileSize);
+    }
+
     // Render the car as a 64x64 div at its current position
     render(parent, tileSize = 64) {
         // Find or create the car div
