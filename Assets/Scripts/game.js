@@ -1,6 +1,11 @@
 // For now, hardcode a level id and default code
 const LEVEL_ID = 'level1';
-const DEFAULT_CODE = `// Write your code here!\nfunction drive() {\n    // Example: moveForward();\n}`;
+const DEFAULT_CODE = `// Write your CarLang code here!
+int steps = 3;
+for (int i = 0; i < steps; i = i + 1) {
+    moveForward();
+    rotate(90);
+}`;
 
 let codeArea, saveBtn, loadBtn, playBtn, resetBtn;
 let car = null;
@@ -8,7 +13,7 @@ let level = null;
 let currentLevelId = '1';
 let finishPos = null;
 let allLevels = [];
-let interpreter = null;
+let carlangInterpreter = null;
 let isRunning = false;
 
 function getCodeArea() {
@@ -29,7 +34,13 @@ function getResetBtn() {
 
 function loadCode() {
     const saved = localStorage.getItem('sdRacer_code_' + currentLevelId);
-    codeArea.value = saved !== null ? saved : DEFAULT_CODE;
+    if (saved !== null) {
+        codeArea.value = saved;
+    } else if (level && level.defaultCode) {
+        codeArea.value = level.defaultCode;
+    } else {
+        codeArea.value = DEFAULT_CODE;
+    }
 }
 
 function saveCode() {
@@ -236,8 +247,18 @@ async function playCode() {
         playBtn.disabled = true;
         hideWinMessage();
         const gameDiv = document.getElementById('game');
-        const interpreter = new Interpreter(car, level, gameDiv);
-        await interpreter.run(codeArea.value);
+        
+        // Use new CarLang parser and interpreter
+        const parser = new CarLangParser();
+        const ast = parser.parse(codeArea.value);
+        
+        if (ast.errors && ast.errors.length > 0) {
+            throw new Error(`Parse errors: ${ast.errors.join(', ')}`);
+        }
+        
+        const interpreter = new CarLangInterpreter(car, level, gameDiv);
+        await interpreter.execute(ast);
+        
         if (isAtFinish()) {
             showWinMessage();
         }
@@ -245,6 +266,7 @@ async function playCode() {
         setTimeout(() => playBtn.textContent = 'Play', 1000);
     } catch (e) {
         console.error('Error in code: ' + e.message);
+        alert('Error: ' + e.message);
     } finally {
         playBtn.disabled = false;
     }
