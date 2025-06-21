@@ -500,11 +500,18 @@ function setLevelDetails(level) {
     document.getElementById('category').value = level.category || '';
     document.getElementById('name').value = level.name || '';
     document.getElementById('author').value = level.author || '';
-    document.getElementById('winCondition').value = level.winCondition || 'IsAtFinish()';
-    document.getElementById('instructions').value = level.instructions || '';
+    document.getElementById('winCondition').value = level.WinCondition || level.winCondition || 'IsAtFinish()';
+    document.getElementById('instructions').value = level.Instructions || level.instructions || '';
     document.getElementById('defaultCode').value = level.defaultCode || '';
     
-    if (level.grid) {
+    // Handle grid data - Levels.json uses 'rows' instead of 'grid'
+    if (level.rows) {
+        grid = level.rows;
+        rows = grid.length;
+        cols = grid[0].length;
+        widthInput.value = cols;
+        heightInput.value = rows;
+    } else if (level.grid) {
         grid = level.grid;
         rows = grid.length;
         cols = grid[0].length;
@@ -512,17 +519,37 @@ function setLevelDetails(level) {
         heightInput.value = rows;
     }
     
+    // Handle cars data - Levels.json uses different structure
     if (level.cars) {
-        cars = level.cars.map((car, index) => ({
-            ...car,
-            id: Date.now() + index + Math.random()
-        }));
+        cars = level.cars.map((car, index) => {
+            const carData = {
+                id: Date.now() + index + Math.random(),
+                name: car.name,
+                type: car.type,
+                direction: car.direction
+            };
+            
+            // Handle different position formats
+            if (car.position && Array.isArray(car.position)) {
+                carData.y = car.position[0];
+                carData.x = car.position[1];
+            } else if (car.x !== undefined && car.y !== undefined) {
+                carData.x = car.x;
+                carData.y = car.y;
+            }
+            
+            return carData;
+        });
     }
     
-    if (level.finish) {
+    // Handle finish position - Levels.json uses 'end' instead of 'finish'
+    if (level.end && Array.isArray(level.end)) {
+        finishPos = [level.end[0], level.end[1]];
+    } else if (level.finish) {
         finishPos = [level.finish.y, level.finish.x];
     }
     
+    // Handle cows data
     if (level.cows) {
         cows = level.cows.map(cow => ({
             ...cow,
@@ -580,7 +607,10 @@ document.getElementById('loadJsonBtn').onclick = () => {
 async function loadLevelsFromFile() {
     try {
         const response = await fetch('Assets/Maps/Levels.json');
-        const levels = await response.json();
+        const data = await response.json();
+        
+        // Access the levels array from the JSON structure
+        const levels = data.levels || [];
         
         const selector = document.getElementById('levelSelector');
         selector.innerHTML = '<option value="">Select a level...</option>';
