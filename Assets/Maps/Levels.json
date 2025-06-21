@@ -47,7 +47,7 @@
         {
             "id": "3",
             "category": "Simple commands",
-            "name": "2. Turning a page",
+            "name": "2. Turing your car around",
             "author": "sdRacer",
             "WinCondition": "IsAtFinish()",
             "Instructions": "Move the car to the finish line using the moveForward(), turnRight(), and turnLeft() functions.",
