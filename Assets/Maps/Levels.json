@@ -288,8 +288,8 @@
         },
         {
             "id": "12",
-            "category": "Showcase",
-            "name": "Level 2 - Multiple showcases",
+            "category": "OOP Showcase (experimental)",
+            "name": "Level 1 - Multiple showcases",
             "author": "sdRacer",
             "WinCondition": "IsAtFinish()",
             "Instructions": "Move the cars towards the finish, but watch out for cows!",
