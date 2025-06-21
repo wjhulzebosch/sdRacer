@@ -23,7 +23,8 @@ class CarLangEngine {
             'moveForward',
             'moveBackward',
             'turnRight',
-            'turnLeft'
+            'turnLeft',
+            'honk'
             // Add more visual commands here as needed
         ];
         
@@ -34,7 +35,9 @@ class CarLangEngine {
             'turnRight': () => this.car.turnRight(this.gameDiv),
             'turnLeft': () => this.car.turnLeft(this.gameDiv),
             'explode': () => this.car.crash(this.gameDiv),
-            'canMove': () => this.car.canMove(this.level)
+            'isRoadAhead': () => this.car.isRoadAhead(this.level),
+            'isCowAhead': () => this.car.isCowAhead(),
+            'honk': () => this.honk()
         };
         
         // Function validation rules
@@ -44,7 +47,9 @@ class CarLangEngine {
             'turnRight': { args: 0, description: 'Turn car right by 90 degrees' },
             'turnLeft': { args: 0, description: 'Turn car left by 90 degrees' },
             'explode': { args: 0, description: 'Make car crash' },
-            'canMove': { args: 0, description: 'Check if car can move forward' }
+            'isRoadAhead': { args: 0, description: 'Check if there is a road ahead (ignores cows)' },
+            'isCowAhead': { args: 0, description: 'Check if there is a cow ahead (ignores roads)' },
+            'honk': { args: 0, description: 'Honk the car horn' }
         };
     }
 
@@ -130,20 +135,22 @@ class CarLangEngine {
             const oldContextIndex = this.currentContext.currentIndex;
 
             // Execute the current statement
-            const result = this.executeStatement(currentStatement.statement);
+            const result = currentStatement.statement ? this.executeStatement(currentStatement.statement) : null;
             
             // Move to next statement only if we didn't create a new context
             // Check if this was a delayed command
-            if (this.shouldDelay(currentStatement.statement)) {
+            if (currentStatement.statement && this.shouldDelay(currentStatement.statement)) {
                 // Only increment if we're still in the same context
                 if (this.currentContext.type === oldContextType && this.currentContext.currentIndex === oldContextIndex) {
                     this.currentContext.currentIndex++;
                 }
                 return { 
                     status: 'PAUSED', 
-                    currentLine: currentStatement.statement.line,
-                    commandType: currentStatement.statement.type,
-                    functionName: currentStatement.statement.type === 'FunctionCall' ? currentStatement.statement.name : null,
+                    currentLine: currentStatement.statement ? currentStatement.statement.line : null,
+                    blockStartLine: this.currentContext.blockStartLine,
+                    contextType: this.currentContext.type,
+                    commandType: currentStatement.statement ? currentStatement.statement.type : null,
+                    functionName: currentStatement.statement && currentStatement.statement.type === 'FunctionCall' ? currentStatement.statement.name : null,
                     result: result 
                 };
             }
@@ -154,9 +161,11 @@ class CarLangEngine {
             }
             return { 
                 status: 'CONTINUE', 
-                currentLine: currentStatement.statement.line,
-                commandType: currentStatement.statement.type,
-                functionName: currentStatement.statement.type === 'FunctionCall' ? currentStatement.statement.name : null,
+                currentLine: currentStatement.statement ? currentStatement.statement.line : null,
+                blockStartLine: this.currentContext.blockStartLine,
+                contextType: this.currentContext.type,
+                commandType: currentStatement.statement ? currentStatement.statement.type : null,
+                functionName: currentStatement.statement && currentStatement.statement.type === 'FunctionCall' ? currentStatement.statement.name : null,
                 result: result 
             };
             
@@ -319,6 +328,52 @@ class CarLangEngine {
     }
 
     /**
+     * Honk the car horn
+     */
+    honk() {
+        console.log('HONK: Starting honk method');
+        
+        // Play honk sound immediately
+        if (typeof soundController !== 'undefined') {
+            soundController.playCarHorn();
+        }
+        
+        // Get car's current position
+        const carX = this.car.currentPosition.x;
+        const carY = this.car.currentPosition.y;
+        console.log('HONK: Car position:', { x: carX, y: carY });
+        
+        // Check for cows in orthogonally adjacent tiles
+        const adjacentPositions = [
+            { x: carX, y: carY - 1 }, // North
+            { x: carX + 1, y: carY }, // East
+            { x: carX, y: carY + 1 }, // South
+            { x: carX - 1, y: carY }  // West
+        ];
+        console.log('HONK: Checking adjacent positions:', adjacentPositions);
+        
+        // Get cows from the global cows array (defined in game.js)
+        const globalCows = window.cows || [];
+        console.log('HONK: Found cows:', globalCows.length, globalCows);
+        
+        // Check each adjacent position for cows
+        adjacentPositions.forEach((pos, index) => {
+            console.log(`HONK: Checking position ${index}:`, pos);
+            globalCows.forEach((cow, cowIndex) => {
+                console.log(`HONK: Checking cow ${cowIndex}:`, cow);
+                console.log(`HONK: Cow position:`, { x: cow.currentX, y: cow.currentY });
+                console.log(`HONK: Is cow at position?`, cow.isAtPosition(pos.x, pos.y));
+                if (cow.isAtPosition(pos.x, pos.y)) {
+                    console.log(`HONK: Found cow at position ${index}, calling GetHonked()`);
+                    cow.GetHonked();
+                }
+            });
+        });
+        
+        console.log('HONK: Honk method completed');
+    }
+
+    /**
      * Execute if statement
      */
     executeIfStatement(statement) {
@@ -330,7 +385,8 @@ class CarLangEngine {
                 type: 'if-then',
                 statements: statement.thenBody.statements,
                 currentIndex: 0,
-                parent: this.currentContext
+                parent: this.currentContext,
+                blockStartLine: statement.line
             };
         } else {
             // Check else-if conditions
@@ -342,7 +398,8 @@ class CarLangEngine {
                         type: 'if-elseif',
                         statements: elseIf.body.statements,
                         currentIndex: 0,
-                        parent: this.currentContext
+                        parent: this.currentContext,
+                        blockStartLine: statement.line
                     };
                     return;
                 }
@@ -354,7 +411,8 @@ class CarLangEngine {
                     type: 'if-else',
                     statements: statement.elseBody.statements,
                     currentIndex: 0,
-                    parent: this.currentContext
+                    parent: this.currentContext,
+                    blockStartLine: statement.line
                 };
             }
         }
@@ -392,7 +450,8 @@ class CarLangEngine {
                     currentIndex: 0,
                     parent: this.currentContext,
                     loopStatement: statement,
-                    iterations: 0
+                    iterations: 0,
+                    blockStartLine: statement.line
                 };
             }
         }
@@ -430,7 +489,8 @@ class CarLangEngine {
                     currentIndex: 0,
                     parent: this.currentContext,
                     loopStatement: statement,
-                    iterations: 0
+                    iterations: 0,
+                    blockStartLine: statement.line
                 };
             }
             // If condition is false, don't create context (loop body won't execute)

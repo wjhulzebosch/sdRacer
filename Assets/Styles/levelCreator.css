@@ -118,7 +118,7 @@ button:hover {
     top: 0;
     transform: translateX(-4px);
 }
-.car-icon, .finish-icon {
+.car-icon, .finish-icon, .cow-icon {
     width: 40px;
     height: 40px;
     display: inline-block;
@@ -132,7 +132,7 @@ button:hover {
     vertical-align: middle;
     transition: border 0.2s;
 }
-.car-icon.place-mode, .finish-icon.place-mode {
+.car-icon.place-mode, .finish-icon.place-mode, .cow-icon.place-mode {
     border: 2px solid #2d8cff;
     box-shadow: 0 0 8px #2d8cff88;
 }
@@ -158,9 +158,35 @@ button:hover {
     pointer-events: none;
     z-index: 10;
 }
+.cell.cow-here::after {
+    content: '';
+    position: absolute;
+    left: 4px; top: 4px; right: 4px; bottom: 4px;
+    background-image: url('../Textures/Cow.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    pointer-events: none;
+    z-index: 10;
+}
+.cell.cow-secondary-preview::after {
+    content: '';
+    position: absolute;
+    left: 4px; top: 4px; right: 4px; bottom: 4px;
+    background-image: url('../Textures/Cow.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    pointer-events: none;
+    z-index: 10;
+    opacity: 0.5;
+}
 .car-icon {
     background-image: url('../Textures/Car.png') !important;
 }
 .finish-icon {
     background-image: url('../Textures/Finish.png') !important;
+}
+.cow-icon {
+    background-image: url('../Textures/Cow.png') !important;
 } 

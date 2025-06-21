@@ -77,6 +77,15 @@ body {
     margin: 1px 0;
 }
 
+/* Block highlighting styles */
+.line-number.block-start {
+    background-color: #059669 !important;
+    color: #ffffff !important;
+    font-weight: bold !important;
+    border: 2px solid #10b981 !important;
+    box-shadow: 0 0 8px rgba(5, 150, 105, 0.3);
+}
+
 .parser-display {
     width: 100%;
     max-height: 500px;

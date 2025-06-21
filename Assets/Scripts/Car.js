@@ -67,6 +67,16 @@ class Car {
             this.crash(gameDiv, tileSize);
             return;
         }
+        
+        // Check if new position has a cow
+        const globalCows = window.cows || [];
+        const cowAtPosition = globalCows.find(cow => cow.isAtPosition(newX, newY));
+        if (cowAtPosition) {
+            this.currentPosition = { x: newX, y: newY };
+            this.crash(gameDiv, tileSize);
+            return;
+        }
+        
         this.currentPosition = { x: newX, y: newY };
         this.render(gameDiv, tileSize);
     }
@@ -88,6 +98,16 @@ class Car {
             this.crash(gameDiv, tileSize);
             return;
         }
+        
+        // Check if new position has a cow
+        const globalCows = window.cows || [];
+        const cowAtPosition = globalCows.find(cow => cow.isAtPosition(newX, newY));
+        if (cowAtPosition) {
+            this.currentPosition = { x: newX, y: newY };
+            this.crash(gameDiv, tileSize);
+            return;
+        }
+        
         this.currentPosition = { x: newX, y: newY };
         this.render(gameDiv, tileSize);
     }
@@ -113,8 +133,8 @@ class Car {
         carDiv.style.transform = `rotate(${this.visualRotation}deg)`;
     }
 
-    // Check if the car can move forward (is there a road ahead?)
-    canMove(level) {
+    // Check if there is a road ahead (ignores cows)
+    isRoadAhead(level) {
         let newX = this.currentPosition.x;
         let newY = this.currentPosition.y;
         switch (this.direction) {
@@ -126,5 +146,49 @@ class Car {
         const tile = level.getTile(newX, newY);
         // Return true if the tile exists and is not '0000' (grass)
         return !!(tile && tile !== '0000');
+    }
+
+    // Check if it's safe to move forward (road exists AND no cow blocking)
+    isSafeToMove(level) {
+        let newX = this.currentPosition.x;
+        let newY = this.currentPosition.y;
+        switch (this.direction) {
+            case 'N': newY -= 1; break;
+            case 'E': newX += 1; break;
+            case 'S': newY += 1; break;
+            case 'W': newX -= 1; break;
+        }
+        const tile = level.getTile(newX, newY);
+        // Return false if the tile doesn't exist or is grass
+        if (!tile || tile === '0000') {
+            return false;
+        }
+        
+        // Check if new position has a cow
+        const globalCows = window.cows || [];
+        const cowAtPosition = globalCows.find(cow => cow.isAtPosition(newX, newY));
+        if (cowAtPosition) {
+            return false;
+        }
+        
+        // Return true if the tile exists, is not grass, and has no cow
+        return true;
+    }
+
+    // Check if there is a cow ahead (ignores roads)
+    isCowAhead() {
+        let newX = this.currentPosition.x;
+        let newY = this.currentPosition.y;
+        switch (this.direction) {
+            case 'N': newY -= 1; break;
+            case 'E': newX += 1; break;
+            case 'S': newY += 1; break;
+            case 'W': newX -= 1; break;
+        }
+        
+        // Check if new position has a cow
+        const globalCows = window.cows || [];
+        const cowAtPosition = globalCows.find(cow => cow.isAtPosition(newX, newY));
+        return !!cowAtPosition;
     }
 } 

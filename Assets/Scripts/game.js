@@ -10,9 +10,14 @@ let finishPos = null;
 let allLevels = [];
 let carlangInterpreter = null;
 let isRunning = false;
+let cows = []; // Array to store cow instances
+
+// Make cows globally accessible for CarLang engine
+window.cows = cows;
 
 // Line highlighting variables
 let currentHighlightedLine = null;
+let currentHighlightedBlock = null;
 
 // Indentation settings
 const INDENT_SIZE = 4; // Number of spaces per indentation level
@@ -271,8 +276,11 @@ function hideInfoOverlay() {
 }
 
 function isAtFinish() {
-    if (!car || !finishPos) return false;
-    return car.currentPosition.x === finishPos[0] && car.currentPosition.y === finishPos[1];
+    return car && finishPos && car.currentPosition.x === finishPos[0] && car.currentPosition.y === finishPos[1];
+}
+
+function isPositionBlockedByCow(x, y) {
+    return cows.some(cow => cow.blocksMovement(x, y));
 }
 
 function setupWinButtons() {
@@ -616,11 +624,30 @@ function loadCustomLevel(levelData) {
     finishPos = Array.isArray(levelData.end) ? [levelData.end[1] + 1, levelData.end[0] + 1] : undefined;
     level.render(gameDiv, finishPos);
     
-    // Create and render the car
+    // Create and render the car separately, swapping x and y and adding +1 for grass border
     if (levelData.start && Array.isArray(levelData.start)) {
         car = new Car({ position: { x: levelData.start[1] + 1, y: levelData.start[0] + 1 }, direction: 'N' });
         car.render(gameDiv);
     }
+    
+    // Create and render cows if they exist in the level data
+    cows = [];
+    if (levelData.cows && Array.isArray(levelData.cows)) {
+        levelData.cows.forEach(cowData => {
+            // Swap x and y and add +1 for grass border (same as car)
+            const cow = new Cow(
+                cowData.defaultX + 1, 
+                cowData.defaultY + 1, 
+                cowData.secondaryX + 1, 
+                cowData.secondaryY + 1
+            );
+            cow.addToGrid(gameDiv);
+            cows.push(cow);
+        });
+    }
+    
+    // Update global cows array
+    window.cows = cows;
     
     // Load default code
     loadDefaultCode();
@@ -665,6 +692,14 @@ function resetGame() {
         }
     }
     
+    // Reset cows to their default positions
+    cows.forEach(cow => {
+        cow.reset();
+    });
+    
+    // Update global cows array
+    window.cows = cows;
+    
     // Reset execution state
     isRunning = false;
     playBtn.disabled = false;
@@ -696,6 +731,26 @@ function loadLevel(levelId) {
                 car = new Car({ position: { x: levelData.start[1] + 1, y: levelData.start[0] + 1 }, direction: 'N' });
                 car.render(gameDiv);
             }
+            
+            // Create and render cows if they exist in the level data
+            cows = [];
+            if (levelData.cows && Array.isArray(levelData.cows)) {
+                levelData.cows.forEach(cowData => {
+                    // Swap x and y and add +1 for grass border (same as car)
+                    const cow = new Cow(
+                        cowData.defaultX + 1, 
+                        cowData.defaultY + 1, 
+                        cowData.secondaryX + 1, 
+                        cowData.secondaryY + 1
+                    );
+                    cow.addToGrid(gameDiv);
+                    cows.push(cow);
+                });
+            }
+            
+            // Update global cows array
+            window.cows = cows;
+            
             loadDefaultCode();
             
             // Display level instructions
@@ -748,13 +803,17 @@ async function playCode() {
         const gameLoop = () => {
             const result = interpreter.executeNext();
             
-            // Highlight the current line
+            // Highlight the current line and block
             if (result.currentLine) {
-                highlightLine(result.currentLine);
+                highlightLine(result.currentLine, result.blockStartLine, result.contextType);
             }
             
             switch (result.status) {
                 case 'CONTINUE':
+                    // Play honk sound if honk command was executed
+                    if (result.functionName === 'honk' && typeof soundController !== 'undefined') {
+                        soundController.playCarHorn();
+                    }
                     // Continue immediately
                     requestAnimationFrame(gameLoop);
                     break;
@@ -769,6 +828,7 @@ async function playCode() {
                                 return; // Stop execution on win
                             }
                         }
+                        
                         requestAnimationFrame(gameLoop);
                     }, 1000); // 1 second delay for visual commands
                     break;
@@ -882,44 +942,66 @@ function updateLineNumbers() {
     lineNumbersDiv.innerHTML = lineNumbersHTML;
 }
 
-function highlightLine(lineNumber) {
+function highlightLine(lineNumber, blockStartLine = null, contextType = null) {
     // Clear previous highlighting
     clearLineHighlighting();
     
     if (lineNumber && lineNumber > 0) {
-        // Create a temporary div to hold the highlighted line
-        const codeText = codeArea.value;
-        const lines = codeText.split('\n');
+        const lineNumbersDiv = document.getElementById('line-numbers');
+        const lineNumberElements = lineNumbersDiv.querySelectorAll('.line-number');
         
-        if (lineNumber <= lines.length) {
-            // Create a visual indicator for the highlighted line
-            const lineNumbersDiv = document.getElementById('line-numbers');
-            const lineNumberElements = lineNumbersDiv.querySelectorAll('.line-number');
+        if (lineNumber <= lineNumberElements.length) {
+            // Highlight current line
+            lineNumberElements[lineNumber - 1].style.backgroundColor = '#3b82f6';
+            lineNumberElements[lineNumber - 1].style.color = '#ffffff';
+            lineNumberElements[lineNumber - 1].style.fontWeight = 'bold';
+            lineNumberElements[lineNumber - 1].style.borderRadius = '4px';
+            currentHighlightedLine = lineNumber;
             
-            if (lineNumberElements[lineNumber - 1]) {
-                lineNumberElements[lineNumber - 1].style.backgroundColor = '#3b82f6';
-                lineNumberElements[lineNumber - 1].style.color = '#ffffff';
-                lineNumberElements[lineNumber - 1].style.fontWeight = 'bold';
-                lineNumberElements[lineNumber - 1].style.borderRadius = '4px';
-                currentHighlightedLine = lineNumber;
+            // Highlight block if we're in a control structure
+            if (blockStartLine && contextType && ['if-then', 'if-elseif', 'if-else', 'while', 'for'].includes(contextType)) {
+                highlightBlock(blockStartLine, lineNumberElements);
+                currentHighlightedBlock = blockStartLine;
             }
         }
     }
 }
 
-function clearLineHighlighting() {
-    if (currentHighlightedLine) {
-        const lineNumbersDiv = document.getElementById('line-numbers');
-        const lineNumberElements = lineNumbersDiv.querySelectorAll('.line-number');
-        
-        if (lineNumberElements[currentHighlightedLine - 1]) {
-            lineNumberElements[currentHighlightedLine - 1].style.backgroundColor = '';
-            lineNumberElements[currentHighlightedLine - 1].style.color = '#666';
-            lineNumberElements[currentHighlightedLine - 1].style.fontWeight = '';
-            lineNumberElements[currentHighlightedLine - 1].style.borderRadius = '';
-        }
-        currentHighlightedLine = null;
+function highlightBlock(blockStartLine, lineNumberElements) {
+    if (blockStartLine && blockStartLine > 0 && blockStartLine <= lineNumberElements.length) {
+        // Highlight the block start line with a different color
+        lineNumberElements[blockStartLine - 1].style.backgroundColor = '#059669';
+        lineNumberElements[blockStartLine - 1].style.color = '#ffffff';
+        lineNumberElements[blockStartLine - 1].style.fontWeight = 'bold';
+        lineNumberElements[blockStartLine - 1].style.borderRadius = '4px';
+        lineNumberElements[blockStartLine - 1].style.border = '2px solid #10b981';
     }
+}
+
+function clearLineHighlighting() {
+    const lineNumbersDiv = document.getElementById('line-numbers');
+    const lineNumberElements = lineNumbersDiv.querySelectorAll('.line-number');
+    
+    // Clear current line highlighting
+    if (currentHighlightedLine && lineNumberElements[currentHighlightedLine - 1]) {
+        lineNumberElements[currentHighlightedLine - 1].style.backgroundColor = '';
+        lineNumberElements[currentHighlightedLine - 1].style.color = '#666';
+        lineNumberElements[currentHighlightedLine - 1].style.fontWeight = '';
+        lineNumberElements[currentHighlightedLine - 1].style.borderRadius = '';
+        lineNumberElements[currentHighlightedLine - 1].style.border = '';
+    }
+    
+    // Clear block highlighting
+    if (currentHighlightedBlock && lineNumberElements[currentHighlightedBlock - 1]) {
+        lineNumberElements[currentHighlightedBlock - 1].style.backgroundColor = '';
+        lineNumberElements[currentHighlightedBlock - 1].style.color = '#666';
+        lineNumberElements[currentHighlightedBlock - 1].style.fontWeight = '';
+        lineNumberElements[currentHighlightedBlock - 1].style.borderRadius = '';
+        lineNumberElements[currentHighlightedBlock - 1].style.border = '';
+    }
+    
+    currentHighlightedLine = null;
+    currentHighlightedBlock = null;
 }
 
 window.addEventListener('DOMContentLoaded', startGame);

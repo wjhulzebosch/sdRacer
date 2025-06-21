@@ -10,10 +10,15 @@ const widthInput = document.getElementById('width');
 const heightInput = document.getElementById('height');
 let carPos = null;
 let finishPos = null;
-let placeMode = null; // 'car' or 'finish' or null
+let cows = []; // Array to store cow data: [{defaultX, defaultY, secondaryX, secondaryY, currentX, currentY}]
+let placeMode = null; // 'car', 'finish', 'cow', or null
+let cowPlacementStep = 'default'; // 'default' or 'secondary' for cow placement
+let tempSecondaryPos = null; // Temporary secondary position during placement
 
 const carIcon = document.getElementById('carIcon');
 const finishIcon = document.getElementById('finishIcon');
+const cowIcon = document.getElementById('cowIcon');
+
 carIcon.onclick = () => {
     placeMode = placeMode === 'car' ? null : 'car';
     updatePlaceModeUI();
@@ -22,9 +27,16 @@ finishIcon.onclick = () => {
     placeMode = placeMode === 'finish' ? null : 'finish';
     updatePlaceModeUI();
 };
+cowIcon.onclick = () => {
+    placeMode = placeMode === 'cow' ? null : 'cow';
+    cowPlacementStep = 'default';
+    updatePlaceModeUI();
+};
+
 function updatePlaceModeUI() {
     carIcon.classList.toggle('place-mode', placeMode === 'car');
     finishIcon.classList.toggle('place-mode', placeMode === 'finish');
+    cowIcon.classList.toggle('place-mode', placeMode === 'cow');
 }
 
 function updateGridSize() {
@@ -33,6 +45,7 @@ function updateGridSize() {
     grid = emptyGrid(rows, cols);
     carPos = null;
     finishPos = null;
+    cows = [];
     renderGrid();
 }
 widthInput.onchange = updateGridSize;
@@ -54,6 +67,31 @@ function renderGrid() {
             cell.title = grid[y][x];
             if (carPos && carPos[0] === y && carPos[1] === x) cell.classList.add('car-here');
             if (finishPos && finishPos[0] === y && finishPos[1] === x) cell.classList.add('finish-here');
+            
+            // Check if there's a cow at this position
+            const cowAtPosition = cows.find(cow => cow.currentX === x && cow.currentY === y);
+            if (cowAtPosition) {
+                cell.classList.add('cow-here');
+            }
+            
+            // Show semi-transparent cow for secondary position during placement
+            if (placeMode === 'cow' && cowPlacementStep === 'secondary' && tempSecondaryPos) {
+                console.log('Checking preview for position:', { x, y, tempSecondaryPos });
+                if (x === tempSecondaryPos.x && y === tempSecondaryPos.y) {
+                    console.log('Adding cow-secondary-preview class to position:', { x, y });
+                    cell.classList.add('cow-secondary-preview');
+                }
+            }
+            
+            // Show secondary positions for all placed cows
+            cows.forEach(cow => {
+                if (cow.secondaryX !== null && cow.secondaryY !== null && 
+                    x === cow.secondaryX && y === cow.secondaryY &&
+                    (x !== cow.currentX || y !== cow.currentY)) {
+                    cell.classList.add('cow-secondary-preview');
+                }
+            });
+            
             cell.onclick = () => {
                 if (placeMode === 'car') {
                     carPos = [y, x];
@@ -65,6 +103,8 @@ function renderGrid() {
                     placeMode = null;
                     updatePlaceModeUI();
                     renderGrid();
+                } else if (placeMode === 'cow') {
+                    handleCowPlacement(y, x);
                 }
             };
             gridDiv.appendChild(cell);
@@ -103,6 +143,64 @@ function renderGrid() {
         }
     }
 }
+
+function handleCowPlacement(y, x) {
+    console.log('handleCowPlacement called:', { y, x, cowPlacementStep, placeMode });
+    
+    if (cowPlacementStep === 'default') {
+        console.log('Placing default position');
+        // Place default position
+        const newCow = {
+            defaultX: x,
+            defaultY: y,
+            secondaryX: null,
+            secondaryY: null,
+            currentX: x,
+            currentY: y
+        };
+        cows.push(newCow);
+        cowPlacementStep = 'secondary';
+        tempSecondaryPos = null; // Reset temporary position
+        console.log('Cow added, step changed to secondary, cows:', cows);
+        renderGrid();
+        // Don't reset placement mode yet - wait for secondary position
+    } else if (cowPlacementStep === 'secondary') {
+        console.log('Placing secondary position');
+        // Place secondary position
+        const lastCow = cows[cows.length - 1];
+        const defaultX = lastCow.defaultX;
+        const defaultY = lastCow.defaultY;
+        
+        // Check if secondary position is orthogonally adjacent to default
+        const isOrthogonal = (Math.abs(x - defaultX) === 1 && y === defaultY) || 
+                           (Math.abs(y - defaultY) === 1 && x === defaultX);
+        
+        console.log('Orthogonal check:', { x, y, defaultX, defaultY, isOrthogonal });
+        
+        if (!isOrthogonal) {
+            alert('Secondary position must be orthogonally adjacent to the default position (up, down, left, or right).');
+            return;
+        }
+        
+        // Set temporary position for preview
+        tempSecondaryPos = { x: x, y: y };
+        console.log('Set tempSecondaryPos:', tempSecondaryPos);
+        renderGrid();
+        
+        // Update the last cow with secondary position
+        lastCow.secondaryX = x;
+        lastCow.secondaryY = y;
+        
+        // Reset placement mode immediately but keep the cow visible
+        placeMode = null;
+        cowPlacementStep = 'default';
+        tempSecondaryPos = null;
+        console.log('Placement complete, resetting mode');
+        updatePlaceModeUI();
+        renderGrid();
+    }
+}
+
 function toggleConnection(y1, x1, y2, x2, dir1, dir2) {
     // NESW: 0=N, 1=E, 2=S, 3=W
     const dirIdx = {N:0, E:1, S:2, W:3};
@@ -133,7 +231,15 @@ function getLevelDetails() {
         start: carPos ? carPos.slice() : null,
         end: finishPos ? finishPos.slice() : null,
         defaultCode: document.getElementById('defaultCode').value,
-        rows: grid.map(row => row.slice())
+        rows: grid.map(row => row.slice()),
+        cows: cows.map(cow => ({
+            defaultX: cow.defaultX,
+            defaultY: cow.defaultY,
+            secondaryX: cow.secondaryX,
+            secondaryY: cow.secondaryY,
+            currentX: cow.currentX,
+            currentY: cow.currentY
+        }))
     };
 }
 function setLevelDetails(level) {
@@ -153,6 +259,15 @@ function setLevelDetails(level) {
         heightInput.value = rows;
         // Ensure all tile codes are strings
         grid = level.rows.map(row => row.map(cell => String(cell)));
+        // Load cows if they exist
+        cows = level.cows ? level.cows.map(cow => ({
+            defaultX: cow.defaultX,
+            defaultY: cow.defaultY,
+            secondaryX: cow.secondaryX,
+            secondaryY: cow.secondaryY,
+            currentX: cow.currentX,
+            currentY: cow.currentY
+        })) : [];
         renderGrid();
     } else {
         renderGrid();
@@ -214,9 +329,3 @@ document.getElementById('loadJsonBtn').onclick = () => {
         alert('Invalid JSON');
     }
 }; 
-
-// Set up fix indentation button
-document.getElementById('fixIndentationBtn').onclick = fixIndentation;
-
-// Set up auto-indentation for the defaultCode textarea
-setupAutoIndentation(); 
