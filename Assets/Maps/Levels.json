@@ -9,7 +9,7 @@
             "Instructions": "This is a showcase level that implements all current CarLang features: comments, variables, for- and while-loops, if, else if, else, operators and function-calls. It has a syntax and error-checking system (press play now to see an error, remove the first line of code to fix it) and shows which line is being executed.",
             "start": [3, 1],
             "end": [0, 1],
-            "defaultCode": "ErrorCauser(RemoveThisLine);\nint runs = 0;\nwhile(true) {\n    if (canMove()) {\n        // Test\n        moveForward();\n        moveBackward();\n        moveForward();\n        if(runs == 0) {\n            moveBackward();\n        } else if(runs == 1){\n            for(int i = 0; i < 4; i = i + 1) {\n                turnRight();\n            }            \n        }\n        runs = runs + 1;\n    } else {\n        turnRight();\n    }\n}",
+            "defaultCode": "ErrorCauser(RemoveThisLine);\nint runs = 0;\nwhile(true) {\n    if (isRoadAhead()) {\n        // Test comment\n        if(isCowAhead()) {\n            honk();\n        }\n        moveForward();\n        if(runs == 0) {\n            moveBackward();\n        } else if(runs == 1){\n            for(int i = 0; i < 4; i = i + 1) {\n                turnRight();\n            }\n        }\n        runs = runs + 1;\n    } else {\n        turnRight();\n    }\n}",
             "rows": [
                 ["0000", "0010", "0000"],
                 ["0000", "1010", "0000"],
