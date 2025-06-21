@@ -142,14 +142,14 @@ function renderGrid() {
             cell.className = 'level-creator-cell';
             cell.style.left = (x * 48) + 'px';
             cell.style.top = (y * 48) + 'px';
-            cell.style.backgroundImage = `url('Assets/Textures/tiles/Road-${grid[y][x]}.png')`;
+            cell.style.backgroundImage = `url('/sdRacer/Assets/Textures/tiles/Road-${grid[y][x]}.png')`;
             cell.title = grid[y][x];
             
             // Check for cars at this position
             const carAtPosition = cars.find(car => car.x === x && car.y === y);
             if (carAtPosition) {
                 cell.classList.add('car-here');
-                cell.style.setProperty('--car-image', `url('Assets/Textures/${getCarTexture(carAtPosition.type)}.png')`);
+                cell.style.setProperty('--car-image', `url('/sdRacer/Assets/Textures/${getCarTexture(carAtPosition.type)}.png')`);
             }
             
             // Check for finish
@@ -325,22 +325,29 @@ function drawBorders() {
 }
 
 function toggleConnection(y1, x1, y2, x2, dir1, dir2) {
-    const dirMap = { 'N': 0, 'E': 1, 'S': 2, 'W': 3 };
-    const bitMap = { 'N': 8, 'E': 4, 'S': 2, 'W': 1 };
+    const bitMap = { 'N': 0, 'E': 1, 'S': 2, 'W': 3 };
+    
+    // Convert current values to binary strings and then to arrays for easier manipulation
+    const current1 = grid[y1][x1].split('').map(Number);
+    const current2 = grid[y2][x2].split('').map(Number);
     
     const bit1 = bitMap[dir1];
     const bit2 = bitMap[dir2];
     
-    const current1 = parseInt(grid[y1][x1]);
-    const current2 = parseInt(grid[y2][x2]);
-    
-    if (current1 & bit1) {
-        grid[y1][x1] = (current1 & ~bit1).toString().padStart(4, '0');
-        grid[y2][x2] = (current2 & ~bit2).toString().padStart(4, '0');
+    // Toggle the bits
+    if (current1[bit1]) {
+        // Remove connection
+        current1[bit1] = 0;
+        current2[bit2] = 0;
     } else {
-        grid[y1][x1] = (current1 | bit1).toString().padStart(4, '0');
-        grid[y2][x2] = (current2 | bit2).toString().padStart(4, '0');
+        // Add connection
+        current1[bit1] = 1;
+        current2[bit2] = 1;
     }
+    
+    // Convert back to strings
+    grid[y1][x1] = current1.join('');
+    grid[y2][x2] = current2.join('');
     
     renderGrid();
 }
@@ -360,7 +367,7 @@ function renderCarList() {
         
         carItem.innerHTML = `
             <div class="car-info">
-                <div class="car-preview" style="background-image: url('Assets/Textures/${getCarTexture(car.type)}.png')"></div>
+                <div class="car-preview" style="background-image: url('/sdRacer/Assets/Textures/${getCarTexture(car.type)}.png')"></div>
                 <div class="car-details">
                     <div class="car-name">${car.name}</div>
                     <div class="car-type">${car.type} car at (${car.x}, ${car.y}) facing ${car.direction}</div>
