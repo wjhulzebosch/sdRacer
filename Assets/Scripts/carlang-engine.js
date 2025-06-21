@@ -67,10 +67,25 @@ class CarLangEngine {
         // Filter out lines that have no statements (only comments)
         const statementsWithContent = ast.body.filter(line => line.statement !== null);
         
+        // Separate function declarations from other statements
+        const functionDeclarations = [];
+        const otherStatements = [];
+        
+        for (const line of statementsWithContent) {
+            if (line.statement && line.statement.type === 'FunctionDeclaration') {
+                functionDeclarations.push(line);
+            } else {
+                otherStatements.push(line);
+            }
+        }
+        
+        // Reorder: function declarations first, then other statements
+        const reorderedStatements = [...functionDeclarations, ...otherStatements];
+        
         // Create initial execution context for the main body
         this.currentContext = {
             type: 'main',
-            statements: statementsWithContent,
+            statements: reorderedStatements,
             currentIndex: 0,
             parent: null
         };
@@ -123,6 +138,12 @@ class CarLangEngine {
                     // Loop finished, pop back to parent
                     return this.popExecutionContext();
                 }
+            }
+            
+            // Check if we're in a function context and have finished the function body
+            if (this.currentContext.type === 'function' && this.currentContext.currentIndex >= this.currentContext.statements.length) {
+                // Function finished, pop back to parent context
+                return this.popExecutionContext();
             }
             
             if (!currentStatement) {
@@ -273,6 +294,8 @@ class CarLangEngine {
                 return this.executeVariableDeclaration(statement);
             case 'Assignment':
                 return this.executeAssignment(statement);
+            case 'FunctionDeclaration':
+                return this.executeFunctionDeclaration(statement);
             case 'FunctionCall':
                 return this.executeFunctionCall(statement);
             case 'IfStatement':
@@ -297,10 +320,19 @@ class CarLangEngine {
      */
     executeVariableDeclaration(statement) {
         const value = this.evaluateExpression(statement.value);
-        this.variables[statement.name] = {
-            type: statement.varType,
-            value: value
-        };
+        
+        // Store variable in current context (function scope or global scope)
+        if (this.currentContext && this.currentContext.type === 'function') {
+            this.currentContext[statement.name] = {
+                type: statement.varType,
+                value: value
+            };
+        } else {
+            this.variables[statement.name] = {
+                type: statement.varType,
+                value: value
+            };
+        }
     }
 
     /**
@@ -308,9 +340,31 @@ class CarLangEngine {
      */
     executeAssignment(statement) {
         const value = this.evaluateExpression(statement.value);
-        this.variables[statement.name] = {
-            type: 'auto',
-            value: value
+        
+        // Store variable in current context (function scope or global scope)
+        if (this.currentContext && this.currentContext.type === 'function') {
+            this.currentContext[statement.name] = {
+                type: 'auto',
+                value: value
+            };
+        } else {
+            this.variables[statement.name] = {
+                type: 'auto',
+                value: value
+            };
+        }
+    }
+
+    /**
+     * Execute function declaration (store function definition)
+     */
+    executeFunctionDeclaration(statement) {
+        // Store the function definition for later execution
+        this.functions[statement.name] = {
+            returnType: statement.returnType,
+            parameters: statement.parameters,
+            body: statement.body,
+            line: statement.line
         };
     }
 
@@ -320,11 +374,56 @@ class CarLangEngine {
     executeFunctionCall(statement) {
         const args = statement.arguments.map(arg => this.evaluateExpression(arg));
         
+        // Check if it's a built-in function
         if (this.functionMap[statement.name]) {
             return this.functionMap[statement.name](...args);
-        } else {
-            console.warn(`Unknown function: ${statement.name}`);
         }
+        
+        // Check if it's a user-defined function
+        if (this.functions[statement.name]) {
+            return this.executeUserDefinedFunction(statement.name, args);
+        }
+        
+        console.warn(`Unknown function: ${statement.name}`);
+        return null;
+    }
+
+    /**
+     * Execute a user-defined function
+     */
+    executeUserDefinedFunction(functionName, args) {
+        const functionDef = this.functions[functionName];
+        
+        // Validate argument count
+        if (args.length !== functionDef.parameters.length) {
+            throw new Error(`Function '${functionName}' expects ${functionDef.parameters.length} argument(s), got ${args.length}`);
+        }
+        
+        // Create new execution context for function
+        const functionContext = {
+            type: 'function',
+            functionName: functionName,
+            statements: functionDef.body.statements,
+            currentIndex: 0,
+            parent: this.currentContext,
+            blockStartLine: functionDef.line,
+            returnValue: null,
+            hasReturned: false
+        };
+        
+        // Set up parameter variables in the function scope
+        for (let i = 0; i < functionDef.parameters.length; i++) {
+            const param = functionDef.parameters[i];
+            functionContext[param.name] = {
+                type: param.type,
+                value: args[i]
+            };
+        }
+        
+        // Switch to function context
+        this.currentContext = functionContext;
+        
+        return null; // Function execution will continue in executeNext()
     }
 
     /**
@@ -520,6 +619,11 @@ class CarLangEngine {
             case 'Literal':
                 return expression.value;
             case 'Identifier':
+                // Look for variable in function scope first, then global scope
+                if (this.currentContext && this.currentContext.type === 'function' && 
+                    this.currentContext[expression.name]) {
+                    return this.currentContext[expression.name].value;
+                }
                 return this.variables[expression.name]?.value;
             case 'BinaryExpression':
                 const left = this.evaluateExpression(expression.left);
@@ -561,11 +665,20 @@ class CarLangEngine {
      * Execute return statement
      */
     executeReturnStatement(statement) {
+        let returnValue = undefined;
         if (statement.value) {
-            const value = this.evaluateExpression(statement.value);
-            return value;
+            returnValue = this.evaluateExpression(statement.value);
         }
-        return undefined;
+        
+        // If we're in a function context, set the return value and mark as returned
+        if (this.currentContext && this.currentContext.type === 'function') {
+            this.currentContext.returnValue = returnValue;
+            this.currentContext.hasReturned = true;
+            // Pop back to parent context
+            this.currentContext = this.currentContext.parent;
+        }
+        
+        return returnValue;
     }
 
     /**
@@ -701,13 +814,19 @@ class CarLangEngine {
     validateFunctionCall(functionCall, errors, line, allValidFunctions) {
         const functionName = functionCall.name;
         
-        if (!allValidFunctions.includes(functionName)) {
+        // Check if it's a built-in function or user-defined function
+        const isBuiltIn = Object.keys(this.functionMap).includes(functionName);
+        const isUserDefined = allValidFunctions.includes(functionName);
+        
+        if (!isBuiltIn && !isUserDefined) {
             const lineNumber = this.getLineNumber(line);
             errors.push(`Line ${lineNumber}: Undefined function '${functionName}'`);
         }
         
-        // Validate arguments based on function validation rules
-        this.validateFunctionArguments(functionCall, errors, line);
+        // Validate arguments based on function validation rules (only for built-in functions)
+        if (isBuiltIn) {
+            this.validateFunctionArguments(functionCall, errors, line);
+        }
     }
     
     /**

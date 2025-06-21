@@ -271,7 +271,14 @@ class CarLangParser {
             this.check('KEYWORD', 'string') || this.check('KEYWORD', 'array') ||
             this.check('KEYWORD', 'list') || this.check('KEYWORD', 'priorityList') ||
             this.check('KEYWORD', 'queue') || this.check('KEYWORD', 'void')) {
-            return this.parseVariableDeclaration();
+            // Check if this is a function declaration (next token after type is identifier, then '(')
+            const nextToken = this.tokens[this.current + 1];
+            const nextNextToken = this.tokens[this.current + 2];
+            if (nextToken && nextToken.type === 'IDENTIFIER' && nextNextToken && nextNextToken.value === '(') {
+                return this.parseFunctionDeclaration();
+            } else {
+                return this.parseVariableDeclaration();
+            }
         }
         
         if (this.check('IDENTIFIER')) {
@@ -673,6 +680,43 @@ class CarLangParser {
         return {
             type: 'ContinueStatement',
             line: continueKeyword.line
+        };
+    }
+
+    parseFunctionDeclaration() {
+        const returnType = this.match('KEYWORD');
+        const name = this.match('IDENTIFIER');
+        this.match('PUNCTUATION', '(');
+        
+        const parameters = [];
+        if (!this.check('PUNCTUATION', ')')) {
+            parameters.push(this.parseParameter());
+            while (this.check('PUNCTUATION', ',')) {
+                this.advance();
+                parameters.push(this.parseParameter());
+            }
+        }
+        
+        this.match('PUNCTUATION', ')');
+        const body = this.parseBlock();
+        
+        return {
+            type: 'FunctionDeclaration',
+            returnType: returnType.value,
+            name: name.value,
+            parameters: parameters,
+            body: body,
+            line: returnType.line
+        };
+    }
+
+    parseParameter() {
+        const type = this.match('KEYWORD');
+        const name = this.match('IDENTIFIER');
+        
+        return {
+            type: type.value,
+            name: name.value
         };
     }
 }
