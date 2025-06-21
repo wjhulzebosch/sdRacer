@@ -167,8 +167,14 @@ class CodeValidator {
             const hasParseErrors = ast.errors && ast.errors.length > 0;
             const hasWarnings = ast.warnings && ast.warnings.length > 0;
             
-            // Create engine for validation (without car/level for now)
-            const engine = new CarLangEngine(null, null, null);
+            // Try to get the actual car registry from the game if available
+            let carRegistry = null;
+            if (typeof getCarRegistry === 'function') {
+                carRegistry = getCarRegistry();
+            }
+            
+            // Create engine with actual car registry if available
+            const engine = new CarLangEngine(carRegistry, null, null);
             const validation = engine.validate(ast);
             const hasValidationErrors = validation.errors && validation.errors.length > 0;
             
