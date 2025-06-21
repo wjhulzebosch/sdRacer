@@ -479,18 +479,17 @@ function getLevelDetails() {
         category: document.getElementById('category').value,
         name: document.getElementById('name').value,
         author: document.getElementById('author').value,
-        winCondition: document.getElementById('winCondition').value,
-        instructions: document.getElementById('instructions').value,
+        WinCondition: document.getElementById('winCondition').value,
+        Instructions: document.getElementById('instructions').value,
         defaultCode: document.getElementById('defaultCode').value,
-        grid: grid,
+        rows: grid,
         cars: cars.map(car => ({
             name: car.name,
             type: car.type,
-            x: car.x,
-            y: car.y,
+            position: [car.y, car.x],
             direction: car.direction
         })),
-        finish: finishPos ? { x: finishPos[1], y: finishPos[0] } : null,
+        end: finishPos ? [finishPos[0], finishPos[1]] : null,
         cows: cows.map(cow => ({
             defaultX: cow.defaultX,
             defaultY: cow.defaultY,

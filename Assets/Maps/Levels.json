@@ -156,7 +156,7 @@
         },
         {
             "id": "8",
-            "category": "OOP Introduction",
+            "category": "OOP Introduction (experimental)",
             "name": "Multi-Car Test",
             "author": "sdRacer",
             "WinCondition": "IsAtFinish()",
@@ -186,7 +186,7 @@
         },
         {
             "id": "9",
-            "category": "OOP Introduction",
+            "category": "OOP Introduction (experimental)",
             "name": "Car Coordination",
             "author": "sdRacer",
             "WinCondition": "IsAtFinish()",
@@ -216,7 +216,7 @@
         },
         {
             "id": "10",
-            "category": "OOP Introduction",
+            "category": "OOP Introduction (experimental)",
             "name": "Four Car Race",
             "author": "sdRacer",
             "WinCondition": "IsAtFinish()",
@@ -258,7 +258,7 @@
         },
         {
             "id": "11",
-            "category": "OOP Introduction",
+            "category": "OOP Introduction (experimental)",
             "name": "Car Maze Coordination",
             "author": "sdRacer",
             "WinCondition": "IsAtFinish()",
@@ -285,6 +285,195 @@
                 ["1010", "0000", "1010"],
                 ["1010", "1010", "1010"]
             ]
-        }
+        },
+        {
+            "id": "12",
+            "category": "Showcase",
+            "name": "Level 2 - Multiple showcases",
+            "author": "sdRacer",
+            "WinCondition": "IsAtFinish()",
+            "Instructions": "Move the cars towards the finish, but watch out for cows!",
+            "defaultCode": "",
+            "rows": [
+              [
+                "0000",
+                "0000",
+                "0010",
+                "0000",
+                "0000"
+              ],
+              [
+                "0000",
+                "0000",
+                "1010",
+                "0000",
+                "0000"
+              ],
+              [
+                "0000",
+                "0000",
+                "1010",
+                "0000",
+                "0000"
+              ],
+              [
+                "0000",
+                "0000",
+                "1010",
+                "0000",
+                "0000"
+              ],
+              [
+                "0000",
+                "0000",
+                "1010",
+                "0000",
+                "0000"
+              ],
+              [
+                "0000",
+                "0000",
+                "1010",
+                "0000",
+                "0000"
+              ],
+              [
+                "0000",
+                "0000",
+                "1010",
+                "0000",
+                "0000"
+              ],
+              [
+                "0000",
+                "0000",
+                "1010",
+                "0000",
+                "0000"
+              ],
+              [
+                "0000",
+                "0000",
+                "1010",
+                "0000",
+                "0000"
+              ],
+              [
+                "0000",
+                "0000",
+                "1010",
+                "0000",
+                "0000"
+              ],
+              [
+                "0000",
+                "0000",
+                "1010",
+                "0000",
+                "0000"
+              ],
+              [
+                "0000",
+                "0000",
+                "1010",
+                "0000",
+                "0000"
+              ],
+              [
+                "0000",
+                "0000",
+                "1010",
+                "0000",
+                "0000"
+              ],
+              [
+                "0000",
+                "0000",
+                "1010",
+                "0000",
+                "0000"
+              ],
+              [
+                "0000",
+                "0000",
+                "1010",
+                "0000",
+                "0000"
+              ],
+              [
+                "0000",
+                "0000",
+                "1010",
+                "0000",
+                "0000"
+              ],
+              [
+                "0000",
+                "0000",
+                "1010",
+                "0000",
+                "0000"
+              ],
+              [
+                "0000",
+                "0000",
+                "1010",
+                "0000",
+                "0000"
+              ],
+              [
+                "0000",
+                "0000",
+                "1010",
+                "0000",
+                "0000"
+              ],
+              [
+                "0000",
+                "0000",
+                "1000",
+                "0000",
+                "0000"
+              ]
+            ],
+            "cars": [
+              {
+                "name": "blueCar",
+                "type": "blue",
+                "position": [
+                  0,
+                  2
+                ],
+                "direction": "N"
+              },
+              {
+                "name": "greenCar",
+                "type": "green",
+                "position": [
+                  19,
+                  2
+                ],
+                "direction": "N"
+              }
+            ],
+            "end": [
+              9,
+              2
+            ],
+            "cows": [
+              {
+                "defaultX": 2,
+                "defaultY": 4,
+                "secondaryX": 3,
+                "secondaryY": 4
+              },
+              {
+                "defaultX": 2,
+                "defaultY": 17,
+                "secondaryX": 1,
+                "secondaryY": 17
+              }
+            ]
+            }
     ]
 }
