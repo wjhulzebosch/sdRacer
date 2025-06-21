@@ -1,33 +1,6 @@
 {
     "levels": [
         {
-            "id": "1",
-            "category": "Showcase",
-            "name": "Level 1 - A showcase",
-            "author": "sdRacer",
-            "WinCondition": "IsAtFinish()",
-            "Instructions": "This is a showcase level that implements all current CarLang features: comments, variables, for- and while-loops, if, else if, else, operators and function-calls. It has a syntax and error-checking system (press play now to see an error, remove the first line of code to fix it) and shows which line is being executed.",
-            "start": [3, 1],
-            "end": [0, 1],
-            "defaultCode": "// UncommentThisLineToCauseAnError();\nvoid honkAndMove() {\n    if(isCowAhead()) {\n        honk();\n    }\n    moveForward();\n}\n\nint runs = 0;\nwhile(true) {\n    if (isRoadAhead()) {\n        // Test comment\n        honkAndMove();\n        if(runs == 0) {\n            moveBackward();\n        } else if(runs == 1){\n            for(int i = 0; i < 4; i = i + 1) {\n                turnRight();\n            }\n        }\n        runs = runs + 1;\n    } else {\n        turnRight();\n    }\n}",
-            "rows": [
-                ["0000", "0010", "0000"],
-                ["0000", "1010", "0000"],
-                ["0000", "1010", "0000"],
-                ["0000", "1000", "0000"]
-            ],
-            "cows": [
-                {
-                    "defaultX": 1,
-                    "defaultY": 1,
-                    "secondaryX": 2,
-                    "secondaryY": 1,
-                    "currentX": 1,
-                    "currentY": 1
-                }
-            ]
-        },
-        {
             "id": "2",
             "category": "Simple commands",
             "name": "1. Moving forward",
@@ -129,6 +102,57 @@
                 ["1000", "0000", "0000", "0000"]
             ],
             "cows": []
+        },
+        {
+            "id": "7",
+            "category": "Amazing",
+            "name": "A star is born",
+            "author": "sdRacer",
+            "WinCondition": "IsAtFinish()",
+            "Instructions": "Find your way to the finish",
+            "start": [9, 0],
+            "end": [0, 9],
+            "defaultCode": "// Good luck with that!",
+            "rows": [
+                ["0110", "0101", "0101", "0101", "0101", "0101", "0101", "0101", "0101", "0011"],
+                ["1100", "0011", "0100", "0111", "0011", "0110", "0101", "0101", "0011", "1010"],
+                ["0010", "1100", "0111", "1001", "1000", "1100", "0101", "0011", "1010", "1010"],
+                ["1110", "0101", "1001", "0110", "0101", "0101", "0011", "1010", "1010", "1010"],
+                ["1100", "0011", "0010", "1010", "0100", "0011", "1010", "1010", "1010", "1010"],
+                ["0010", "1010", "1010", "1100", "0011", "1010", "1100", "1001", "1010", "1010"],
+                ["1110", "1001", "1100", "0011", "1010", "1100", "0111", "0101", "1001", "1010"],
+                ["1010", "0110", "0111", "1001", "1100", "0011", "1100", "0011", "0110", "1011"],
+                ["1100", "1001", "1000", "0110", "0011", "1010", "0010", "1010", "1000", "1010"],
+                ["0100", "0101", "0101", "1001", "1100", "1001", "1100", "1101", "0101", "1001"]
+            ],
+            "cows": []
+        },
+        {
+            "id": "1",
+            "category": "Showcase",
+            "name": "Level 1 - A showcase",
+            "author": "sdRacer",
+            "WinCondition": "IsAtFinish()",
+            "Instructions": "This is a showcase level that implements all current CarLang features: comments, variables, for- and while-loops, if, else if, else, operators and function-calls. It has a syntax and error-checking system (press play now to see an error, remove the first line of code to fix it) and shows which line is being executed.",
+            "start": [3, 1],
+            "end": [0, 1],
+            "defaultCode": "// UncommentThisLineToCauseAnError();\nvoid honkAndMove() {\n    if(isCowAhead()) {\n        honk();\n    }\n    moveForward();\n}\n\nint runs = 0;\nwhile(true) {\n    if (isRoadAhead()) {\n        // Test comment\n        honkAndMove();\n        if(runs == 0) {\n            moveBackward();\n        } else if(runs == 1){\n            for(int i = 0; i < 4; i = i + 1) {\n                turnRight();\n            }\n        }\n        runs = runs + 1;\n    } else {\n        turnRight();\n    }\n}",
+            "rows": [
+                ["0000", "0010", "0000"],
+                ["0000", "1010", "0000"],
+                ["0000", "1010", "0000"],
+                ["0000", "1000", "0000"]
+            ],
+            "cows": [
+                {
+                    "defaultX": 1,
+                    "defaultY": 1,
+                    "secondaryX": 2,
+                    "secondaryY": 1,
+                    "currentX": 1,
+                    "currentY": 1
+                }
+            ]
         }
     ]
 }

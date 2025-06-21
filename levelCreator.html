@@ -27,6 +27,13 @@
                 <label>Instructies: <textarea id="instructions"></textarea></label>
                 <label>Default code: <textarea id="defaultCode"></textarea></label>
                 <div style="border: 1px solid #333; margin: 16px 0; padding: 16px;">
+                    <h3>Maze Generator</h3>
+                    <p>Generate a maze using the current grid size and car/finish positions.</p>
+                    <div class="button-row">
+                        <button id="generateMazeBtn">Generate Maze</button>
+                    </div>
+                </div>
+                <div style="border: 1px solid #333; margin: 16px 0; padding: 16px;">
                     <div class="button-row">
                         <button id="loadLevelBtn">Load Level</button>
                     </div>
@@ -53,6 +60,7 @@
             </div>
         </div>
     </div>
+    <script src="Assets/Scripts/mazeCreator.js"></script>
     <script src="Assets/Scripts/levelCreator.js"></script>
 </body>
 </html>

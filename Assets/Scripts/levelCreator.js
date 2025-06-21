@@ -377,4 +377,43 @@ document.getElementById('loadLevelBtn').onclick = async () => {
 };
 
 // Initialize the level dropdown when the page loads
-loadLevelsFromFile(); 
+loadLevelsFromFile();
+
+// Generate maze button handler
+document.getElementById('generateMazeBtn').onclick = () => {
+    // Check if car and finish positions are set
+    if (!carPos) {
+        alert('Please place the car first by clicking the car icon and then clicking on the grid.');
+        return;
+    }
+    if (!finishPos) {
+        alert('Please place the finish line first by clicking the finish icon and then clicking on the grid.');
+        return;
+    }
+    
+    try {
+        // Use current grid dimensions and positions
+        const width = cols;
+        const height = rows;
+        const start = [carPos[1], carPos[0]]; // Convert from [y,x] to [x,y] format
+        const end = [finishPos[1], finishPos[0]]; // Convert from [y,x] to [x,y] format
+        
+        // Generate the maze
+        const result = generateMaze(width, height, start, end);
+        
+        // Update the grid with the generated maze
+        grid = result.maze;
+        
+        // Keep the existing car and finish positions
+        // (carPos and finishPos remain unchanged)
+        
+        // Clear any existing cows
+        cows = [];
+        
+        // Render the new grid
+        renderGrid();
+        
+    } catch (error) {
+        alert('Error generating maze: ' + error.message);
+    }
+}; 
