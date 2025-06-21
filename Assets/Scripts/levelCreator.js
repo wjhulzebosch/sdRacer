@@ -328,4 +328,53 @@ document.getElementById('loadJsonBtn').onclick = () => {
     } catch (e) {
         alert('Invalid JSON');
     }
-}; 
+};
+
+// Load levels from Levels.json and populate dropdown
+async function loadLevelsFromFile() {
+    try {
+        const response = await fetch('Assets/Maps/Levels.json');
+        const data = await response.json();
+        const levelSelector = document.getElementById('levelSelector');
+        
+        // Clear existing options except the first one
+        levelSelector.innerHTML = '<option value="">Select a level...</option>';
+        
+        // Add each level to the dropdown
+        data.levels.forEach(level => {
+            const option = document.createElement('option');
+            option.value = level.id;
+            option.textContent = `${level.category} - ${level.name}`;
+            levelSelector.appendChild(option);
+        });
+    } catch (error) {
+        console.error('Error loading levels:', error);
+    }
+}
+
+// Handle loading a level from the dropdown
+document.getElementById('loadLevelBtn').onclick = async () => {
+    const selectedLevelId = document.getElementById('levelSelector').value;
+    if (!selectedLevelId) {
+        alert('Please select a level from the dropdown first.');
+        return;
+    }
+    
+    try {
+        const response = await fetch('Assets/Maps/Levels.json');
+        const data = await response.json();
+        const selectedLevel = data.levels.find(level => level.id === selectedLevelId);
+        
+        if (selectedLevel) {
+            setLevelDetails(selectedLevel);
+        } else {
+            alert('Selected level not found.');
+        }
+    } catch (error) {
+        console.error('Error loading level:', error);
+        alert('Error loading level from file.');
+    }
+};
+
+// Initialize the level dropdown when the page loads
+loadLevelsFromFile(); 

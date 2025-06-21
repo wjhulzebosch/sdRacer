@@ -26,9 +26,19 @@
                 </label>
                 <label>Instructies: <textarea id="instructions"></textarea></label>
                 <label>Default code: <textarea id="defaultCode"></textarea></label>
+                <div style="border: 1px solid #333; margin: 16px 0; padding: 16px;">
+                    <div class="button-row">
+                        <button id="loadLevelBtn">Load Level</button>
+                    </div>
+                    <label>Start from existing level: 
+                        <select id="levelSelector">
+                            <option value="">Select a level...</option>
+                        </select>
+                    </label>
+                </div>
                 <div class="button-row">
-                    <button id="showJsonBtn">Show JSON</button>
-                    <button id="loadJsonBtn">Load JSON</button>
+                    <button id="showJsonBtn">Export</button>
+                    <button id="loadJsonBtn">Import</button>
                 </div>
                 <label>Level JSON:</label>
                 <textarea id="jsonArea"></textarea>

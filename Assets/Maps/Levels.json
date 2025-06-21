@@ -29,7 +29,7 @@
         },
         {
             "id": "2",
-            "category": "Tutorial",
+            "category": "Simple commands",
             "name": "1. Moving forward",
             "author": "sdRacer",
             "WinCondition": "IsAtFinish()",
@@ -46,7 +46,7 @@
         },
         {
             "id": "3",
-            "category": "Tutorial",
+            "category": "Simple commands",
             "name": "2. Turning a page",
             "author": "sdRacer",
             "WinCondition": "IsAtFinish()",
@@ -63,9 +63,9 @@
         },
         {
             "id": "4",
-            "category": "Tutorial",
+            "category": "Simple commands",
             "name": "3. Honk your way out of it",
-            "author": "wjhulzebosch",
+            "author": "sdRacer",
             "WinCondition": "IsAtFinish()",
             "Instructions": "Get to the finish, but oh no! A cow is blocking the road. Try honking when you're close, using honk().",
             "start": [4, 1],
@@ -88,6 +88,47 @@
                     "currentY": 1
                 }
             ]
+        },
+        {
+            "id": "5",
+            "category": "Loops",
+            "name": "1. For-ever?",
+            "author": "sdRacer",
+            "WinCondition": "IsAtFinish()",
+            "Instructions": "A good programmer is a lazy programmer. This level is a good example of that. The car should move forward until it gets to the finish line. However, we don't want to write the same line of code over and over again. So, we'll use a for-loop to move the car forward 10 times. Change the existing code, to move the car forward 10 times, instead of honking three times.",
+            "start": [9, 0],
+            "end": [0, 0],
+            "defaultCode": "for(int i = 0; i < 3; i = i + 1) {\n    honk();\n}",
+            "rows": [
+                ["1010"],
+                ["1010"],
+                ["1010"],
+                ["1010"],
+                ["1010"],
+                ["1010"],
+                ["1010"],
+                ["1010"],
+                ["1010"],
+                ["1010"]
+            ]
+        },
+        {
+            "id": "6",
+            "category": "Loops",
+            "name": "2. While it lasts",
+            "author": "sdRacer",
+            "WinCondition": "IsAtFinish()",
+            "Instructions": "This time, we want the car to move forward as long as it can. When it reaches the corner, we turn right. Use the while and moveForward() again to make sure the care reaches the finish.",
+            "start": [3, 0],
+            "end": [0, 3],
+            "defaultCode": "while(isRoadAhead()) {\n    moveForward();\n}\n\nturnRight();\n\n// Add another while-block",
+            "rows": [
+                ["0110", "0101", "0101", "0001"],
+                ["1010", "0000", "0000", "0000"],
+                ["1010", "0000", "0000", "0000"],
+                ["1000", "0000", "0000", "0000"]
+            ],
+            "cows": []
         }
     ]
 }
