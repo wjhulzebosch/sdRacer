@@ -50,28 +50,19 @@ class Level {
             for (let x = 0; x < this.tiles[y].length; x++) {
                 const code = this.tiles[y][x];
                 const tileDiv = document.createElement('div');
-                tileDiv.style.position = 'absolute';
+                tileDiv.className = 'level-tile';
                 tileDiv.style.left = (x * tileSize) + 'px';
                 tileDiv.style.top = (y * tileSize) + 'px';
-                tileDiv.style.width = tileSize + 'px';
-                tileDiv.style.height = tileSize + 'px';
                 tileDiv.style.backgroundImage = `url('Assets/Textures/tiles/Road-${code}.png')`;
-                tileDiv.style.backgroundSize = 'cover';
-                tileDiv.style.boxSizing = 'border-box';
                 gameDiv.appendChild(tileDiv);
             }
         }
         // Overlay finish image if finishPos is provided
         if (finishPos && Array.isArray(finishPos) && finishPos.length === 2) {
             const finishDiv = document.createElement('div');
-            finishDiv.style.position = 'absolute';
+            finishDiv.className = 'finish-tile';
             finishDiv.style.left = (finishPos[0] * tileSize) + 'px';
             finishDiv.style.top = (finishPos[1] * tileSize) + 'px';
-            finishDiv.style.width = tileSize + 'px';
-            finishDiv.style.height = tileSize + 'px';
-            finishDiv.style.backgroundImage = "url('Assets/Textures/Finish.png')";
-            finishDiv.style.backgroundSize = 'cover';
-            finishDiv.style.pointerEvents = 'none';
             gameDiv.appendChild(finishDiv);
         }
     }

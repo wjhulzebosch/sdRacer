@@ -37,16 +37,6 @@ class Cow {
     createCowElement() {
         const cowElement = document.createElement('div');
         cowElement.className = 'cow';
-        cowElement.style.position = 'absolute';
-        cowElement.style.width = '64px';
-        cowElement.style.height = '64px';
-        cowElement.style.backgroundImage = 'url("Assets/Textures/Cow.png")';
-        cowElement.style.backgroundSize = 'cover';
-        cowElement.style.backgroundRepeat = 'no-repeat';
-        cowElement.style.backgroundPosition = 'center';
-        cowElement.style.zIndex = '10';
-        cowElement.style.transition = 'transform 1s ease-in-out';
-
         return cowElement;
     }
 

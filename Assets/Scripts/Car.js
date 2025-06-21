@@ -119,11 +119,8 @@ class Car {
         if (!carDiv) {
             carDiv = document.createElement('div');
             carDiv.className = 'car';
-            carDiv.style.position = 'absolute';
             carDiv.style.width = tileSize + 'px';
             carDiv.style.height = tileSize + 'px';
-            carDiv.style.backgroundSize = 'cover';
-            carDiv.style.pointerEvents = 'none';
             parent.appendChild(carDiv);
         }
         carDiv.style.left = (this.currentPosition.x * tileSize) + 'px';

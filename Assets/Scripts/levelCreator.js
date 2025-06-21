@@ -53,17 +53,17 @@ heightInput.onchange = updateGridSize;
 
 function renderGrid() {
     gridDiv.innerHTML = '';
+    gridDiv.className = 'level-creator-grid';
     gridDiv.style.width = (cols * 48) + 'px';
     gridDiv.style.height = (rows * 48) + 'px';
     // Draw cells
     for (let y = 0; y < rows; y++) {
         for (let x = 0; x < cols; x++) {
             const cell = document.createElement('div');
-            cell.className = 'cell';
+            cell.className = 'level-creator-cell';
             cell.style.left = (x * 48) + 'px';
             cell.style.top = (y * 48) + 'px';
             cell.style.backgroundImage = `url('Assets/Textures/tiles/Road-${grid[y][x]}.png')`;
-            cell.style.backgroundSize = 'cover';
             cell.title = grid[y][x];
             if (carPos && carPos[0] === y && carPos[1] === x) cell.classList.add('car-here');
             if (finishPos && finishPos[0] === y && finishPos[1] === x) cell.classList.add('finish-here');
@@ -115,7 +115,7 @@ function renderGrid() {
         for (let x = 0; x < cols; x++) {
             if (y === 0 || y === rows) continue;
             const btn = document.createElement('button');
-            btn.className = 'border-btn h';
+            btn.className = 'level-creator-border-btn h';
             btn.style.left = (x * 48) + 'px';
             btn.style.top = (y * 48 - 4) + 'px';
             // Is there a connection N/S?
@@ -131,7 +131,7 @@ function renderGrid() {
         for (let x = 0; x <= cols; x++) {
             if (x === 0 || x === cols) continue;
             const btn = document.createElement('button');
-            btn.className = 'border-btn v';
+            btn.className = 'level-creator-border-btn v';
             btn.style.left = (x * 48 - 4) + 'px';
             btn.style.top = (y * 48) + 'px';
             // Is there a connection E/W?

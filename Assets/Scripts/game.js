@@ -311,37 +311,14 @@ function updateURLAndLoadLevel(levelId) {
 function showLevelSelector() {
     const overlay = document.createElement('div');
     overlay.id = 'levelSelectorOverlay';
-    overlay.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
-        background: rgba(0, 0, 0, 0.8);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 1000;
-    `;
+    overlay.className = 'level-selector-overlay';
     
     const selector = document.createElement('div');
-    selector.style.cssText = `
-        background: #23272b;
-        border-radius: 12px;
-        padding: 24px;
-        max-width: 600px;
-        max-height: 80vh;
-        overflow-y: auto;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-    `;
+    selector.className = 'level-selector';
     
     const title = document.createElement('h2');
     title.textContent = 'Select a Level';
-    title.style.cssText = `
-        color: #f0f0f0;
-        margin: 0 0 20px 0;
-        text-align: center;
-    `;
+    title.className = 'level-selector-title';
     selector.appendChild(title);
     
     // Group levels by category
@@ -357,47 +334,20 @@ function showLevelSelector() {
     // Create category elements
     Object.keys(categories).forEach(categoryName => {
         const categoryDiv = document.createElement('div');
-        categoryDiv.style.marginBottom = '16px';
+        categoryDiv.className = 'level-category';
         
         const categoryHeader = document.createElement('div');
         categoryHeader.textContent = categoryName;
-        categoryHeader.style.cssText = `
-            color: #f0f0f0;
-            font-weight: bold;
-            font-size: 1.1rem;
-            margin-bottom: 8px;
-            padding: 8px 12px;
-            background: #2a2e32;
-            border-radius: 6px;
-        `;
+        categoryHeader.className = 'level-category-header';
         
         const levelList = document.createElement('div');
-        levelList.style.cssText = `
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 8px;
-            margin-left: 16px;
-        `;
+        levelList.className = 'level-list';
         
         // Add level items
         categories[categoryName].forEach(levelData => {
             const levelItem = document.createElement('div');
             levelItem.textContent = levelData.name || `Level ${levelData.id}`;
-            levelItem.style.cssText = `
-                background: #1a1e22;
-                color: #ccc;
-                padding: 12px;
-                border-radius: 6px;
-                cursor: pointer;
-                transition: background 0.2s;
-                text-align: center;
-            `;
-            levelItem.onmouseenter = () => {
-                levelItem.style.background = '#2a2e32';
-            };
-            levelItem.onmouseleave = () => {
-                levelItem.style.background = '#1a1e22';
-            };
+            levelItem.className = 'level-item';
             levelItem.onclick = () => {
                 updateURLAndLoadLevel(levelData.id);
                 overlay.remove();
@@ -412,53 +362,18 @@ function showLevelSelector() {
     
     // Add custom buttons after the levels
     const buttonContainer = document.createElement('div');
-    buttonContainer.style.cssText = `
-        display: flex;
-        gap: 12px;
-        margin-top: 24px;
-        justify-content: center;
-    `;
+    buttonContainer.className = 'level-selector-buttons';
     
     const createLevelBtn = document.createElement('button');
     createLevelBtn.textContent = 'Create Your Own Level';
-    createLevelBtn.style.cssText = `
-        background: #4CAF50;
-        color: white;
-        border: none;
-        padding: 12px 20px;
-        border-radius: 6px;
-        cursor: pointer;
-        font-size: 14px;
-        transition: background 0.2s;
-    `;
-    createLevelBtn.onmouseenter = () => {
-        createLevelBtn.style.background = '#45a049';
-    };
-    createLevelBtn.onmouseleave = () => {
-        createLevelBtn.style.background = '#4CAF50';
-    };
+    createLevelBtn.className = 'create-level-btn';
     createLevelBtn.onclick = () => {
         window.open('levelCreator.html', '_blank');
     };
     
     const loadCustomBtn = document.createElement('button');
     loadCustomBtn.textContent = 'Load Custom Level';
-    loadCustomBtn.style.cssText = `
-        background: #2196F3;
-        color: white;
-        border: none;
-        padding: 12px 20px;
-        border-radius: 6px;
-        cursor: pointer;
-        font-size: 14px;
-        transition: background 0.2s;
-    `;
-    loadCustomBtn.onmouseenter = () => {
-        loadCustomBtn.style.background = '#1976D2';
-    };
-    loadCustomBtn.onmouseleave = () => {
-        loadCustomBtn.style.background = '#2196F3';
-    };
+    loadCustomBtn.className = 'load-custom-btn';
     loadCustomBtn.onclick = () => {
         showCustomLevelLoader(overlay);
     };
@@ -481,79 +396,29 @@ function showLevelSelector() {
 function showCustomLevelLoader(overlay) {
     // Create custom level loader overlay
     const loaderOverlay = document.createElement('div');
-    loaderOverlay.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
-        background: rgba(0, 0, 0, 0.9);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 1001;
-    `;
+    loaderOverlay.className = 'custom-level-loader-overlay';
     
     const loaderContent = document.createElement('div');
-    loaderContent.style.cssText = `
-        background: #23272b;
-        border-radius: 12px;
-        padding: 24px;
-        max-width: 500px;
-        width: 90%;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-    `;
+    loaderContent.className = 'custom-level-loader-content';
     
     const loaderTitle = document.createElement('h3');
     loaderTitle.textContent = 'Load Custom Level';
-    loaderTitle.style.cssText = `
-        color: #f0f0f0;
-        margin: 0 0 16px 0;
-        text-align: center;
-    `;
+    loaderTitle.className = 'custom-level-loader-title';
     
     const instructionText = document.createElement('p');
     instructionText.textContent = 'Paste your level JSON here:';
-    instructionText.style.cssText = `
-        color: #ccc;
-        margin: 0 0 12px 0;
-        font-size: 14px;
-    `;
+    instructionText.className = 'custom-level-instruction';
     
     const textarea = document.createElement('textarea');
     textarea.placeholder = 'Paste your level JSON here...';
-    textarea.style.cssText = `
-        width: 100%;
-        height: 200px;
-        background: #1a1e22;
-        color: #f0f0f0;
-        border: 1px solid #444;
-        border-radius: 6px;
-        padding: 12px;
-        font-family: monospace;
-        font-size: 12px;
-        resize: vertical;
-        margin-bottom: 16px;
-    `;
+    textarea.className = 'custom-level-textarea';
     
     const buttonContainer = document.createElement('div');
-    buttonContainer.style.cssText = `
-        display: flex;
-        gap: 12px;
-        justify-content: center;
-    `;
+    buttonContainer.className = 'custom-level-buttons';
     
     const loadBtn = document.createElement('button');
     loadBtn.textContent = 'Load Level';
-    loadBtn.style.cssText = `
-        background: #4CAF50;
-        color: white;
-        border: none;
-        padding: 10px 20px;
-        border-radius: 6px;
-        cursor: pointer;
-        font-size: 14px;
-    `;
+    loadBtn.className = 'load-level-btn';
     loadBtn.onclick = () => {
         try {
             const levelData = JSON.parse(textarea.value);
@@ -572,15 +437,7 @@ function showCustomLevelLoader(overlay) {
     
     const cancelBtn = document.createElement('button');
     cancelBtn.textContent = 'Cancel';
-    cancelBtn.style.cssText = `
-        background: #666;
-        color: white;
-        border: none;
-        padding: 10px 20px;
-        border-radius: 6px;
-        cursor: pointer;
-        font-size: 14px;
-    `;
+    cancelBtn.className = 'cancel-btn';
     cancelBtn.onclick = () => {
         loaderOverlay.remove();
     };
@@ -952,10 +809,7 @@ function highlightLine(lineNumber, blockStartLine = null, contextType = null) {
         
         if (lineNumber <= lineNumberElements.length) {
             // Highlight current line
-            lineNumberElements[lineNumber - 1].style.backgroundColor = '#3b82f6';
-            lineNumberElements[lineNumber - 1].style.color = '#ffffff';
-            lineNumberElements[lineNumber - 1].style.fontWeight = 'bold';
-            lineNumberElements[lineNumber - 1].style.borderRadius = '4px';
+            lineNumberElements[lineNumber - 1].classList.add('current-line');
             currentHighlightedLine = lineNumber;
             
             // Highlight block if we're in a control structure
@@ -970,11 +824,7 @@ function highlightLine(lineNumber, blockStartLine = null, contextType = null) {
 function highlightBlock(blockStartLine, lineNumberElements) {
     if (blockStartLine && blockStartLine > 0 && blockStartLine <= lineNumberElements.length) {
         // Highlight the block start line with a different color
-        lineNumberElements[blockStartLine - 1].style.backgroundColor = '#059669';
-        lineNumberElements[blockStartLine - 1].style.color = '#ffffff';
-        lineNumberElements[blockStartLine - 1].style.fontWeight = 'bold';
-        lineNumberElements[blockStartLine - 1].style.borderRadius = '4px';
-        lineNumberElements[blockStartLine - 1].style.border = '2px solid #10b981';
+        lineNumberElements[blockStartLine - 1].classList.add('block-start');
     }
 }
 
@@ -984,20 +834,12 @@ function clearLineHighlighting() {
     
     // Clear current line highlighting
     if (currentHighlightedLine && lineNumberElements[currentHighlightedLine - 1]) {
-        lineNumberElements[currentHighlightedLine - 1].style.backgroundColor = '';
-        lineNumberElements[currentHighlightedLine - 1].style.color = '#666';
-        lineNumberElements[currentHighlightedLine - 1].style.fontWeight = '';
-        lineNumberElements[currentHighlightedLine - 1].style.borderRadius = '';
-        lineNumberElements[currentHighlightedLine - 1].style.border = '';
+        lineNumberElements[currentHighlightedLine - 1].classList.remove('current-line');
     }
     
     // Clear block highlighting
     if (currentHighlightedBlock && lineNumberElements[currentHighlightedBlock - 1]) {
-        lineNumberElements[currentHighlightedBlock - 1].style.backgroundColor = '';
-        lineNumberElements[currentHighlightedBlock - 1].style.color = '#666';
-        lineNumberElements[currentHighlightedBlock - 1].style.fontWeight = '';
-        lineNumberElements[currentHighlightedBlock - 1].style.borderRadius = '';
-        lineNumberElements[currentHighlightedBlock - 1].style.border = '';
+        lineNumberElements[currentHighlightedBlock - 1].classList.remove('block-start');
     }
     
     currentHighlightedLine = null;
