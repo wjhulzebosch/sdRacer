@@ -602,10 +602,10 @@ function resetGame() {
     // Hide car status indicator
     hideCarStatus();
     
-    // Reset all cars to their initial positions
-    Object.values(carRegistry).forEach(car => {
-        car.reset();
-    });
+    // Reinitialize car registry to reset cars to initial positions
+    if (currentLevelData) {
+        initializeCarRegistry(currentLevelData);
+    }
     
     // Reset cows to their initial positions
     cows.forEach(cow => {
@@ -633,10 +633,10 @@ function resetLevel() {
     // Hide car status indicator
     hideCarStatus();
     
-    // Reset all cars to their initial positions
-    Object.values(carRegistry).forEach(car => {
-        car.reset();
-    });
+    // Reinitialize car registry to reset cars to initial positions
+    if (currentLevelData) {
+        initializeCarRegistry(currentLevelData);
+    }
     
     // Reset cows to their initial positions
     cows.forEach(cow => {
@@ -667,10 +667,10 @@ function resetLevelState() {
     // Hide car status indicator
     hideCarStatus();
     
-    // Reset all cars to their initial positions
-    Object.values(carRegistry).forEach(car => {
-        car.reset();
-    });
+    // Reinitialize car registry to reset cars to initial positions
+    if (currentLevelData) {
+        initializeCarRegistry(currentLevelData);
+    }
     
     // Reset cows to their initial positions
     cows.forEach(cow => {
@@ -795,14 +795,12 @@ function loadLevel(levelId) {
 
 async function playCode() {
     try {
-        // Check if button is in "Finished" state - if so, reset level and play again
+        // Check if button is in "Finished" state - if so, just reset and change button back to Play
         if (playBtn.textContent === 'Finished') {
             resetLevelState();
-            // Small delay to ensure reset is complete
-            setTimeout(() => {
-                playCode();
-            }, 100);
-            return;
+            playBtn.textContent = 'Play';
+            playBtn.disabled = false;
+            return; // Don't restart execution automatically
         }
         
         playBtn.disabled = true;

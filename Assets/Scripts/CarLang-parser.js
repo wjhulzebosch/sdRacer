@@ -13,6 +13,7 @@ class CarLangParser {
         this.lineNumber = 1;
         this.mode = mode; // 'single' or 'oop'
         this.availableCars = availableCars; // Array of available car names
+        this.userDefinedFunctions = new Set(); // Track user-defined functions
     }
 
     /**
@@ -169,7 +170,7 @@ class CarLangParser {
             
             if (!found) {
                 // Single character punctuation
-                const punctuation = '(){}[];,'.split('');
+                const punctuation = '(){}[];,.'.split('');
                 if (punctuation.includes(char)) {
                     tokens.push({ type: 'PUNCTUATION', value: char, line: lineNumber });
                     current++;
@@ -301,6 +302,9 @@ class CarLangParser {
             if (nextToken && nextToken.value === '=') {
                 return this.parseAssignment();
             } else if (nextToken && nextToken.value === '(') {
+                return this.parseFunctionCallStatement();
+            } else if (this.mode === 'oop' && nextToken && nextToken.value === '.') {
+                // This is a method call (object.method)
                 return this.parseFunctionCallStatement();
             }
         }
@@ -770,6 +774,10 @@ class CarLangParser {
     parseFunctionDeclaration() {
         const returnType = this.match('KEYWORD');
         const name = this.match('IDENTIFIER');
+        
+        // Add function name to the set of user-defined functions
+        this.userDefinedFunctions.add(name.value);
+        
         this.match('PUNCTUATION', '(');
         
         const parameters = [];
@@ -855,10 +863,12 @@ class CarLangParser {
             'honk', 'isRoadAhead', 'isCowAhead', 'isAtFinish'
         ];
         
-        if (!validFunctions.includes(statement.name)) {
+        // Allow user-defined functions
+        if (!validFunctions.includes(statement.name) && !this.userDefinedFunctions.has(statement.name)) {
             const line = statement.line || this.lineNumber;
             const context = this.getErrorContext(line);
-            this.errors.push(`Line ${line}: Unknown function '${statement.name}()'. Available functions: ${validFunctions.join(', ')}.${context}`);
+            const allFunctions = [...validFunctions, ...Array.from(this.userDefinedFunctions)];
+            this.errors.push(`Line ${line}: Unknown function '${statement.name}()'. Available functions: ${allFunctions.join(', ')}.${context}`);
         }
     }
     
