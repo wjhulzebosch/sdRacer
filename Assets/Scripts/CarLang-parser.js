@@ -5,12 +5,14 @@
  */
 
 class CarLangParser {
-    constructor() {
+    constructor(mode = 'single', availableCars = []) {
         this.tokens = [];
         this.current = 0;
         this.errors = [];
         this.sourceLines = [];
         this.lineNumber = 1;
+        this.mode = mode; // 'single' or 'oop'
+        this.availableCars = availableCars; // Array of available car names
     }
 
     /**
@@ -27,11 +29,24 @@ class CarLangParser {
         
         const program = this.parseProgram();
         
-        return {
+        const ast = {
             type: 'Program',
             body: program,
             errors: this.errors
         };
+        
+        // Validate syntax based on mode
+        this.validateSyntax(ast);
+        
+        // Run enhanced validation for better error reporting
+        const enhancedValidation = this.validateEnhanced(ast);
+        
+        // Combine all errors
+        ast.errors = [...this.errors, ...enhancedValidation.errors];
+        ast.warnings = enhancedValidation.warnings;
+        ast.valid = this.errors.length === 0 && enhancedValidation.errors.length === 0;
+        
+        return ast;
     }
 
     /**
@@ -356,7 +371,32 @@ class CarLangParser {
     }
 
     parseFunctionCall() {
-        const name = this.match('IDENTIFIER');
+        let objectName = null;
+        let functionName;
+        
+        // Check if this is a method call (object.method)
+        if (this.mode === 'oop' && this.check('IDENTIFIER')) {
+            const firstIdentifier = this.peek();
+            const nextToken = this.tokens[this.current + 1];
+            
+            // If next token is a dot, this is a method call
+            if (nextToken && nextToken.value === '.') {
+                objectName = this.advance().value;
+                this.advance(); // consume the dot
+                
+                // Validate car name
+                if (!this.availableCars.includes(objectName)) {
+                    const line = firstIdentifier.line || this.lineNumber;
+                    const context = this.getErrorContext(line);
+                    this.errors.push(`Line ${line}: Unknown car '${objectName}'. Available cars: ${this.availableCars.join(', ')}${context}`);
+                }
+            }
+        }
+        
+        // Parse the function name
+        const nameToken = this.match('IDENTIFIER');
+        functionName = nameToken.value;
+        
         this.match('PUNCTUATION', '(');
         
         const args = [];
@@ -370,12 +410,23 @@ class CarLangParser {
         
         this.match('PUNCTUATION', ')');
         
-        return {
-            type: 'FunctionCall',
-            name: name.value,
-            arguments: args,
-            line: name.line
-        };
+        // Return different AST structure based on mode
+        if (objectName) {
+            return {
+                type: 'MethodCall',
+                object: objectName,
+                method: functionName,
+                arguments: args,
+                line: nameToken.line
+            };
+        } else {
+            return {
+                type: 'FunctionCall',
+                name: functionName,
+                arguments: args,
+                line: nameToken.line
+            };
+        }
     }
 
     parseFunctionCallStatement() {
@@ -532,6 +583,39 @@ class CarLangParser {
             const nextToken = this.tokens[this.current + 1];
             if (nextToken && nextToken.value === '(') {
                 return this.parseFunctionCall();
+            } else if (nextToken && nextToken.value === '.') {
+                // Handle method calls: object.method()
+                const objectName = this.advance().value;
+                this.advance(); // consume the dot
+                
+                // Validate car name if in OOP mode
+                if (this.mode === 'oop' && !this.availableCars.includes(objectName)) {
+                    const line = this.peek().line || this.lineNumber;
+                    const context = this.getErrorContext(line);
+                    this.errors.push(`Line ${line}: Unknown car '${objectName}'. Available cars: ${this.availableCars.join(', ')}${context}`);
+                }
+                
+                const methodName = this.match('IDENTIFIER');
+                this.match('PUNCTUATION', '(');
+                
+                const args = [];
+                if (!this.check('PUNCTUATION', ')')) {
+                    args.push(this.parseExpression());
+                    while (this.check('PUNCTUATION', ',')) {
+                        this.advance();
+                        args.push(this.parseExpression());
+                    }
+                }
+                
+                this.match('PUNCTUATION', ')');
+                
+                return {
+                    type: 'MethodCall',
+                    object: objectName,
+                    method: methodName.value,
+                    arguments: args,
+                    line: methodName.line
+                };
             } else {
                 return this.parseIdentifier();
             }
@@ -718,6 +802,253 @@ class CarLangParser {
             type: type.value,
             name: name.value
         };
+    }
+
+    /**
+     * Validate syntax based on parser mode
+     * @param {Object} ast - The parsed AST
+     */
+    validateSyntax(ast) {
+        this.validateStatements(ast.body);
+    }
+    
+    validateStatements(statements) {
+        for (const line of statements) {
+            if (line.statement) {
+                this.validateStatement(line.statement);
+            }
+        }
+    }
+    
+    validateStatement(statement) {
+        if (statement.type === 'FunctionCall') {
+            this.validateFunctionCall(statement);
+        } else if (statement.type === 'MethodCall') {
+            this.validateMethodCall(statement);
+        } else if (statement.type === 'IfStatement') {
+            this.validateStatements(statement.thenBody.statements);
+            for (const elseIf of statement.elseIfs) {
+                this.validateStatements(elseIf.body.statements);
+            }
+            if (statement.elseBody) {
+                this.validateStatements(statement.elseBody.statements);
+            }
+        } else if (statement.type === 'WhileStatement') {
+            this.validateStatements(statement.body.statements);
+        } else if (statement.type === 'ForStatement') {
+            this.validateStatements(statement.body.statements);
+        } else if (statement.type === 'FunctionDeclaration') {
+            this.validateStatements(statement.body.statements);
+        }
+    }
+    
+    validateFunctionCall(statement) {
+        if (this.mode === 'oop') {
+            const line = statement.line || this.lineNumber;
+            const context = this.getErrorContext(line);
+            this.errors.push(`Line ${line}: Cannot use '${statement.name}()' without specifying a car in OOP mode. Use 'carName.${statement.name}()' instead.${context}`);
+        }
+        
+        // Validate function name in both modes
+        const validFunctions = [
+            'moveForward', 'moveBackward', 'turnLeft', 'turnRight', 
+            'honk', 'isRoadAhead', 'isCowAhead', 'isAtFinish'
+        ];
+        
+        if (!validFunctions.includes(statement.name)) {
+            const line = statement.line || this.lineNumber;
+            const context = this.getErrorContext(line);
+            this.errors.push(`Line ${line}: Unknown function '${statement.name}()'. Available functions: ${validFunctions.join(', ')}.${context}`);
+        }
+    }
+    
+    validateMethodCall(statement) {
+        if (this.mode === 'single') {
+            const line = statement.line || this.lineNumber;
+            const context = this.getErrorContext(line);
+            this.errors.push(`Line ${line}: Cannot use '${statement.object}.${statement.method}()' in single-car mode. Use '${statement.method}()' instead.${context}`);
+            return;
+        }
+        
+        // Validate car name in OOP mode
+        if (!this.availableCars.includes(statement.object)) {
+            const line = statement.line || this.lineNumber;
+            const context = this.getErrorContext(line);
+            const availableCarsList = this.availableCars.length > 0 ? this.availableCars.join(', ') : 'none';
+            this.errors.push(`Line ${line}: Unknown car '${statement.object}'. Available cars: ${availableCarsList}.${context}`);
+            return;
+        }
+        
+        // Validate method name
+        const validMethods = [
+            'moveForward', 'moveBackward', 'turnLeft', 'turnRight', 
+            'honk', 'isRoadAhead', 'isCowAhead', 'isAtFinish'
+        ];
+        
+        if (!validMethods.includes(statement.method)) {
+            const line = statement.line || this.lineNumber;
+            const context = this.getErrorContext(line);
+            this.errors.push(`Line ${line}: Unknown method '${statement.method}()' for car '${statement.object}'. Available methods: ${validMethods.join(', ')}.${context}`);
+        }
+    }
+    
+    /**
+     * Enhanced validation for better error reporting
+     */
+    validateEnhanced(ast) {
+        const enhancedErrors = [];
+        const warnings = [];
+        
+        // Check for common programming mistakes
+        this.checkForCommonMistakes(ast, enhancedErrors, warnings);
+        
+        // Check for OOP-specific issues
+        if (this.mode === 'oop') {
+            this.checkOOPIssues(ast, enhancedErrors, warnings);
+        }
+        
+        // Check for single-car mode issues
+        if (this.mode === 'single') {
+            this.checkSingleCarIssues(ast, enhancedErrors, warnings);
+        }
+        
+        // Add enhanced errors and warnings to the AST
+        ast.enhancedErrors = enhancedErrors;
+        ast.warnings = warnings;
+        
+        return {
+            valid: enhancedErrors.length === 0,
+            errors: enhancedErrors,
+            warnings: warnings
+        };
+    }
+    
+    checkForCommonMistakes(ast, errors, warnings) {
+        this.traverseAST(ast, (node) => {
+            // Check for missing semicolons in function calls
+            if (node.type === 'FunctionCall' && !node.hasSemicolon) {
+                const line = node.line || this.lineNumber;
+                const context = this.getErrorContext(line);
+                errors.push(`Line ${line}: Missing semicolon after '${node.name}()'.${context}`);
+            }
+            
+            // Check for missing semicolons in method calls
+            if (node.type === 'MethodCall' && !node.hasSemicolon) {
+                const line = node.line || this.lineNumber;
+                const context = this.getErrorContext(line);
+                errors.push(`Line ${line}: Missing semicolon after '${node.object}.${node.method}()'.${context}`);
+            }
+            
+            // Check for empty blocks
+            if (node.type === 'Block' && (!node.statements || node.statements.length === 0)) {
+                const line = node.line || this.lineNumber;
+                warnings.push(`Line ${line}: Empty block detected. Consider adding some code or removing the block.`);
+            }
+            
+            // Check for infinite loops
+            if (node.type === 'WhileStatement' && node.condition && 
+                (node.condition.type === 'Literal' && node.condition.value === true)) {
+                const line = node.line || this.lineNumber;
+                warnings.push(`Line ${line}: Infinite loop detected with 'while(true)'. Make sure you have a way to break out of the loop.`);
+            }
+        });
+    }
+    
+    checkOOPIssues(ast, errors, warnings) {
+        const usedCars = new Set();
+        const carUsageCount = {};
+        
+        this.traverseAST(ast, (node) => {
+            if (node.type === 'MethodCall') {
+                usedCars.add(node.object);
+                carUsageCount[node.object] = (carUsageCount[node.object] || 0) + 1;
+            }
+        });
+        
+        // Check for unused cars
+        this.availableCars.forEach(carName => {
+            if (!usedCars.has(carName)) {
+                warnings.push(`Car '${carName}' is available but not used in your code.`);
+            }
+        });
+        
+        // Check for overused cars (potential optimization)
+        Object.entries(carUsageCount).forEach(([carName, count]) => {
+            if (count > 10) {
+                warnings.push(`Car '${carName}' is used ${count} times. Consider using loops to reduce repetition.`);
+            }
+        });
+        
+        // Check for mixed syntax (function calls in OOP mode)
+        let hasFunctionCalls = false;
+        let hasMethodCalls = false;
+        
+        this.traverseAST(ast, (node) => {
+            if (node.type === 'FunctionCall') hasFunctionCalls = true;
+            if (node.type === 'MethodCall') hasMethodCalls = true;
+        });
+        
+        if (hasFunctionCalls && hasMethodCalls) {
+            warnings.push('Mixed syntax detected: You are using both function calls and method calls. In OOP mode, it\'s recommended to use method calls consistently.');
+        }
+    }
+    
+    checkSingleCarIssues(ast, errors, warnings) {
+        // Check for method calls in single-car mode
+        let hasMethodCalls = false;
+        
+        this.traverseAST(ast, (node) => {
+            if (node.type === 'MethodCall') {
+                hasMethodCalls = true;
+                const line = node.line || this.lineNumber;
+                const context = this.getErrorContext(line);
+                errors.push(`Line ${line}: Cannot use '${node.object}.${node.method}()' in single-car mode. Use '${node.method}()' instead.${context}`);
+            }
+        });
+        
+        if (hasMethodCalls) {
+            warnings.push('This level uses single-car mode. Use function calls like moveForward() instead of carName.moveForward().');
+        }
+    }
+    
+    traverseAST(node, callback) {
+        if (!node || typeof node !== 'object') return;
+        
+        callback(node);
+        
+        // Recursively traverse child nodes
+        if (node.body) {
+            if (Array.isArray(node.body)) {
+                node.body.forEach(child => this.traverseAST(child, callback));
+            } else {
+                this.traverseAST(node.body, callback);
+            }
+        }
+        
+        if (node.statements) {
+            node.statements.forEach(child => this.traverseAST(child, callback));
+        }
+        
+        if (node.thenBody) this.traverseAST(node.thenBody, callback);
+        if (node.elseBody) this.traverseAST(node.elseBody, callback);
+        if (node.elseIfs) {
+            node.elseIfs.forEach(elseIf => this.traverseAST(elseIf.body, callback));
+        }
+        
+        if (node.condition) this.traverseAST(node.condition, callback);
+        if (node.expression) this.traverseAST(node.expression, callback);
+        if (node.value) this.traverseAST(node.value, callback);
+        
+        if (node.cases) {
+            node.cases.forEach(caseNode => {
+                this.traverseAST(caseNode.value, callback);
+                this.traverseAST(caseNode.statements, callback);
+            });
+        }
+        
+        if (node.defaultCase) this.traverseAST(node.defaultCase.statements, callback);
+        if (node.tryBody) this.traverseAST(node.tryBody, callback);
+        if (node.catchBody) this.traverseAST(node.catchBody, callback);
     }
 }
 

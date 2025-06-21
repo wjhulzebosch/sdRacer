@@ -5,12 +5,27 @@
  */
 
 class CarLangEngine {
-    constructor(car, level, gameDiv) {
-        this.car = car;
+    constructor(carRegistry, level, gameDiv) {
+        this.carRegistry = carRegistry || {};
+        this.defaultCar = null; // For backward compatibility
         this.level = level;
         this.gameDiv = gameDiv;
         this.variables = {};
         this.functions = {};
+        
+        // Set default car for backward compatibility
+        if (carRegistry && typeof carRegistry === 'object') {
+            if (Array.isArray(carRegistry)) {
+                // If passed as array, use first car
+                this.defaultCar = carRegistry[0] || null;
+            } else {
+                // If passed as object, use first car or mainCar
+                this.defaultCar = carRegistry.mainCar || carRegistry[Object.keys(carRegistry)[0]] || null;
+            }
+        } else {
+            // Legacy support: if passed single car
+            this.defaultCar = carRegistry;
+        }
         
         // Execution state
         this.ast = null;
@@ -28,15 +43,15 @@ class CarLangEngine {
             // Add more visual commands here as needed
         ];
         
-        // Map CarLang function names to Car.js methods
+        // Map CarLang function names to Car.js methods (for single-car mode)
         this.functionMap = {
-            'moveForward': () => this.car.moveForward(this.level, this.gameDiv),
-            'moveBackward': () => this.car.moveBackward(this.level, this.gameDiv),
-            'turnRight': () => this.car.turnRight(this.gameDiv),
-            'turnLeft': () => this.car.turnLeft(this.gameDiv),
-            'explode': () => this.car.crash(this.gameDiv),
-            'isRoadAhead': () => this.car.isRoadAhead(this.level),
-            'isCowAhead': () => this.car.isCowAhead(),
+            'moveForward': () => this.defaultCar.moveForward(this.level, this.gameDiv),
+            'moveBackward': () => this.defaultCar.moveBackward(this.level, this.gameDiv),
+            'turnRight': () => this.defaultCar.turnRight(this.gameDiv),
+            'turnLeft': () => this.defaultCar.turnLeft(this.gameDiv),
+            'explode': () => this.defaultCar.crash(this.gameDiv),
+            'isRoadAhead': () => this.defaultCar.isRoadAhead(this.level),
+            'isCowAhead': () => this.defaultCar.isCowAhead(),
             'honk': () => this.honk()
         };
         
@@ -165,13 +180,22 @@ class CarLangEngine {
                 if (this.currentContext.type === oldContextType && this.currentContext.currentIndex === oldContextIndex) {
                     this.currentContext.currentIndex++;
                 }
+                
+                // Get function name for tracking
+                let functionName = null;
+                if (currentStatement.statement.type === 'FunctionCall') {
+                    functionName = currentStatement.statement.name;
+                } else if (currentStatement.statement.type === 'MethodCall') {
+                    functionName = currentStatement.statement.method;
+                }
+                
                 return { 
                     status: 'PAUSED', 
                     currentLine: currentStatement.statement ? currentStatement.statement.line : null,
                     blockStartLine: this.currentContext.blockStartLine,
                     contextType: this.currentContext.type,
                     commandType: currentStatement.statement ? currentStatement.statement.type : null,
-                    functionName: currentStatement.statement && currentStatement.statement.type === 'FunctionCall' ? currentStatement.statement.name : null,
+                    functionName: functionName,
                     result: result 
                 };
             }
@@ -180,13 +204,22 @@ class CarLangEngine {
             if (this.currentContext.type === oldContextType && this.currentContext.currentIndex === oldContextIndex) {
                 this.currentContext.currentIndex++;
             }
+            
+            // Get function name for tracking
+            let functionName = null;
+            if (currentStatement.statement && currentStatement.statement.type === 'FunctionCall') {
+                functionName = currentStatement.statement.name;
+            } else if (currentStatement.statement && currentStatement.statement.type === 'MethodCall') {
+                functionName = currentStatement.statement.method;
+            }
+            
             return { 
                 status: 'CONTINUE', 
                 currentLine: currentStatement.statement ? currentStatement.statement.line : null,
                 blockStartLine: this.currentContext.blockStartLine,
                 contextType: this.currentContext.type,
                 commandType: currentStatement.statement ? currentStatement.statement.type : null,
-                functionName: currentStatement.statement && currentStatement.statement.type === 'FunctionCall' ? currentStatement.statement.name : null,
+                functionName: functionName,
                 result: result 
             };
             
@@ -298,6 +331,8 @@ class CarLangEngine {
                 return this.executeFunctionDeclaration(statement);
             case 'FunctionCall':
                 return this.executeFunctionCall(statement);
+            case 'MethodCall':
+                return this.executeMethodCall(statement);
             case 'IfStatement':
                 return this.executeIfStatement(statement);
             case 'WhileStatement':
@@ -438,8 +473,8 @@ class CarLangEngine {
         }
         
         // Get car's current position
-        const carX = this.car.currentPosition.x;
-        const carY = this.car.currentPosition.y;
+        const carX = this.defaultCar.currentPosition.x;
+        const carY = this.defaultCar.currentPosition.y;
         console.log('HONK: Car position:', { x: carX, y: carY });
         
         // Check for cows in orthogonally adjacent tiles
@@ -781,6 +816,9 @@ class CarLangEngine {
             case 'FunctionCall':
                 this.validateFunctionCall(statement, errors, line, allValidFunctions);
                 break;
+            case 'MethodCall':
+                this.validateMethodCall(statement, errors, line, allValidFunctions);
+                break;
             case 'FunctionDeclaration':
                 this.validateFunctionDeclaration(statement, errors, warnings, allValidFunctions);
                 break;
@@ -949,6 +987,9 @@ class CarLangEngine {
             case 'FunctionCall':
                 this.validateFunctionCall(expression, errors, null, allValidFunctions);
                 break;
+            case 'MethodCall':
+                this.validateMethodCall(expression, errors, null, allValidFunctions);
+                break;
             case 'Identifier':
                 // Check if variable is declared
                 // (This would require scope tracking for full implementation)
@@ -980,7 +1021,135 @@ class CarLangEngine {
         if (statement.type === 'FunctionCall') {
             return this.delayedCommands.includes(statement.name);
         }
+        if (statement.type === 'MethodCall') {
+            return this.delayedCommands.includes(statement.method);
+        }
         return false;
+    }
+
+    /**
+     * Execute method call (car.method())
+     */
+    executeMethodCall(statement) {
+        const args = statement.arguments.map(arg => this.evaluateExpression(arg));
+        
+        // Get the target car
+        const carName = statement.object;
+        const car = this.carRegistry[carName];
+        
+        if (!car) {
+            throw new Error(`Unknown car: ${carName}`);
+        }
+        
+        // Map method names to car methods
+        const methodMap = {
+            'moveForward': () => car.moveForward(this.level, this.gameDiv),
+            'moveBackward': () => car.moveBackward(this.level, this.gameDiv),
+            'turnRight': () => car.turnRight(this.gameDiv),
+            'turnLeft': () => car.turnLeft(this.gameDiv),
+            'explode': () => car.crash(this.gameDiv),
+            'isRoadAhead': () => car.isRoadAhead(this.level),
+            'isCowAhead': () => car.isCowAhead(),
+            'honk': () => this.honkForCar(car)
+        };
+        
+        // Execute the method
+        if (methodMap[statement.method]) {
+            return methodMap[statement.method](...args);
+        }
+        
+        console.warn(`Unknown method: ${statement.method}`);
+        return null;
+    }
+
+    /**
+     * Honk the car horn for a specific car
+     */
+    honkForCar(car) {
+        console.log('HONK: Starting honk method for specific car');
+        
+        // Play honk sound immediately
+        if (typeof soundController !== 'undefined') {
+            soundController.playCarHorn();
+        }
+        
+        // Get car's current position
+        const carX = car.currentPosition.x;
+        const carY = car.currentPosition.y;
+        console.log('HONK: Car position:', { x: carX, y: carY });
+        
+        // Check for cows in orthogonally adjacent tiles
+        const adjacentPositions = [
+            { x: carX, y: carY - 1 }, // North
+            { x: carX + 1, y: carY }, // East
+            { x: carX, y: carY + 1 }, // South
+            { x: carX - 1, y: carY }  // West
+        ];
+        console.log('HONK: Checking adjacent positions:', adjacentPositions);
+        
+        // Get cows from the global cows array (defined in game.js)
+        const globalCows = window.cows || [];
+        console.log('HONK: Found cows:', globalCows.length, globalCows);
+        
+        // Check each adjacent position for cows
+        adjacentPositions.forEach((pos, index) => {
+            console.log(`HONK: Checking position ${index}:`, pos);
+            globalCows.forEach((cow, cowIndex) => {
+                console.log(`HONK: Checking cow ${cowIndex}:`, cow);
+                console.log(`HONK: Cow position:`, { x: cow.currentX, y: cow.currentY });
+                console.log(`HONK: Is cow at position?`, cow.isAtPosition(pos.x, pos.y));
+                if (cow.isAtPosition(pos.x, pos.y)) {
+                    console.log(`HONK: Found cow at position ${index}, calling GetHonked()`);
+                    cow.GetHonked();
+                }
+            });
+        });
+        
+        console.log('HONK: Honk method completed for specific car');
+    }
+
+    /**
+     * Validate a method call
+     */
+    validateMethodCall(methodCall, errors, line, allValidFunctions) {
+        const methodName = methodCall.method;
+        const objectName = methodCall.object;
+        
+        // Check if the object (car) exists in the registry
+        if (!this.carRegistry[objectName]) {
+            const lineNumber = this.getLineNumber(line);
+            errors.push(`Line ${lineNumber}: Unknown car '${objectName}'`);
+            return;
+        }
+        
+        // Check if it's a valid method (same as built-in functions)
+        const isBuiltIn = Object.keys(this.functionMap).includes(methodName);
+        
+        if (!isBuiltIn) {
+            const lineNumber = this.getLineNumber(line);
+            errors.push(`Line ${lineNumber}: Undefined method '${methodName}' for car '${objectName}'`);
+        }
+        
+        // Validate arguments based on function validation rules
+        if (isBuiltIn) {
+            this.validateMethodArguments(methodCall, errors, line);
+        }
+    }
+    
+    /**
+     * Validate method arguments
+     */
+    validateMethodArguments(methodCall, errors, line) {
+        const methodName = methodCall.method;
+        const args = methodCall.arguments;
+        const validation = this.functionValidation[methodName];
+        
+        if (validation) {
+            if (args.length !== validation.args) {
+                const lineNumber = this.getLineNumber(line);
+                errors.push(`Line ${lineNumber}: '${methodCall.object}.${methodName}' expects ${validation.args} argument(s), got ${args.length}`);
+            }
+        }
     }
 }
 

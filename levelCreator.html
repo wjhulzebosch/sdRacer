@@ -2,40 +2,74 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Level Creator</title>
+    <title>Level Creator - sdRacer</title>
     <link rel="stylesheet" href="Assets/Styles/levelCreator.css">
 </head>
 <body>
     <div class="container">
-        <h1>Level Creator</h1>
-        <p>Note: Very experimental, not all features are implemented yet, use at your own risk.</p>
+        <h1>🎮 Level Creator</h1>
+        <p class="experimental-warning">⚠️ Experimental tool - Use at your own risk. Not all features are fully implemented.</p>
+        
         <div class="flex-row">
             <div class="form-section">
-                <label>Breedte (kolommen): <input type="number" id="width" min="1" value="4"></label>
-                <label>Hoogte (rijen): <input type="number" id="height" min="1" value="4"></label>
-                <label>ID: <input type="text" id="id" value=""></label>
-                <label>Category: <input type="text" id="category" value=""></label>
-                <label>Name: <input type="text" id="name" value=""></label>
-                <label>Author: <input type="text" id="author" value=""></label>
-                <label>Win Condition: 
-                    <select id="winCondition">
-                        <option value="IsAtFinish()">IsAtFinish()</option>
-                        <option value="IsParked()">IsParked()</option>
-                        <option value="DestroyObject()">DestroyObject()</option>
-                    </select>
-                </label>
-                <label>Instructies: <textarea id="instructions"></textarea></label>
-                <label>Default code: <textarea id="defaultCode"></textarea></label>
-                <div style="border: 1px solid #333; margin: 16px 0; padding: 16px;">
-                    <h3>Maze Generator</h3>
-                    <p>Generate a maze using the current grid size and car/finish positions.</p>
-                    <div class="button-row">
-                        <button id="generateMazeBtn">Generate Maze</button>
+                <!-- Basic Level Information -->
+                <div class="form-group">
+                    <h3>📐 Grid Settings</h3>
+                    <label>Width (columns): <input type="number" id="width" min="1" value="4"></label>
+                    <label>Height (rows): <input type="number" id="height" min="1" value="4"></label>
+                </div>
+                
+                <div class="form-group">
+                    <h3>📝 Level Information</h3>
+                    <label>Level ID: <input type="text" id="id" value="" placeholder="e.g., 12"></label>
+                    <label>Category: <input type="text" id="category" value="" placeholder="e.g., OOP Introduction"></label>
+                    <label>Name: <input type="text" id="name" value="" placeholder="e.g., Multi-Car Challenge"></label>
+                    <label>Author: <input type="text" id="author" value="" placeholder="Your name"></label>
+                </div>
+                
+                <div class="form-group">
+                    <h3>🎯 Win Condition</h3>
+                    <label>Win Condition: 
+                        <select id="winCondition">
+                            <option value="IsAtFinish()">IsAtFinish() - Any car reaches finish</option>
+                            <option value="AllCarsAtFinish()">AllCarsAtFinish() - All cars must reach finish</option>
+                            <option value="SpecificCarAtFinish()">SpecificCarAtFinish() - Specific car must reach finish</option>
+                        </select>
+                    </label>
+                </div>
+                
+                <div class="form-group">
+                    <h3>📖 Instructions & Code</h3>
+                    <label>Instructions: <textarea id="instructions" placeholder="Explain the level objectives..."></textarea></label>
+                    <label>Default Code: <textarea id="defaultCode" placeholder="// Write default CarLang code here..."></textarea></label>
+                </div>
+                
+                <!-- Car Management Section -->
+                <div class="form-group">
+                    <h3>🚗 Car Management</h3>
+                    <div class="car-controls">
+                        <button id="addCarBtn" class="btn-secondary">➕ Add Car</button>
+                        <button id="clearCarsBtn" class="btn-warning">🗑️ Clear All Cars</button>
+                    </div>
+                    <div id="carList" class="car-list">
+                        <!-- Cars will be listed here -->
                     </div>
                 </div>
-                <div style="border: 1px solid #333; margin: 16px 0; padding: 16px;">
+                
+                <!-- Maze Generator -->
+                <div class="form-group">
+                    <h3>🏗️ Maze Generator</h3>
+                    <p>Generate a maze using the current grid size and car/finish positions.</p>
                     <div class="button-row">
-                        <button id="loadLevelBtn">Load Level</button>
+                        <button id="generateMazeBtn" class="btn-secondary">🎲 Generate Maze</button>
+                    </div>
+                </div>
+                
+                <!-- Level Loading -->
+                <div class="form-group">
+                    <h3>📂 Load Existing Level</h3>
+                    <div class="button-row">
+                        <button id="loadLevelBtn" class="btn-secondary">📂 Load Level</button>
                     </div>
                     <label>Start from existing level: 
                         <select id="levelSelector">
@@ -43,23 +77,96 @@
                         </select>
                     </label>
                 </div>
-                <div class="button-row">
-                    <button id="showJsonBtn">Export</button>
-                    <button id="loadJsonBtn">Import</button>
+                
+                <!-- Import/Export -->
+                <div class="form-group">
+                    <h3>💾 Import/Export</h3>
+                    <div class="button-row">
+                        <button id="showJsonBtn" class="btn-primary">📤 Export JSON</button>
+                        <button id="loadJsonBtn" class="btn-secondary">📥 Import JSON</button>
+                    </div>
+                    <label>Level JSON:</label>
+                    <textarea id="jsonArea" placeholder="Paste level JSON here..."></textarea>
                 </div>
-                <label>Level JSON:</label>
-                <textarea id="jsonArea"></textarea>
             </div>
+            
             <div class="grid-section">
-                <div style="margin-bottom: 16px;">
-                    <span id="carIcon" class="car-icon" style="background-image:url('Assets/Textures/Car.png');" title="Plaats auto"></span>
-                    <span id="finishIcon" class="finish-icon" style="background-image:url('Assets/Textures/Finish.png');" title="Plaats finish"></span>
-                    <span id="cowIcon" class="cow-icon" style="background-image:url('Assets/Textures/Cow.png');" title="Plaats koe (optioneel)"></span>
+                <div class="placement-tools">
+                    <h3>🛠️ Placement Tools</h3>
+                    <div class="tool-buttons">
+                        <div class="tool-group">
+                            <span class="tool-label">Cars:</span>
+                            <span id="redCarIcon" class="car-icon red-car" title="Place Red Car"></span>
+                            <span id="blueCarIcon" class="car-icon blue-car" title="Place Blue Car"></span>
+                            <span id="greenCarIcon" class="car-icon green-car" title="Place Green Car"></span>
+                            <span id="yellowCarIcon" class="car-icon yellow-car" title="Place Yellow Car"></span>
+                        </div>
+                        <div class="tool-group">
+                            <span class="tool-label">Objects:</span>
+                            <span id="finishIcon" class="finish-icon" title="Place Finish Line"></span>
+                            <span id="cowIcon" class="cow-icon" title="Place Cow (optional)"></span>
+                        </div>
+                    </div>
+                    <div class="placement-status">
+                        <span id="placementStatus">Click an icon to start placing objects</span>
+                    </div>
                 </div>
+                
                 <div id="levelGrid" class="level-grid"></div>
+                
+                <!-- Grid Information -->
+                <div class="grid-info">
+                    <div class="info-item">
+                        <span class="info-label">Grid Size:</span>
+                        <span id="gridSizeInfo">4x4</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Cars Placed:</span>
+                        <span id="carsPlacedInfo">0</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Finish:</span>
+                        <span id="finishInfo">Not placed</span>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
+    
+    <!-- Car Configuration Modal -->
+    <div id="carModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🚗 Configure Car</h3>
+                <button class="close-btn" id="closeCarModal">×</button>
+            </div>
+            <div class="modal-body">
+                <label>Car Name: <input type="text" id="carName" placeholder="e.g., redCar"></label>
+                <label>Car Type: 
+                    <select id="carType">
+                        <option value="red">Red Car</option>
+                        <option value="blue">Blue Car</option>
+                        <option value="green">Green Car</option>
+                        <option value="yellow">Yellow Car</option>
+                        <option value="default">Default Car</option>
+                    </select>
+                </label>
+                <label>Direction: 
+                    <select id="carDirection">
+                        <option value="N">North (↑)</option>
+                        <option value="E">East (→)</option>
+                        <option value="S">South (↓)</option>
+                        <option value="W">West (←)</option>
+                    </select>
+                </label>
+                <div class="modal-buttons">
+                    <button id="saveCarBtn" class="btn-primary">💾 Save Car</button>
+                    <button id="cancelCarBtn" class="btn-secondary">❌ Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <script src="Assets/Scripts/mazeCreator.js"></script>
     <script src="Assets/Scripts/levelCreator.js"></script>
 </body>
