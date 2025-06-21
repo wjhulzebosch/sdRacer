@@ -69,7 +69,7 @@ button:hover {
     flex-direction: column;
     align-items: center;
 }
-.level-grid {
+.level-creator-grid {
     position: relative;
     margin-top: 16px;
     background: #111;
@@ -77,21 +77,21 @@ button:hover {
     border-radius: 8px;
     display: inline-block;
 }
-.cell {
+.level-creator-cell {
     position: absolute;
     width: 48px;
     height: 48px;
     background: #23272b;
     border: 1px solid #444;
     box-sizing: border-box;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     font-size: 0.9rem;
     color: #aaa;
     z-index: 1;
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
 }
-.border-btn {
+.level-creator-border-btn {
     position: absolute;
     background: transparent;
     border: none;
@@ -100,19 +100,19 @@ button:hover {
     z-index: 2;
     cursor: pointer;
 }
-.border-btn.active {
+.level-creator-border-btn.active {
     background: #2d8cff;
 }
-.border-btn:hover {
+.level-creator-border-btn:hover {
     background: #1a5fb4;
 }
-.border-btn.h {
+.level-creator-border-btn.h {
     width: 48px;
     height: 8px;
     left: 0;
     transform: translateY(-4px);
 }
-.border-btn.v {
+.level-creator-border-btn.v {
     width: 8px;
     height: 48px;
     top: 0;
@@ -136,7 +136,7 @@ button:hover {
     border: 2px solid #2d8cff;
     box-shadow: 0 0 8px #2d8cff88;
 }
-.cell.car-here::after {
+.level-creator-cell.car-here::after {
     content: '';
     position: absolute;
     left: 4px; top: 4px; right: 4px; bottom: 4px;
@@ -147,7 +147,7 @@ button:hover {
     pointer-events: none;
     z-index: 10;
 }
-.cell.finish-here::after {
+.level-creator-cell.finish-here::after {
     content: '';
     position: absolute;
     left: 4px; top: 4px; right: 4px; bottom: 4px;
@@ -158,7 +158,7 @@ button:hover {
     pointer-events: none;
     z-index: 10;
 }
-.cell.cow-here::after {
+.level-creator-cell.cow-here::after {
     content: '';
     position: absolute;
     left: 4px; top: 4px; right: 4px; bottom: 4px;
@@ -169,7 +169,7 @@ button:hover {
     pointer-events: none;
     z-index: 10;
 }
-.cell.cow-secondary-preview::after {
+.level-creator-cell.cow-secondary-preview::after {
     content: '';
     position: absolute;
     left: 4px; top: 4px; right: 4px; bottom: 4px;
