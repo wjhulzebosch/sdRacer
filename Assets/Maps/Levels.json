@@ -105,7 +105,7 @@
         },
         {
             "id": "7",
-            "category": "Amazing",
+            "category": "Amazing Mazes",
             "name": "A star is born",
             "author": "sdRacer",
             "WinCondition": "IsAtFinish()",

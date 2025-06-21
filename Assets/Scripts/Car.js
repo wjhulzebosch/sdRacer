@@ -60,9 +60,9 @@ class Car {
             case 'S': newY += 1; break;
             case 'W': newX -= 1; break;
         }
-        // Check if new position is a road
-        const tile = level.getTile(newX, newY);
-        if (!tile || tile === '0000') {
+        
+        // Check if new position is connected to current road
+        if (!this.isRoadConnected(level, newX, newY)) {
             this.currentPosition = { x: newX, y: newY };
             this.crash(gameDiv, tileSize);
             return;
@@ -91,9 +91,9 @@ class Car {
             case 'S': newY -= 1; break;
             case 'W': newX += 1; break;
         }
-        // Check if new position is a road
-        const tile = level.getTile(newX, newY);
-        if (!tile || tile === '0000') {
+        
+        // Check if new position is connected to current road
+        if (!this.isRoadConnected(level, newX, newY)) {
             this.currentPosition = { x: newX, y: newY };
             this.crash(gameDiv, tileSize);
             return;
@@ -140,9 +140,58 @@ class Car {
             case 'S': newY += 1; break;
             case 'W': newX -= 1; break;
         }
+        
+        // First check if the tile exists and is not grass
         const tile = level.getTile(newX, newY);
-        // Return true if the tile exists and is not '0000' (grass)
-        return !!(tile && tile !== '0000');
+        if (!tile || tile === '0000') {
+            return false;
+        }
+        
+        // Now check if the road is actually connected
+        return this.isRoadConnected(level, newX, newY);
+    }
+    
+    // Check if a road tile is connected to the current road network
+    isRoadConnected(level, targetX, targetY) {
+        const currentTile = level.getTile(this.currentPosition.x, this.currentPosition.y);
+        const targetTile = level.getTile(targetX, targetY);
+        
+        if (!currentTile || !targetTile || currentTile === '0000' || targetTile === '0000') {
+            return false;
+        }
+        
+        // Determine the direction from current to target
+        const dx = targetX - this.currentPosition.x;
+        const dy = targetY - this.currentPosition.y;
+        
+        // Check if the movement direction is valid (orthogonal only)
+        if (Math.abs(dx) + Math.abs(dy) !== 1) {
+            return false;
+        }
+        
+        // Determine which direction we're moving
+        let currentDirection, targetDirection;
+        if (dx === 1) { // Moving East
+            currentDirection = 1; // East
+            targetDirection = 3;  // West
+        } else if (dx === -1) { // Moving West
+            currentDirection = 3; // West
+            targetDirection = 1;  // East
+        } else if (dy === 1) { // Moving South
+            currentDirection = 2; // South
+            targetDirection = 0;  // North
+        } else if (dy === -1) { // Moving North
+            currentDirection = 0; // North
+            targetDirection = 2;  // South
+        } else {
+            return false;
+        }
+        
+        // Check if both tiles have connections in the right directions
+        const currentConnections = currentTile.split('').map(Number);
+        const targetConnections = targetTile.split('').map(Number);
+        
+        return currentConnections[currentDirection] === 1 && targetConnections[targetDirection] === 1;
     }
 
     // Check if it's safe to move forward (road exists AND no cow blocking)

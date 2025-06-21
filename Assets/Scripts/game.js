@@ -38,6 +38,9 @@ function getPlayBtn() {
 function getResetBtn() {
     return document.getElementById('resetBtn');
 }
+function getResetLvlBtn() {
+    return document.getElementById('resetLvlBtn');
+}
 function getFixIndentationBtn() {
     return document.getElementById('fixIndentationBtn');
 }
@@ -563,6 +566,91 @@ function resetGame() {
     playBtn.textContent = 'Play';
 }
 
+function resetLevel() {
+    // Reset interpreter if it exists
+    if (window.currentInterpreter) {
+        window.currentInterpreter.reset();
+    }
+    
+    // Reset car position if we have a current level (but not for custom levels)
+    if (car && currentLevelId && currentLevelId !== 'custom' && allLevels.length > 0) {
+        const gameDiv = document.getElementById('game');
+        // Remove the car element from DOM
+        const carElement = gameDiv.querySelector('.car');
+        if (carElement) {
+            carElement.remove();
+        }
+        // Find the current level data
+        const levelData = allLevels.find(lvl => lvl.id === currentLevelId);
+        if (levelData && levelData.start && Array.isArray(levelData.start)) {
+            car = new Car({ position: { x: levelData.start[1] + 1, y: levelData.start[0] + 1 }, direction: 'N' });
+            car.render(gameDiv);
+        }
+    }
+    
+    // Reset cows to their default positions
+    cows.forEach(cow => {
+        cow.reset();
+    });
+    
+    // Update global cows array
+    window.cows = cows;
+    
+    // Reset execution state
+    isRunning = false;
+    playBtn.disabled = false;
+    playBtn.textContent = 'Play';
+    
+    // Clear line highlighting
+    clearLineHighlighting();
+    
+    // Show feedback
+    const resetLvlBtn = getResetLvlBtn();
+    if (resetLvlBtn) {
+        resetLvlBtn.textContent = 'Reset!';
+        setTimeout(() => resetLvlBtn.textContent = 'Reset level', 1000);
+    }
+}
+
+function resetLevelState() {
+    // Reset interpreter if it exists
+    if (window.currentInterpreter) {
+        window.currentInterpreter.reset();
+    }
+    
+    // Reset car position if we have a current level (but not for custom levels)
+    if (car && currentLevelId && currentLevelId !== 'custom' && allLevels.length > 0) {
+        const gameDiv = document.getElementById('game');
+        // Remove the car element from DOM
+        const carElement = gameDiv.querySelector('.car');
+        if (carElement) {
+            carElement.remove();
+        }
+        // Find the current level data
+        const levelData = allLevels.find(lvl => lvl.id === currentLevelId);
+        if (levelData && levelData.start && Array.isArray(levelData.start)) {
+            car = new Car({ position: { x: levelData.start[1] + 1, y: levelData.start[0] + 1 }, direction: 'N' });
+            car.render(gameDiv);
+        }
+    }
+    
+    // Reset cows to their default positions
+    cows.forEach(cow => {
+        cow.reset();
+    });
+    
+    // Update global cows array
+    window.cows = cows;
+    
+    // Reset execution state
+    isRunning = false;
+    playBtn.disabled = false;
+    playBtn.textContent = 'Play';
+    
+    // Clear line highlighting
+    clearLineHighlighting();
+}
+
 function loadLevel(levelId) {
     fetch('Assets/Maps/Levels.json')
         .then(response => response.json())
@@ -624,7 +712,18 @@ function loadLevel(levelId) {
 
 async function playCode() {
     try {
+        // Check if button is in "Finished" state - if so, reset level and play again
+        if (playBtn.textContent === 'Finished') {
+            resetLevelState();
+            // Small delay to ensure reset is complete
+            setTimeout(() => {
+                playCode();
+            }, 100);
+            return;
+        }
+        
         playBtn.disabled = true;
+        playBtn.textContent = 'Playing';
         hideWinMessage();
         
         // First, run checkCode to show AST and validation
@@ -693,13 +792,15 @@ async function playCode() {
                 case 'COMPLETE':
                     // Execution finished
                     clearLineHighlighting();
-                    playBtn.textContent = 'Played!';
-                    setTimeout(() => playBtn.textContent = 'Play', 1000);
+                    playBtn.textContent = 'Finished';
+                    playBtn.disabled = false;
                     break;
                     
                 case 'ERROR':
                     // Error occurred
                     clearLineHighlighting();
+                    playBtn.textContent = 'Play';
+                    playBtn.disabled = false;
                     throw new Error(result.error);
             }
         };
@@ -710,18 +811,17 @@ async function playCode() {
     } catch (e) {
         console.error('Error in code: ' + e.message);
         alert('Error: ' + e.message);
+        playBtn.textContent = 'Play';
         playBtn.disabled = false;
     }
 }
 
 function resetCode() {
-    resetGame();
+    resetLevelState();
     
     // Reset code to level default
     loadDefaultCode();
-    clearLineHighlighting();
-    resetBtn.textContent = 'Reset!';
-    setTimeout(() => resetBtn.textContent = 'Reset', 1000);
+    resetBtn.textContent = 'Reset code';
 }
 
 function startGame() {
@@ -735,6 +835,10 @@ function startGame() {
     loadBtn.onclick = handleLoadBtn;
     playBtn.onclick = playCode;
     resetBtn.onclick = resetCode;
+    
+    // Set up reset level button
+    const resetLvlBtn = getResetLvlBtn();
+    if (resetLvlBtn) resetLvlBtn.onclick = resetLevel;
     
     // Set up fix indentation button
     const fixIndentationBtn = getFixIndentationBtn();
