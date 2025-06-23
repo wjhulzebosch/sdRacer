@@ -18,8 +18,7 @@ class Car extends Entity {
     
     isRoadAhead(world) {
         const aheadPos = this.getPositionAhead();
-        const tile = world.getTile(aheadPos.x, aheadPos.y);
-        return tile && tile.isRoad();
+        return this.isRoadConnected(world, aheadPos.x, aheadPos.y);
     }
     
     isRoadConnected(world, targetX, targetY) {
@@ -107,12 +106,20 @@ class Car extends Entity {
     }
     
     canMoveTo(world, x, y) {
-        const tile = world.getTile(x, y);
-        if (!tile || !tile.isRoad()) return false;
+        // Check if roads are connected
+        if (!this.isRoadConnected(world, x, y)) {
+            this.crash(); // Car crashes when trying to move to unconnected road
+            return false;
+        }
         
         // Check for cow collision
         const entities = world.getEntitiesAt(x, y);
-        return !entities.some(entity => entity.type === 'cow');
+        if (entities.some(entity => entity.type === 'cow')) {
+            this.crash(); // Car crashes when hitting cow
+            return false;
+        }
+        
+        return true;
     }
     
     turnRight() {
@@ -135,10 +142,9 @@ class Car extends Entity {
     
     isSafeToMove(world) {
         const aheadPos = this.getPositionAhead();
-        const tile = world.getTile(aheadPos.x, aheadPos.y);
         
-        // Return false if the tile doesn't exist or is grass
-        if (!tile || !tile.isRoad()) {
+        // Check if roads are connected
+        if (!this.isRoadConnected(world, aheadPos.x, aheadPos.y)) {
             return false;
         }
         
