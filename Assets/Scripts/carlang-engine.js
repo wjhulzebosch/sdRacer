@@ -185,6 +185,13 @@ class CarLangEngine {
             // Execute the current statement
             const result = currentStatement.statement ? this.executeStatement(currentStatement.statement) : null;
             
+            // Check if the command indicated completion (all cars crashed)
+            if (result && result.status === 'COMPLETE') {
+                debug(`[executeNext] Command returned COMPLETE status, ending execution`);
+                this.isExecuting = false;
+                return { status: 'COMPLETE' };
+            }
+            
             // Move to next statement only if we didn't create a new context
             // Check if this was a delayed command
             if (currentStatement.statement && this.shouldDelay(currentStatement.statement)) {
@@ -415,23 +422,59 @@ class CarLangEngine {
     }
 
     /**
+     * Check if all cars are crashed
+     */
+    areAllCarsCrashed() {
+        const cars = Object.values(this.carRegistry);
+        const crashedCars = cars.filter(car => car.crashed);
+        const allCrashed = cars.length > 0 && cars.every(car => car.crashed);
+        
+        debug(`[areAllCarsCrashed] Total cars: ${cars.length}, Crashed cars: ${crashedCars.length}, All crashed: ${allCrashed}`);
+        cars.forEach((car, index) => {
+            debug(`[areAllCarsCrashed] Car ${index}: ${car.carType || 'default'}, crashed: ${car.crashed}`);
+        });
+        
+        return allCrashed;
+    }
+
+    /**
      * Execute function call
      */
     executeFunctionCall(statement) {
         const args = statement.arguments.map(arg => this.evaluateExpression(arg));
         
+        // Check if all cars are crashed - if so, end execution
+        if (this.areAllCarsCrashed()) {
+            return { status: 'COMPLETE' };
+        }
+        
+        // For single-car mode, check if the default car is crashed
+        if (this.defaultCar && this.defaultCar.crashed) {
+            // Skip the command but continue execution
+            // Check if all cars are now crashed
+            if (this.areAllCarsCrashed()) {
+                return { status: 'COMPLETE' };
+            }
+            return null;
+        }
+        
         // Check if it's a built-in function
+        let result = null;
         if (this.functionMap[statement.name]) {
-            return this.functionMap[statement.name](...args);
+            result = this.functionMap[statement.name](...args);
+        } else if (this.functions[statement.name]) {
+            // Check if it's a user-defined function
+            result = this.executeUserDefinedFunction(statement.name, args);
+        } else {
+            console.warn(`Unknown function: ${statement.name}`);
         }
         
-        // Check if it's a user-defined function
-        if (this.functions[statement.name]) {
-            return this.executeUserDefinedFunction(statement.name, args);
+        // Check if all cars are crashed after executing the function
+        if (this.areAllCarsCrashed()) {
+            return { status: 'COMPLETE' };
         }
         
-        console.warn(`Unknown function: ${statement.name}`);
-        return null;
+        return result;
     }
 
     /**
@@ -1042,6 +1085,19 @@ class CarLangEngine {
             throw new Error(`Unknown car: ${carName}`);
         }
         
+        debug(`[executeMethodCall] Executing ${carName}.${statement.method}() - Car crashed: ${car.crashed}`);
+        
+        // Check if the car is crashed - if so, skip the command
+        if (car.crashed) {
+            debug(`[executeMethodCall] Skipping command for crashed car: ${carName}`);
+            // Even if this car is crashed, check if all cars are now crashed
+            if (this.areAllCarsCrashed()) {
+                debug(`[executeMethodCall] All cars crashed, ending execution`);
+                return { status: 'COMPLETE' };
+            }
+            return null;
+        }
+        
         // Map method names to car methods
         const methodMap = {
             'moveForward': () => car.moveForward(this.level, this.gameDiv),
@@ -1055,12 +1111,22 @@ class CarLangEngine {
         };
         
         // Execute the method
+        let result = null;
         if (methodMap[statement.method]) {
-            return methodMap[statement.method](...args);
+            debug(`[executeMethodCall] Executing method: ${statement.method}`);
+            result = methodMap[statement.method](...args);
+            debug(`[executeMethodCall] Method executed, car crashed: ${car.crashed}`);
+        } else {
+            console.warn(`Unknown method: ${statement.method}`);
         }
         
-        console.warn(`Unknown method: ${statement.method}`);
-        return null;
+        // Check if all cars are crashed after executing the method
+        if (this.areAllCarsCrashed()) {
+            debug(`[executeMethodCall] All cars crashed after method execution, ending execution`);
+            return { status: 'COMPLETE' };
+        }
+        
+        return result;
     }
 
     /**
