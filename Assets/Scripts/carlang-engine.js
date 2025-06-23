@@ -71,7 +71,8 @@ class CarLangEngine {
             'explode': () => this.defaultCar.crash(this.gameDiv),
             'isRoadAhead': () => this.defaultCar.isRoadAhead(this.level),
             'isCowAhead': () => this.defaultCar.isCowAhead(),
-            'honk': () => this.honk()
+            'honk': () => this.honk(),
+            'not': (value) => !value
         };
         
         // Function validation rules
