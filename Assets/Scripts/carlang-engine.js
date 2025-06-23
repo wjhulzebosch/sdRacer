@@ -465,7 +465,7 @@ class CarLangEngine {
      * Honk the car horn
      */
     honk() {
-        console.log('HONK: Starting honk method');
+        debug('HONK: Starting honk method');
         
         // Play honk sound immediately
         if (typeof soundController !== 'undefined') {
@@ -475,7 +475,7 @@ class CarLangEngine {
         // Get car's current position
         const carX = this.defaultCar.currentPosition.x;
         const carY = this.defaultCar.currentPosition.y;
-        console.log('HONK: Car position:', { x: carX, y: carY });
+        debug('HONK: Car position:', { x: carX, y: carY });
         
         // Check for cows in orthogonally adjacent tiles
         const adjacentPositions = [
@@ -484,27 +484,27 @@ class CarLangEngine {
             { x: carX, y: carY + 1 }, // South
             { x: carX - 1, y: carY }  // West
         ];
-        console.log('HONK: Checking adjacent positions:', adjacentPositions);
+        debug('HONK: Checking adjacent positions:', adjacentPositions);
         
         // Get cows from the global cows array (defined in game.js)
         const globalCows = window.cows || [];
-        console.log('HONK: Found cows:', globalCows.length, globalCows);
+        debug('HONK: Found cows:', globalCows.length, globalCows);
         
         // Check each adjacent position for cows
         adjacentPositions.forEach((pos, index) => {
-            console.log(`HONK: Checking position ${index}:`, pos);
+            debug(`HONK: Checking position ${index}:`, pos);
             globalCows.forEach((cow, cowIndex) => {
-                console.log(`HONK: Checking cow ${cowIndex}:`, cow);
-                console.log(`HONK: Cow position:`, { x: cow.currentX, y: cow.currentY });
-                console.log(`HONK: Is cow at position?`, cow.isAtPosition(pos.x, pos.y));
+                debug(`HONK: Checking cow ${cowIndex}:`, cow);
+                debug(`HONK: Cow position:`, { x: cow.currentX, y: cow.currentY });
+                debug(`HONK: Is cow at position?`, cow.isAtPosition(pos.x, pos.y));
                 if (cow.isAtPosition(pos.x, pos.y)) {
-                    console.log(`HONK: Found cow at position ${index}, calling GetHonked()`);
+                    debug(`HONK: Found cow at position ${index}, calling GetHonked()`);
                     cow.GetHonked();
                 }
             });
         });
         
-        console.log('HONK: Honk method completed');
+        debug('HONK: Honk method completed');
     }
 
     /**
@@ -1066,7 +1066,7 @@ class CarLangEngine {
      * Honk the car horn for a specific car
      */
     honkForCar(car) {
-        console.log('HONK: Starting honk method for specific car');
+        debug('HONK: Starting honk method for specific car');
         
         // Play honk sound immediately
         if (typeof soundController !== 'undefined') {
@@ -1076,7 +1076,7 @@ class CarLangEngine {
         // Get car's current position
         const carX = car.currentPosition.x;
         const carY = car.currentPosition.y;
-        console.log('HONK: Car position:', { x: carX, y: carY });
+        debug('HONK: Car position:', { x: carX, y: carY });
         
         // Check for cows in orthogonally adjacent tiles
         const adjacentPositions = [
@@ -1085,27 +1085,27 @@ class CarLangEngine {
             { x: carX, y: carY + 1 }, // South
             { x: carX - 1, y: carY }  // West
         ];
-        console.log('HONK: Checking adjacent positions:', adjacentPositions);
+        debug('HONK: Checking adjacent positions:', adjacentPositions);
         
         // Get cows from the global cows array (defined in game.js)
         const globalCows = window.cows || [];
-        console.log('HONK: Found cows:', globalCows.length, globalCows);
+        debug('HONK: Found cows:', globalCows.length, globalCows);
         
         // Check each adjacent position for cows
         adjacentPositions.forEach((pos, index) => {
-            console.log(`HONK: Checking position ${index}:`, pos);
+            debug(`HONK: Checking position ${index}:`, pos);
             globalCows.forEach((cow, cowIndex) => {
-                console.log(`HONK: Checking cow ${cowIndex}:`, cow);
-                console.log(`HONK: Cow position:`, { x: cow.currentX, y: cow.currentY });
-                console.log(`HONK: Is cow at position?`, cow.isAtPosition(pos.x, pos.y));
+                debug(`HONK: Checking cow ${cowIndex}:`, cow);
+                debug(`HONK: Cow position:`, { x: cow.currentX, y: cow.currentY });
+                debug(`HONK: Is cow at position?`, cow.isAtPosition(pos.x, pos.y));
                 if (cow.isAtPosition(pos.x, pos.y)) {
-                    console.log(`HONK: Found cow at position ${index}, calling GetHonked()`);
+                    debug(`HONK: Found cow at position ${index}, calling GetHonked()`);
                     cow.GetHonked();
                 }
             });
         });
         
-        console.log('HONK: Honk method completed for specific car');
+        debug('HONK: Honk method completed for specific car');
     }
 
     /**

@@ -7,6 +7,7 @@ import { generateMaze } from './mazeCreator.js';
 import { soundController } from './soundController.js';
 import CodeValidator from './code-validator.js';
 import { masterValidateCode } from './code-validator.js';
+import { validateCodeForUI } from './ui-code-validator.js';
 
 // For now, hardcode a level id and default code
 const LEVEL_ID = 'level1';
@@ -185,7 +186,7 @@ function fixIndentation() {
         // Use masterValidateCode instead of CarLangParser.parse
         const result = masterValidateCode(originalCode, parserConfig, carRegistry, level, null);
         if (result.parseErrors && result.parseErrors.length > 0) {
-            alert('Cannot fix indentation: Code has errors:\n' + result.parseErrors.join('\n'));
+            debug('Cannot fix indentation: Code has errors:\n' + result.parseErrors.join('\n'));
             return;
         }
         // If no errors, proceed to fix indentation
@@ -221,7 +222,7 @@ function fixIndentation() {
             setTimeout(() => fixBtn.textContent = 'Fix Indentation', 1000);
         }
     } catch (error) {
-        alert('Cannot fix indentation: ' + error.message);
+        debug('Cannot fix indentation: ' + error.message);
     }
 }
 
@@ -326,7 +327,7 @@ function isAtFinish() {
     
     // Log which cars are at the finish for debugging
     if (carsAtFinish.length > 0) {
-        console.log(`Cars at finish: ${carsAtFinish.map(car => car.carType || 'default').join(', ')}`);
+        debug(`Cars at finish: ${carsAtFinish.map(car => car.carType || 'default').join(', ')}`);
     }
     
     return carsAtFinish.length > 0;
@@ -481,10 +482,10 @@ function showCustomLevelLoader(overlay) {
                 loaderOverlay.remove();
                 overlay.remove();
             } else {
-                alert('Invalid level format. Please make sure the JSON contains "id" and "rows" fields.');
+                debug('Invalid level format. Please make sure the JSON contains "id" and "rows" fields.');
             }
         } catch (e) {
-            alert('Invalid JSON format. Please check your level data.');
+            debug('Invalid JSON format. Please check your level data.');
         }
     };
     
@@ -525,8 +526,10 @@ function loadCustomLevel(levelData) {
     level = new Level({
         instruction: levelData.Instructions || '',
         defaultCode: levelData.defaultCode || '',
-        tiles: levelData.rows
+        tiles: levelData.rows,
+        cars: levelData.cars || null
     });
+    window.level = level;
     
     const gameDiv = document.getElementById('game');
     
@@ -697,7 +700,7 @@ function loadLevel(levelId) {
             allLevels = data.levels;
             const levelData = data.levels.find(lvl => lvl.id === levelId);
             if (!levelData) {
-                console.error('Level not found!');
+                debug('Level not found!', null, 'error');
                 return;
             }
             
@@ -707,8 +710,7 @@ function loadLevel(levelId) {
             // Validate level data
             const validation = validateLevelData(levelData);
             if (validation.errors.length > 0) {
-                console.error('Level validation errors:', validation.errors);
-                alert(`Level validation failed: ${validation.errors.join(', ')}`);
+                debug('Level validation errors:', validation.errors, 'error');
                 return;
             }
             
@@ -721,15 +723,17 @@ function loadLevel(levelId) {
             const difficulty = getLevelDifficulty(levelData);
             const category = getLevelCategory(levelData);
             
-            console.log(`Loading level ${levelId}: ${levelData.name || 'Unnamed'}`);
-            console.log(`Mode: ${mode}, Difficulty: ${difficulty}/5, Category: ${category}`);
+            debug(`Loading level ${levelId}: ${levelData.name || 'Unnamed'}`);
+            debug(`Mode: ${mode}, Difficulty: ${difficulty}/5, Category: ${category}`);
             
             currentLevelId = levelId;
             level = new Level({
                 instruction: levelData.Instructions || '',
                 defaultCode: levelData.defaultCode || '',
-                tiles: levelData.rows
+                tiles: levelData.rows,
+                cars: levelData.cars || null
             });
+            window.level = level;
             const gameDiv = document.getElementById('game');
             // Swap x and y for finish position and add +1 for grass border
             finishPos = Array.isArray(levelData.end) ? [levelData.end[1] + 1, levelData.end[0] + 1] : undefined;
@@ -786,11 +790,13 @@ function loadLevel(levelId) {
             // Reset game state when loading new level
             resetGame();
         })
-        .catch(err => console.error('Failed to load level: ' + err));
+        .catch(err => debug('Failed to load level: ' + err, null, 'error'));
 }
 
 async function playCode() {
     try {
+        // Always show UI validation feedback when Play is pressed
+        validateCodeForUI();
         // Check if button is in "Finished" state - if so, just reset and change button back to Play
         if (playBtn.textContent === 'Finished') {
             resetLevelState();
@@ -798,34 +804,43 @@ async function playCode() {
             playBtn.disabled = false;
             return; // Don't restart execution automatically
         }
-        
         playBtn.disabled = true;
         playBtn.textContent = 'Playing';
         hideWinMessage();
 
-        // Get config and registry
-        const parserConfig = getParserConfig();
+        // Use the same logic as masterValidateCode for parser mode and available cars
+        let mode = 'single';
+        let carNames = [];
+        if (level && typeof level.isSingleMode === 'function' && !level.isSingleMode()) {
+            mode = 'oop';
+            if (Array.isArray(level.cars)) {
+                carNames = level.cars.map(car => car.name);
+            }
+        }
         const code = codeArea.value;
         const gameDiv = document.getElementById('game');
-
-        // Use masterValidateCode for validation and AST
-        const validationResult = masterValidateCode(code, parserConfig, carRegistry, level, gameDiv);
-        if (!validationResult.valid) {
-            let errorMsg = '';
-            if (validationResult.parseErrors.length > 0) {
-                errorMsg += 'Parse errors:\n' + validationResult.parseErrors.join('\n');
-            }
-            if (validationResult.validation.errors && validationResult.validation.errors.length > 0) {
-                errorMsg += '\nValidation errors:\n' + validationResult.validation.errors.join('\n');
-            }
-            alert(errorMsg);
+        const parser = new CarLangParser(mode, carNames);
+        const ast = parser.parse(code);
+        const parseErrors = ast.errors || [];
+        let validation = { valid: true, errors: [], warnings: [] };
+        if (parseErrors.length > 0) {
+            let errorMsg = 'Parse errors:\n' + parseErrors.join('\n');
+            debug(errorMsg, null, 'error');
             playBtn.textContent = 'Play';
             playBtn.disabled = false;
             return;
         }
-        const ast = validationResult.ast;
+        // Build a car map for execution (name -> Car instance)
+        let carMap = {};
+        if (mode === 'oop' && Array.isArray(level.cars)) {
+            for (const car of level.cars) {
+                if (carRegistry && carRegistry[car.name]) {
+                    carMap[car.name] = carRegistry[car.name];
+                }
+            }
+        }
         // Store interpreter globally for reset functionality
-        const interpreter = new CarLangEngine(carRegistry, level, gameDiv);
+        const interpreter = new CarLangEngine(carMap, level, gameDiv);
         window.currentInterpreter = interpreter;
         interpreter.initializeExecution(ast);
         // Enhanced game loop for step-by-step execution
@@ -910,8 +925,8 @@ async function playCode() {
         gameLoop();
         
     } catch (e) {
-        console.error('Error in code: ' + e.message);
-        alert('Error: ' + e.message);
+        debug('Error in code: ' + e.message, null, 'error');
+        debug('Error: ' + e.message, null, 'error');
         playBtn.textContent = 'Play';
         playBtn.disabled = false;
     }
@@ -983,7 +998,7 @@ function startGame() {
                 allLevels = data.levels;
                 showLevelSelector();
             })
-            .catch(err => console.error('Failed to load levels: ' + err));
+            .catch(err => debug('Failed to load levels: ' + err, null, 'error'));
     }
 }
 
@@ -1072,12 +1087,12 @@ function initializeCarRegistry(levelConfig) {
     // Check if this is a multi-car level
     if (levelConfig.cars && Array.isArray(levelConfig.cars) && levelConfig.cars.length > 0) {
         // Multi-car level
-        console.log(`Initializing ${levelConfig.cars.length} cars for level ${levelConfig.id}`);
+        debug(`Initializing ${levelConfig.cars.length} cars for level ${levelConfig.id}`);
         
         levelConfig.cars.forEach((carConfig, index) => {
             // Validate car configuration
             if (!carConfig.name) {
-                console.error(`Car ${index} missing name in level ${levelConfig.id}`);
+                debug(`Car ${index} missing name in level ${levelConfig.id}`, null, 'error');
                 return;
             }
             
@@ -1088,21 +1103,21 @@ function initializeCarRegistry(levelConfig) {
             
             // Validate position
             if (!position || !Array.isArray(position) || position.length !== 2) {
-                console.error(`Car ${carName} has invalid position in level ${levelConfig.id}`);
+                debug(`Car ${carName} has invalid position in level ${levelConfig.id}`, null, 'error');
                 return;
             }
             
             // Validate car type
             const validCarTypes = ['default', 'red', 'blue', 'green', 'yellow'];
             if (!validCarTypes.includes(carType)) {
-                console.warn(`Car ${carName} has invalid type '${carType}', using 'default'`);
+                debug(`Car ${carName} has invalid type '${carType}', using 'default'`, null, 'warn');
                 carConfig.type = 'default';
             }
             
             // Validate direction
             const validDirections = ['N', 'E', 'S', 'W'];
             if (!validDirections.includes(direction)) {
-                console.warn(`Car ${carName} has invalid direction '${direction}', using 'N'`);
+                debug(`Car ${carName} has invalid direction '${direction}', using 'N'`, null, 'warn');
                 carConfig.direction = 'N';
             }
             
@@ -1120,18 +1135,18 @@ function initializeCarRegistry(levelConfig) {
             }
             
             car.render(gameDiv);
-            console.log(`Created car: ${carName} (${carType}) at position [${position[0]}, ${position[1]}] facing ${carConfig.direction}`);
+            debug(`Created car: ${carName} (${carType}) at position [${position[0]}, ${position[1]}] facing ${carConfig.direction}`);
         });
         
         // Validate that we have at least one car
         if (Object.keys(carRegistry).length === 0) {
-            console.error(`No valid cars created for level ${levelConfig.id}`);
+            debug(`No valid cars created for level ${levelConfig.id}`, null, 'error');
             return;
         }
         
     } else {
         // Single car level (backward compatibility)
-        console.log(`Initializing single car for level ${levelConfig.id}`);
+        debug(`Initializing single car for level ${levelConfig.id}`);
         
         if (levelConfig.start && Array.isArray(levelConfig.start) && levelConfig.start.length === 2) {
             defaultCar = new Car({ 
@@ -1141,14 +1156,14 @@ function initializeCarRegistry(levelConfig) {
             });
             carRegistry.mainCar = defaultCar;
             defaultCar.render(gameDiv);
-            console.log(`Created single car at position [${levelConfig.start[0]}, ${levelConfig.start[1]}]`);
+            debug(`Created single car at position [${levelConfig.start[0]}, ${levelConfig.start[1]}]`);
         } else {
-            console.error(`Invalid start position for level ${levelConfig.id}`);
+            debug(`Invalid start position for level ${levelConfig.id}`, null, 'error');
         }
     }
     
     // Log final car registry state
-    console.log(`Car registry initialized with ${Object.keys(carRegistry).length} cars:`, Object.keys(carRegistry));
+    debug(`Car registry initialized with ${Object.keys(carRegistry).length} cars:`, Object.keys(carRegistry));
 }
 
 function getCarRegistry() {

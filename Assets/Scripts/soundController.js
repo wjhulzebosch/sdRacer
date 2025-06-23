@@ -44,7 +44,7 @@ class SoundController {
             });
             
             audio.addEventListener('error', (error) => {
-                console.error(`Failed to load sound '${name}':`, error);
+                debug(`Failed to load sound '${name}':`, error, 'error');
                 reject(error);
             });
             
@@ -143,7 +143,7 @@ class SoundController {
 
         try {
             await Promise.all(loadPromises);
-            console.log('Game sounds preloaded successfully');
+            debug('Game sounds preloaded successfully');
         } catch (error) {
             console.warn('Some sounds failed to load:', error);
         }

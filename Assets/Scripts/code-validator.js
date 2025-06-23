@@ -10,7 +10,6 @@ class CodeValidator {
     constructor() {
         this.codeTextarea = null;
         this.parserDisplay = null;
-        this.checkButton = null;
         this.parser = null; // Will be initialized with proper config
         
         this.init();
@@ -19,15 +18,11 @@ class CodeValidator {
     init() {
         this.codeTextarea = document.getElementById('code');
         this.parserDisplay = document.getElementById('parser-display');
-        this.checkButton = document.getElementById('checkCodeBtn');
         
-        if (!this.codeTextarea || !this.parserDisplay || !this.checkButton) {
-            console.error('Live parser: Required elements not found');
+        if (!this.codeTextarea || !this.parserDisplay) {
+            debug('Live parser: Required elements not found', null, 'error');
             return;
         }
-        
-        // Set up event listener for check button
-        this.checkButton.addEventListener('click', () => this.checkCode());
         
         // Set up real-time validation with debouncing
         this.setupRealTimeValidation();
@@ -199,7 +194,7 @@ class CodeValidator {
                     for (let i = 0; i < ast.errors.length; i++) {
                         const error = ast.errors[i];
                         displayHTML += `<div class="validation-error">• ${this.escapeHtml(error)}</div>`;
-                        console.error('Parse Error:', error);
+                        debug('Parse Error:', error, 'error');
                     }
                 }
                 
@@ -208,7 +203,7 @@ class CodeValidator {
                     for (let i = 0; i < validation.errors.length; i++) {
                         const error = validation.errors[i];
                         displayHTML += `<div class="validation-error">• ${this.escapeHtml(error)}</div>`;
-                        console.error('Validation Error:', error);
+                        debug('Validation Error:', error, 'error');
                     }
                 }
                 
@@ -343,18 +338,33 @@ export default CodeValidator;
  * Master validation function: parses code, validates AST, returns result.
  * @param {string} code - The code to validate.
  * @param {object} parserConfig - { mode: 'single'|'oop', availableCars: string[] }
- * @param {object} carRegistry - The car registry object.
- * @param {object} level - The current level object (can be null for validation only).
+ * @param {object} level - The current level object (must have cars info for OOP mode).
  * @param {object} gameDiv - The game div (can be null for validation only).
  * @returns {object} { ast, parseErrors, validation, valid }
  */
-export function masterValidateCode(code, parserConfig, carRegistry, level, gameDiv) {
-    const parser = new CarLangParser(parserConfig.mode, parserConfig.availableCars);
+export function masterValidateCode(code, parserConfig, level, gameDiv) {
+    // Use level.isSingleMode() and level.cars as the single source of truth
+    let mode = 'single';
+    let carNames = [];
+    if (level && typeof level.isSingleMode === 'function' && !level.isSingleMode()) {
+        mode = 'oop';
+        if (Array.isArray(level.cars)) {
+            carNames = level.cars.map(car => car.name);
+        }
+    }
+    const parser = new CarLangParser(mode, carNames);
     const ast = parser.parse(code);
     const parseErrors = ast.errors || [];
     let validation = { valid: true, errors: [], warnings: [] };
     if (parseErrors.length === 0) {
-        const engine = new CarLangEngine(carRegistry, level, gameDiv);
+        // Build a car map for validation (name -> dummy object)
+        let carMap = {};
+        if (mode === 'oop' && Array.isArray(level.cars)) {
+            for (const car of level.cars) {
+                carMap[car.name] = {}; // dummy object for validation
+            }
+        }
+        const engine = new CarLangEngine(carMap, level, gameDiv);
         validation = engine.validate(ast);
     }
     return {

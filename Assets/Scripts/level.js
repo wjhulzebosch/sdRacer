@@ -1,5 +1,5 @@
 class Level {
-    constructor({ instruction = '', defaultCode = '', tiles = [[]] } = {}) {
+    constructor({ instruction = '', defaultCode = '', tiles = [[]], cars = null } = {}) {
         this.instruction = instruction;
         this.defaultCode = defaultCode;
         // Pad the tiles with one row/column of '0000' (grass) on every side
@@ -11,6 +11,10 @@ class Level {
             ...tiles.map(row => ['0000', ...row, '0000']),
             grassRow
         ];
+        // Store cars info if provided
+        this.cars = cars;
+        // Determine mode
+        this._singleMode = !(Array.isArray(cars) && cars.length > 1);
     }
 
     static fromJSON(json) {
@@ -66,6 +70,10 @@ class Level {
             gameDiv.appendChild(finishDiv);
         }
     }
+
+    isSingleMode() {
+        return this._singleMode;
+    }
 }
 
 function loadLevel1AndDisplay() {
@@ -74,7 +82,7 @@ function loadLevel1AndDisplay() {
         .then(data => {
             const levelData = data.levels.find(lvl => lvl.id === '1');
             if (!levelData) {
-                alert('Level 1 not found!');
+                debug('Level 1 not found!', null, 'error');
                 return;
             }
             const level = new Level({
@@ -85,7 +93,7 @@ function loadLevel1AndDisplay() {
             const gameDiv = document.getElementById('game');
             level.render(gameDiv);
         })
-        .catch(err => alert('Failed to load level: ' + err));
+        .catch(err => debug('Failed to load level: ' + err, null, 'error'));
 }
 
 export default Level;
