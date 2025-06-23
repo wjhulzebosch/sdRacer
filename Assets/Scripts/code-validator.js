@@ -158,32 +158,29 @@ class CodeValidator {
     
     updateDisplay(code) {
         try {
-            // Get parser config, car registry, level, and gameDiv from the game if available
-            let parserConfig = { mode: 'single', availableCars: [] };
+            // Get parser with current configuration
+            const parser = this.getParser();
+            
+            // Parse the entire code once with the configured parser instance
+            const ast = parser.parse(code);
+            const lines = code.split('\n');
+            let displayHTML = '';
+            
+            // Check if there are any parsing errors
+            const hasParseErrors = ast.errors && ast.errors.length > 0;
+            const hasWarnings = ast.warnings && ast.warnings.length > 0;
+            
+            // Try to get the actual car registry from the game if available
             let carRegistry = null;
-            let level = null;
-            let gameDiv = null;
-            if (typeof getParserConfig === 'function') {
-                parserConfig = getParserConfig();
-            }
             if (typeof getCarRegistry === 'function') {
                 carRegistry = getCarRegistry();
             }
-            if (typeof window.level !== 'undefined') {
-                level = window.level;
-            }
-            gameDiv = document.getElementById('game');
-
-            // Use masterValidateCode for validation and AST (same as game logic)
-            const validationResult = masterValidateCode(code, parserConfig, carRegistry, level, gameDiv);
-            const ast = validationResult.ast;
-            const lines = code.split('\n');
-            let displayHTML = '';
-
-            const hasParseErrors = validationResult.parseErrors && validationResult.parseErrors.length > 0;
-            const hasValidationErrors = validationResult.validation.errors && validationResult.validation.errors.length > 0;
-            const hasWarnings = ast.warnings && ast.warnings.length > 0;
-
+            
+            // Create engine with actual car registry if available
+            const engine = new CarLangEngine(carRegistry, null, null);
+            const validation = engine.validate(ast);
+            const hasValidationErrors = validation.errors && validation.errors.length > 0;
+            
             // Display code with appropriate coloring
             if (!hasParseErrors && !hasValidationErrors) {
                 // All good - show in green
@@ -199,20 +196,22 @@ class CodeValidator {
                 // There are errors - show error details
                 if (hasParseErrors) {
                     displayHTML += `<div class="validation-error" style="margin-bottom: 10px; font-weight: bold;">Parse Errors:</div>`;
-                    for (let i = 0; i < validationResult.parseErrors.length; i++) {
-                        const error = validationResult.parseErrors[i];
+                    for (let i = 0; i < ast.errors.length; i++) {
+                        const error = ast.errors[i];
                         displayHTML += `<div class="validation-error">• ${this.escapeHtml(error)}</div>`;
                         console.error('Parse Error:', error);
                     }
                 }
+                
                 if (hasValidationErrors) {
                     displayHTML += `<div class="validation-error" style="margin-bottom: 10px; font-weight: bold;">Validation Errors:</div>`;
-                    for (let i = 0; i < validationResult.validation.errors.length; i++) {
-                        const error = validationResult.validation.errors[i];
+                    for (let i = 0; i < validation.errors.length; i++) {
+                        const error = validation.errors[i];
                         displayHTML += `<div class="validation-error">• ${this.escapeHtml(error)}</div>`;
                         console.error('Validation Error:', error);
                     }
                 }
+                
                 if (hasWarnings) {
                     displayHTML += `<div class="validation-warning" style="margin-bottom: 10px; font-weight: bold;">Warnings:</div>`;
                     for (let i = 0; i < ast.warnings.length; i++) {
@@ -220,7 +219,9 @@ class CodeValidator {
                         displayHTML += `<div class="validation-warning">• ${this.escapeHtml(warning)}</div>`;
                     }
                 }
+                
                 displayHTML += `<div style="color: #9ca3af; margin: 10px 0; border-top: 1px solid #444; padding-top: 10px;">Code:</div>`;
+                
                 // Show the code with errors highlighted
                 for (let i = 0; i < lines.length; i++) {
                     const line = lines[i];
@@ -231,19 +232,24 @@ class CodeValidator {
                     }
                 }
             }
+            
             // Add mode-specific help section
             displayHTML += this.getModeSpecificHelp();
+            
             // Add AST display section
             displayHTML += `<div style="color: #9ca3af; margin: 20px 0; border-top: 1px solid #444; padding-top: 10px; font-weight: bold;">Abstract Syntax Tree (AST):</div>`;
             displayHTML += `<pre style="background: #1a1e22; color: #e0e0e0; padding: 10px; border-radius: 4px; overflow-x: auto; font-size: 0.8rem; margin-top: 10px;">${this.escapeHtml(JSON.stringify(ast, null, 2))}</pre>`;
+            
             this.parserDisplay.innerHTML = displayHTML;
         } catch (error) {
             // If parsing completely fails, show the error and mark all non-empty lines as errors
             const lines = code.split('\n');
             let displayHTML = '';
+            
             displayHTML += `<div style="color: #f87171; margin-bottom: 10px; font-weight: bold;">Parse Error:</div>`;
             displayHTML += `<div style="color: #f87171; margin-bottom: 10px;">${this.escapeHtml(error.message)}</div>`;
             displayHTML += `<div style="color: #9ca3af; margin: 10px 0; border-top: 1px solid #444; padding-top: 10px;">Code:</div>`;
+            
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i];
                 if (!line.trim()) {
@@ -252,8 +258,10 @@ class CodeValidator {
                     displayHTML += `<span class="error">${this.escapeHtml(line)}</span>\n`;
                 }
             }
+            
             // Add mode-specific help even on error
             displayHTML += this.getModeSpecificHelp();
+            
             this.parserDisplay.innerHTML = displayHTML;
         }
     }

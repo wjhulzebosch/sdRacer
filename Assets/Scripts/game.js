@@ -804,11 +804,6 @@ function loadLevel(levelId) {
 }
 
 async function playCode() {
-    // Update code analysis UI just like Check Code
-    if (!window.liveParser || typeof window.liveParser.checkCode !== 'function') {
-        throw new Error('Code analysis (liveParser) is not available. Cannot run code.');
-    }
-    window.liveParser.checkCode();
     try {
         // Check if button is in "Finished" state - if so, just reset and change button back to Play
         if (playBtn.textContent === 'Finished') {
