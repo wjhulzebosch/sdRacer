@@ -12,8 +12,6 @@ function escapeHtml(text) {
  * Uses masterValidateCode for validation. Intended to be called when 'Check code' is pressed.
  */
 export function validateCodeForUI() {
-    console.log('validateCodeForUI');
-    
     // Auto-indent the code first
     autoIndent();
     

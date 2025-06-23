@@ -14,8 +14,6 @@ class CarLangParser {
         this.mode = mode; // 'single' or 'oop'
         this.availableCars = availableCars; // Array of available car names
         this.userDefinedFunctions = new Set(); // Track user-defined functions
-        debug('CarLangParser constructor: mode =', mode);
-        debug('CarLangParser constructor: availableCars =', availableCars);
     }
 
     /**
@@ -284,10 +282,6 @@ class CarLangParser {
 
     parseStatement() {
         const token = this.peek();
-        debug('parseStatement: token =', token);
-        debug('parseStatement: mode =', this.mode);
-        debug('parseStatement: availableCars =', this.availableCars);
-        
         if (this.check('KEYWORD', 'int') || this.check('KEYWORD', 'double') || 
             this.check('KEYWORD', 'string') || this.check('KEYWORD', 'array') ||
             this.check('KEYWORD', 'list') || this.check('KEYWORD', 'priorityList') ||
@@ -304,20 +298,11 @@ class CarLangParser {
         
         if (this.check('IDENTIFIER')) {
             const nextToken = this.tokens[this.current + 1];
-            debug('parseStatement: IDENTIFIER nextToken =', nextToken);
             if (nextToken && nextToken.value === '=') {
                 return this.parseAssignment();
             } else if (nextToken && nextToken.value === '(') {
                 return this.parseFunctionCallStatement();
             } else if (this.mode === 'oop' && nextToken && nextToken.value === '.') {
-                debug('parseStatement: Detected OOP method call', {
-                    current: this.current,
-                    token,
-                    nextToken,
-                    mode: this.mode,
-                    availableCars: this.availableCars
-                });
-                // This is a method call (object.method)
                 return this.parseFunctionCallStatement();
             }
         }
@@ -390,19 +375,14 @@ class CarLangParser {
     parseFunctionCall() {
         let objectName = null;
         let functionName;
-        debug('parseFunctionCall: mode =', this.mode);
-        debug('parseFunctionCall: current token =', this.peek());
-        debug('parseFunctionCall: availableCars =', this.availableCars);
         // Check if this is a method call (object.method)
         if (this.mode === 'oop' && this.check('IDENTIFIER')) {
             const firstIdentifier = this.peek();
             const nextToken = this.tokens[this.current + 1];
-            debug('parseFunctionCall: OOP check', { firstIdentifier, nextToken });
             // If next token is a dot, this is a method call
             if (nextToken && nextToken.value === '.') {
                 objectName = this.advance().value;
                 this.advance(); // consume the dot
-                debug('parseFunctionCall: OOP method call objectName =', objectName);
                 // Validate car name
                 if (!this.availableCars.includes(objectName)) {
                     const line = firstIdentifier.line || this.lineNumber;
@@ -586,9 +566,6 @@ class CarLangParser {
     }
 
     parsePrimary() {
-        debug('parsePrimary: current token =', this.peek());
-        debug('parsePrimary: mode =', this.mode);
-        debug('parsePrimary: availableCars =', this.availableCars);
         if (this.check('NUMBER')) {
             return this.parseLiteral();
         }
@@ -603,21 +580,12 @@ class CarLangParser {
         
         if (this.check('IDENTIFIER')) {
             const nextToken = this.tokens[this.current + 1];
-            debug('parsePrimary: IDENTIFIER nextToken =', nextToken);
             if (nextToken && nextToken.value === '(') {
                 return this.parseFunctionCall();
             } else if (nextToken && nextToken.value === '.') {
-                debug('parsePrimary: Detected OOP method call', {
-                    current: this.current,
-                    token: this.peek(),
-                    nextToken,
-                    mode: this.mode,
-                    availableCars: this.availableCars
-                });
                 // Handle method calls: object.method()
                 const objectName = this.advance().value;
                 this.advance(); // consume the dot
-                debug('parsePrimary: OOP method call objectName =', objectName);
                 // Validate car name if in OOP mode
                 if (this.mode === 'oop' && !this.availableCars.includes(objectName)) {
                     const line = this.peek().line || this.lineNumber;

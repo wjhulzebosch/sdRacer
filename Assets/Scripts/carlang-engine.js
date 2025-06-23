@@ -19,13 +19,7 @@ class CarLangEngine {
         this.gameDiv = gameDiv;
         this.variables = {};
         this.functions = {};
-        
-        // Debug logs for carRegistry and defaultCar
-        debug('CarLangEngine constructor: carRegistry =', this.carRegistry);
-        if (this.carRegistry && typeof this.carRegistry === 'object') {
-            debug('CarLangEngine constructor: carRegistry keys =', Object.keys(this.carRegistry));
-        }
-        
+
         // Set default car for backward compatibility
         if (this.carRegistry && typeof this.carRegistry === 'object') {
             if (Array.isArray(this.carRegistry)) {
@@ -43,8 +37,6 @@ class CarLangEngine {
         if (!this.defaultCar && typeof getDefaultCar === 'function') {
             this.defaultCar = getDefaultCar();
         }
-        
-        debug('CarLangEngine constructor: this.defaultCar =', this.defaultCar);
         
         // Execution state
         this.ast = null;
@@ -272,10 +264,9 @@ class CarLangEngine {
      * Reset execution state
      */
     reset() {
-        this.ast = null;
+        this.isExecuting = false;
         this.executionStack = [];
         this.currentContext = null;
-        this.isExecuting = false;
         this.variables = {};
         this.functions = {};
     }
@@ -1160,6 +1151,11 @@ class CarLangEngine {
                 errors.push(`Line ${lineNumber}: '${methodCall.object}.${methodName}' expects ${validation.args} argument(s), got ${args.length}`);
             }
         }
+    }
+
+    stop() {
+        debug('Stopping game');
+        this.isExecuting = false;
     }
 }
 

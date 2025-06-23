@@ -21,6 +21,7 @@ let allLevels = [];
 let cows = []; // Array to store cow instances
 let currentLevelData = null; // Track current level configuration
 let currentCustomLevelData = null;
+let isGameRunning = false; // Track if game is currently running
 
 // Make cows globally accessible for CarLang engine
 window.cows = cows;
@@ -470,6 +471,10 @@ function resetGame() {
     if (window.currentInterpreter) {
         window.currentInterpreter.reset();
     }
+    
+    // Reset play button state
+    playBtn.textContent = 'Play';
+    isGameRunning = false;
 }
 
 function resetLevel() {
@@ -502,8 +507,6 @@ function resetLevel() {
         window.currentInterpreter.reset();
     }
     
-    // Load default code for the current level
-    loadDefaultCode();
     // Auto-indent the loaded code
     autoIndent();
 }
@@ -656,11 +659,10 @@ async function playCode() {
             let errorMsg = 'Parse errors:\n' + result.parseErrors.join('\n');
             debug(errorMsg, null, 'error');
             playBtn.textContent = 'Play';
-            playBtn.disabled = false;
             return;
         }
-        playBtn.disabled = true;
-        playBtn.textContent = 'Playing';
+        playBtn.textContent = 'Stop';
+        isGameRunning = true;
         hideWinMessage();
 
         // Use the same logic as masterValidateCode for parser mode and available cars
@@ -682,7 +684,6 @@ async function playCode() {
             let errorMsg = 'Parse errors:\n' + parseErrors.join('\n');
             debug(errorMsg, null, 'error');
             playBtn.textContent = 'Play';
-            playBtn.disabled = false;
             return;
         }
         // Build a car map for execution using game helpers
@@ -707,6 +708,11 @@ async function playCode() {
         interpreter.initializeExecution(ast);
         // Enhanced game loop for step-by-step execution
         const gameLoop = () => {
+            // Check if game was stopped
+            if (!isGameRunning) {
+                return;
+            }
+            
             const result = interpreter.executeNext();
             
             // Update car status indicator for multi-car levels
@@ -731,7 +737,7 @@ async function playCode() {
                             showWinMessage();
                             clearLineHighlighting();
                             playBtn.textContent = 'Finished';
-                            playBtn.disabled = false;
+                            isGameRunning = false;
                             return; // Stop execution on win
                         }
                     }
@@ -743,6 +749,11 @@ async function playCode() {
                 case 'PAUSED':
                     // Wait for delay then continue
                     setTimeout(() => {
+                        // Check if game was stopped during the delay
+                        if (!isGameRunning) {
+                            return;
+                        }
+                        
                         // Check win condition after movement commands
                         if (result.functionName && ['moveForward', 'moveBackward'].includes(result.functionName)) {
                             if (isAtFinish()) {
@@ -750,7 +761,7 @@ async function playCode() {
                                 showWinMessage();
                                 clearLineHighlighting();
                                 playBtn.textContent = 'Finished';
-                                playBtn.disabled = false;
+                                isGameRunning = false;
                                 return; // Stop execution on win
                             }
                         }
@@ -765,7 +776,7 @@ async function playCode() {
                     hideCarStatus(); // Hide status when execution completes
                     clearLineHighlighting();
                     playBtn.textContent = 'Finished';
-                    playBtn.disabled = false;
+                    isGameRunning = false;
                     
                     // Final win condition check
                     if (isAtFinish()) {
@@ -778,7 +789,7 @@ async function playCode() {
                     hideCarStatus(); // Hide status on error
                     clearLineHighlighting();
                     playBtn.textContent = 'Play';
-                    playBtn.disabled = false;
+                    isGameRunning = false;
                     throw new Error(result.error);
             }
         };
@@ -790,8 +801,19 @@ async function playCode() {
         debug('Error in code: ' + e.message, null, 'error');
         debug('Error: ' + e.message, null, 'error');
         playBtn.textContent = 'Play';
-        playBtn.disabled = false;
+        isGameRunning = false;
     }
+}
+
+function stopGame() {
+    if (window.currentInterpreter) {
+        window.currentInterpreter.stop();
+    }
+    
+    hideCarStatus();
+    clearLineHighlighting();
+    playBtn.textContent = 'Stopped';
+    isGameRunning = false;
 }
 
 function resetCode() {
@@ -813,14 +835,19 @@ function startGame() {
     saveBtn.onclick = saveCode;
     loadBtn.onclick = handleLoadBtn;
     playBtn.onclick = () => {
-        if (playBtn.textContent === 'Finished') {
+        if (playBtn.textContent === 'Stop') {
+            // Stop the running game
+            stopGame();
+        } else if (playBtn.textContent === 'Stopped' || playBtn.textContent === 'Finished') {
+            // Reset game and return to Play state
             resetGame();
             playBtn.textContent = 'Play';
-            playBtn.disabled = false;
         } else {
+            // Start the game
             playCode();
         }
     };
+    
     resetBtn.onclick = resetCode;
     // Set up reset level button
     const resetLvlBtn = getResetLvlBtn();
