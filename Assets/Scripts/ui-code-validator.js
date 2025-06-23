@@ -1,4 +1,5 @@
 import { masterValidateCode, ONLY_USE_THIS_TO_VALIDATE } from './code-validator.js';
+import { autoIndent } from './game.js';
 
 function escapeHtml(text) {
     const div = document.createElement('div');
@@ -12,6 +13,10 @@ function escapeHtml(text) {
  */
 export function validateCodeForUI() {
     console.log('validateCodeForUI');
+    
+    // Auto-indent the code first
+    autoIndent();
+    
     const parserDisplay = document.getElementById('parser-display');
     if (!parserDisplay) {
         debug('Required elements not found', null, 'error');

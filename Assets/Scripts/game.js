@@ -64,6 +64,25 @@ function fixIndentation() {
     }
 }
 
+export function autoIndent() {
+    try {
+        if (window.codeMirrorEditor) {
+            const cm = window.codeMirrorEditor;
+            cm.operation(function() {
+                const lastLine = cm.lastLine();
+                for (let i = 0; i <= lastLine; i++) {
+                    cm.indentLine(i);
+                }
+            });
+        }
+    } catch (e) {
+        console.warn('Auto-indentation failed:', e);
+    }
+}
+
+// Make autoIndent available globally
+window.autoIndent = autoIndent;
+
 function loadCode() {
     const saved = localStorage.getItem('sdRacer_code_' + currentLevelId);
     if (saved !== null) {
@@ -84,6 +103,7 @@ function loadDefaultCode() {
 }
 
 function saveCode() {
+    autoIndent();
     localStorage.setItem('sdRacer_code_' + currentLevelId, window.getCodeValue());
     saveBtn.textContent = 'Saved!';
     setTimeout(() => saveBtn.textContent = 'Save', 1000);
@@ -397,7 +417,10 @@ function loadCustomLevel(levelData) {
     }
     window.cows = cows;
     loadDefaultCode();
+    // Update line count after loading default code
     updateLineCount();
+    // Auto-indent the loaded code
+    autoIndent();
     // Display level instructions with mode information
     const instructionsDiv = document.getElementById('instructions');
     if (instructionsDiv && levelData.Instructions) {
@@ -596,6 +619,8 @@ async function loadLevel(levelId) {
         loadDefaultCode();
         // Update line count after loading default code
         updateLineCount();
+        // Auto-indent the loaded code
+        autoIndent();
         // Display level instructions with mode information
         const instructionsDiv = document.getElementById('instructions');
         if (instructionsDiv && levelData.Instructions) {
@@ -623,6 +648,8 @@ async function loadLevel(levelId) {
 
 async function playCode() {
     try {
+        autoIndent();
+        
         // Always show UI validation feedback when Play is pressed
         validateCodeForUI();
         // Use ONLY_USE_THIS_TO_VALIDATE for validation before running

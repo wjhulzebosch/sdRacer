@@ -1,7 +1,7 @@
 class CodeMirrorCustomMode {
   constructor() {
     console.log('CodeMirrorCustomMode constructor');
-    this.indentUnit = 4;
+    this.indentUnit = 2;
   }
 
   startState() {
@@ -31,7 +31,7 @@ class CodeMirrorCustomMode {
 
   indent(state, textAfter) {
     const trimmed = textAfter.trim();
-    const deindent = /^\}\s*(else\b|catch\b|finally\b)?\s*\{?\s*$/.test(trimmed) ? 1 : 0;
+    const deindent = trimmed.startsWith('}') ? 1 : 0;
     const result = Math.max(0, state.depth - deindent) * this.indentUnit;
     console.log('Final indentation result:', result);
     return result;
