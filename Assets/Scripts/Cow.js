@@ -207,6 +207,8 @@ class Cow {
     reset() {
         this.currentX = this.defaultX;
         this.currentY = this.defaultY;
+        this.targetX = this.secondaryX;
+        this.targetY = this.secondaryY;
         this.isAtDefault = true;
         this.isMoving = false;
         this.updateVisualPosition();

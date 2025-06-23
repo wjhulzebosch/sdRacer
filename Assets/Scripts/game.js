@@ -575,29 +575,23 @@ function loadLevel(levelId) {
                 debug('Level not found!', null, 'error');
                 return;
             }
-            
             // Store current level data for win condition checking
             currentLevelData = levelData;
-            
             // Validate level data
             const validation = validateLevelData(levelData);
             if (validation.errors.length > 0) {
                 debug('Level validation errors:', validation.errors, 'error');
                 return;
             }
-            
             if (validation.warnings.length > 0) {
                 console.warn('Level validation warnings:', validation.warnings);
             }
-            
             // Log level information
             const mode = getLevelMode(levelData);
             const difficulty = getLevelDifficulty(levelData);
             const category = getLevelCategory(levelData);
-            
             debug(`Loading level ${levelId}: ${levelData.name || 'Unnamed'}`);
             debug(`Mode: ${mode}, Difficulty: ${difficulty}/5, Category: ${category}`);
-            
             currentLevelId = levelId;
             level = new Level({
                 instruction: levelData.Instructions || '',
@@ -616,7 +610,12 @@ function loadLevel(levelId) {
             
             // Update UI elements
             updateModeIndicator();
-            
+            // --- Remove old cow DOM elements before recreating cows ---
+            cows.forEach(cow => {
+                if (cow.element && cow.element.parentNode) {
+                    cow.element.parentNode.removeChild(cow.element);
+                }
+            });
             // Create and render cows if they exist in the level data
             cows = [];
             if (levelData.cows && Array.isArray(levelData.cows)) {
@@ -632,15 +631,11 @@ function loadLevel(levelId) {
                     cows.push(cow);
                 });
             }
-            
             // Update global cows array
             window.cows = cows;
-            
             loadDefaultCode();
-            
             // Update line count after loading default code
             updateLineCount();
-            
             // Display level instructions with mode information
             const instructionsDiv = document.getElementById('instructions');
             if (instructionsDiv && levelData.Instructions) {
