@@ -49,8 +49,12 @@ function fixIndentation() {
     const cm = window.codeMirrorEditor;
     cm.operation(function() {
         const lastLine = cm.lastLine();
-        cm.setSelection({line: 0, ch: 0}, {line: lastLine, ch: cm.getLine(lastLine).length});
-        cm.indentSelection('smart');
+        
+        // Indent each line individually
+        for (let i = 0; i <= lastLine; i++) {
+            cm.indentLine(i);
+        }
+        
         cm.setCursor({line: 0, ch: 0}); // Optionally reset cursor to start
     });
     const fixBtn = getFixIndentationBtn();
@@ -58,11 +62,6 @@ function fixIndentation() {
         fixBtn.textContent = 'Fixed!';
         setTimeout(() => fixBtn.textContent = 'Fix Indentation', 1000);
     }
-}
-
-function customIndentation(code) {
-    
-
 }
 
 function loadCode() {
