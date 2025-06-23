@@ -1,3 +1,5 @@
+import { debug } from './commonFunctions.js';
+
 // NESW order: N=8, E=4, S=2, W=1
 function emptyGrid(rows, cols) {
     return Array.from({length: rows}, () => Array(cols).fill('0000'));
@@ -474,20 +476,23 @@ function closeCarModalFunc() {
 
 // Level Data Functions
 function getLevelDetails() {
+    // Helper to escape line breaks
+    function escapeLineBreaks(str) {
+        return typeof str === 'string' ? str.replace(/\r?\n/g, '\\n') : str;
+    }
     const level = {
-        id: document.getElementById('id').value,
-        category: document.getElementById('category').value,
-        name: document.getElementById('name').value,
-        author: document.getElementById('author').value,
-        WinCondition: document.getElementById('winCondition').value,
-        Instructions: document.getElementById('instructions').value,
-        defaultCode: document.getElementById('defaultCode').value,
+        category: escapeLineBreaks(document.getElementById('category').value),
+        name: escapeLineBreaks(document.getElementById('name').value),
+        author: escapeLineBreaks(document.getElementById('author').value),
+        WinCondition: escapeLineBreaks(document.getElementById('winCondition').value),
+        Instructions: escapeLineBreaks(document.getElementById('instructions').value),
+        defaultCode: escapeLineBreaks(document.getElementById('defaultCode').value),
         rows: grid,
         cars: cars.map(car => ({
-            name: car.name,
-            type: car.type,
+            name: escapeLineBreaks(car.name),
+            type: escapeLineBreaks(car.type),
             position: [car.y, car.x],
-            direction: car.direction
+            direction: escapeLineBreaks(car.direction)
         })),
         end: finishPos ? [finishPos[0], finishPos[1]] : null,
         cows: cows.map(cow => ({
@@ -502,7 +507,6 @@ function getLevelDetails() {
 }
 
 function setLevelDetails(level) {
-    document.getElementById('id').value = level.id || '';
     document.getElementById('category').value = level.category || '';
     document.getElementById('name').value = level.name || '';
     document.getElementById('author').value = level.author || '';
@@ -534,18 +538,30 @@ function setLevelDetails(level) {
                 type: car.type,
                 direction: car.direction
             };
-            
-            // Handle different position formats
+            debug('setLevelDetails: loading car', car);
             if (car.position && Array.isArray(car.position)) {
                 carData.y = car.position[0];
                 carData.x = car.position[1];
+                debug('setLevelDetails: car.position', car.position, '-> y:', carData.y, 'x:', carData.x);
             } else if (car.x !== undefined && car.y !== undefined) {
                 carData.x = car.x;
                 carData.y = car.y;
+                debug('setLevelDetails: car.x/y', car.x, car.y);
             }
-            
+            debug('setLevelDetails: resulting carData', carData);
             return carData;
         });
+    }
+    // Add this block to handle legacy single car mode
+    else if (level.start && Array.isArray(level.start)) {
+        cars = [{
+            id: Date.now() + Math.random(),
+            name: 'defaultCar',
+            type: 'default',
+            direction: 'N',
+            y: level.start[0],
+            x: level.start[1]
+        }];
     }
     
     // Handle finish position - Levels.json uses 'end' instead of 'finish'
@@ -612,26 +628,34 @@ document.getElementById('loadJsonBtn').onclick = () => {
 // Load levels from file
 async function loadLevelsFromFile() {
     try {
-        const response = await fetch('Assets/Maps/Levels.json');
-        const data = await response.json();
-        
-        // Access the levels array from the JSON structure
-        const levels = data.levels || [];
-        
+        // Get all level IDs from the API
+        const { ids } = await fetch('https://wjhulzebosch.nl/json_ape/api.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({ action: 'list', category: 'sd_racer' })
+        }).then(r => r.json());
+        // Fetch each level by ID
+        const levels = await Promise.all(
+            ids.map(async id => {
+                return await fetch('https://wjhulzebosch.nl/json_ape/api.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({ action: 'get', category: 'sd_racer', id })
+                }).then(r => r.json());
+            })
+        );
         const selector = document.getElementById('levelSelector');
         selector.innerHTML = '<option value="">Select a level...</option>';
-        
         levels.forEach(level => {
             const option = document.createElement('option');
-            option.value = level.id;
-            option.textContent = `${level.id}: ${level.name}`;
+            option.value = level.apiId;
+            option.textContent = `${level.apiId}: ${level.name}`;
             selector.appendChild(option);
         });
-        
         selector.onchange = () => {
             const selectedId = selector.value;
             if (selectedId) {
-                const selectedLevel = levels.find(l => l.id == selectedId);
+                const selectedLevel = levels.find(l => l.apiId == selectedId);
                 if (selectedLevel) {
                     setLevelDetails(selectedLevel);
                 }
@@ -648,6 +672,42 @@ document.addEventListener('DOMContentLoaded', () => {
     renderGrid();
     renderCarList();
     loadLevelsFromFile();
+    addPlayLevelButton();
 });
+
+// On load, if ?loadTemp=1, load the temp level
+if (window.location.search.includes('loadTemp=1')) {
+    const tempLevel = localStorage.getItem('sdRacer_tempLevel');
+    if (tempLevel) {
+        try {
+            setLevelDetails(JSON.parse(tempLevel));
+        } catch (e) {
+            debug('Failed to load temp level: ' + e, null, 'error');
+        }
+    }
+}
+
+function addPlayLevelButton() {
+    let btn = document.getElementById('playLevelBtn');
+    if (!btn) {
+        btn = document.createElement('button');
+        btn.id = 'playLevelBtn';
+        btn.textContent = 'Play Level';
+        btn.className = 'play-level-btn';
+        btn.style.position = 'absolute';
+        btn.style.top = '10px';
+        btn.style.right = '10px';
+        btn.onclick = () => {
+            // Export current level as JSON
+            const level = getLevelDetails();
+            const levelJson = JSON.stringify(level);
+            // Store in localStorage for transfer
+            localStorage.setItem('sdRacer_tempLevel', levelJson);
+            // Open game with a flag to load from temp
+            window.open('index.html?loadTemp=1', '_blank');
+        };
+        document.body.appendChild(btn);
+    }
+}
 
 export { formatJSON, getLevelDetails, setLevelDetails, loadLevelsFromFile }; 

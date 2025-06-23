@@ -3,13 +3,11 @@ import Cow from './Cow.js';
 import Level from './level.js';
 import CarLangParser from './CarLang-parser.js';
 import CarLangEngine from './carlang-engine.js';
-import { generateMaze } from './mazeCreator.js';
 import { soundController } from './soundController.js';
 import { ONLY_USE_THIS_TO_VALIDATE } from './code-validator.js';
 import { validateCodeForUI } from './ui-code-validator.js';
 
 // For now, hardcode a level id and default code
-const LEVEL_ID = 'level1';
 const DEFAULT_CODE = `// Write your CarLang code here!`;
 
 let saveBtn, loadBtn, playBtn, resetBtn;
@@ -20,21 +18,11 @@ let level = null;
 let currentLevelId = null;
 let finishPos = null;
 let allLevels = [];
-let carlangInterpreter = null;
-let isRunning = false;
 let cows = []; // Array to store cow instances
 let currentLevelData = null; // Track current level configuration
 
 // Make cows globally accessible for CarLang engine
 window.cows = cows;
-
-// Line highlighting variables
-let currentHighlightedLine = null;
-let currentHighlightedBlock = null;
-
-// Indentation settings
-const INDENT_SIZE = 4; // Number of spaces per indentation level
-const INDENT_CHAR = ' '.repeat(INDENT_SIZE);
 
 function getSaveBtn() {
     return document.getElementById('saveBtn');
@@ -275,10 +263,10 @@ function showLevelSelector() {
         // Add level items
         categories[categoryName].forEach(levelData => {
             const levelItem = document.createElement('div');
-            levelItem.textContent = levelData.name || `Level ${levelData.id}`;
+            levelItem.textContent = levelData.name || `Level ${levelData.apiId}`;
             levelItem.className = 'level-item';
             levelItem.onclick = () => {
-                updateURLAndLoadLevel(levelData.id);
+                updateURLAndLoadLevel(levelData.apiId);
                 overlay.remove();
             };
             levelList.appendChild(levelItem);
@@ -351,13 +339,13 @@ function showCustomLevelLoader(overlay) {
     loadBtn.onclick = () => {
         try {
             const levelData = JSON.parse(textarea.value);
-            if (levelData.id && levelData.rows) {
+            if (levelData.rows) {
                 // Load the custom level
                 loadCustomLevel(levelData);
                 loaderOverlay.remove();
                 overlay.remove();
             } else {
-                debug('Invalid level format. Please make sure the JSON contains "id" and "rows" fields.');
+                debug('Invalid level format. Please make sure the JSON contains "rows" field.');
             }
         } catch (e) {
             debug('Invalid JSON format. Please check your level data.');
@@ -394,9 +382,9 @@ function showCustomLevelLoader(overlay) {
 }
 
 function loadCustomLevel(levelData) {
+    debug('loadCustomLevel: loading levelData', levelData);
     // Set current level ID to custom
     currentLevelId = 'custom';
-    
     // Create level object
     level = new Level({
         instruction: levelData.Instructions || '',
@@ -405,19 +393,13 @@ function loadCustomLevel(levelData) {
         cars: levelData.cars || null
     });
     window.level = level;
-    
     const gameDiv = document.getElementById('game');
-    
     // Set finish position
     finishPos = Array.isArray(levelData.end) ? [levelData.end[1] + 1, levelData.end[0] + 1] : undefined;
     level.render(gameDiv, finishPos);
-    
     // Initialize car registry based on level configuration
     initializeCarRegistry(levelData);
-    
-    // Update UI elements
     updateModeIndicator();
-    
     // Create and render cows if they exist in the level data
     cows = [];
     if (levelData.cows && Array.isArray(levelData.cows)) {
@@ -433,21 +415,15 @@ function loadCustomLevel(levelData) {
             cows.push(cow);
         });
     }
-    
-    // Update global cows array
     window.cows = cows;
-    
     loadDefaultCode();
-    
-    // Update line count after loading default code
     updateLineCount();
-    
     // Display level instructions with mode information
     const instructionsDiv = document.getElementById('instructions');
     if (instructionsDiv && levelData.Instructions) {
         let instructionText = `<h3>Instructions:</h3><p>${levelData.Instructions}</p>`;
-        
-        // Add mode-specific information
+        // FIX: define mode before using it
+        const mode = getLevelMode(levelData);
         if (mode === 'multi-car') {
             const carNames = levelData.cars.map(car => car.name).join(', ');
             instructionText += `<p><strong>Mode:</strong> Multi-car (${carNames})</p>`;
@@ -456,17 +432,9 @@ function loadCustomLevel(levelData) {
         } else {
             instructionText += `<p><strong>Mode:</strong> Single car</p>`;
         }
-        
         instructionsDiv.innerHTML = instructionText;
     }
-    
-    // Reset game state when loading new level
     resetGame();
-    
-    // Update URL to show custom level
-    const url = new URL(window.location);
-    url.searchParams.set('levelId', 'custom');
-    window.history.pushState({}, '', url);
 }
 
 function resetGame() {
@@ -565,99 +533,102 @@ function resetLevelState() {
     }
 }
 
-function loadLevel(levelId) {
-    fetch('Assets/Maps/Levels.json')
-        .then(response => response.json())
-        .then(data => {
-            allLevels = data.levels;
-            const levelData = data.levels.find(lvl => lvl.id === levelId);
-            if (!levelData) {
-                debug('Level not found!', null, 'error');
-                return;
+async function loadLevel(levelId) {
+    try {
+        const levelData = await fetch('https://wjhulzebosch.nl/json_ape/api.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({ action: 'get', category: 'sd_racer', id: levelId })
+        }).then(r => r.json());
+        if (!levelData) {
+            debug('Level not found!', null, 'error');
+            return;
+        }
+        // Store current level data for win condition checking
+        currentLevelData = levelData;
+        // Validate level data
+        const validation = validateLevelData(levelData);
+        if (validation.errors.length > 0) {
+            debug('Level validation errors:', validation.errors, 'error');
+            return;
+        }
+        if (validation.warnings.length > 0) {
+            console.warn('Level validation warnings:', validation.warnings);
+        }
+        // Log level information
+        const mode = getLevelMode(levelData);
+        const difficulty = getLevelDifficulty(levelData);
+        const category = getLevelCategory(levelData);
+        debug(`Loading level ${levelId}: ${levelData.name || 'Unnamed'}`);
+        debug(`Mode: ${mode}, Difficulty: ${difficulty}/5, Category: ${category}`);
+        debug(`[LOAD LEVEL] apiId: ${levelId}, name: ${levelData.name}, Instructions: ${levelData.Instructions}`);
+        currentLevelId = levelId;
+        level = new Level({
+            instruction: levelData.Instructions || '',
+            defaultCode: levelData.defaultCode || '',
+            tiles: levelData.rows,
+            cars: levelData.cars || null
+        });
+        window.level = level;
+        const gameDiv = document.getElementById('game');
+        // Swap x and y for finish position and add +1 for grass border
+        finishPos = Array.isArray(levelData.end) ? [levelData.end[1] + 1, levelData.end[0] + 1] : undefined;
+        level.render(gameDiv, finishPos);
+        
+        // Initialize car registry based on level configuration
+        initializeCarRegistry(levelData);
+        
+        // Update UI elements
+        updateModeIndicator();
+        // --- Remove old cow DOM elements before recreating cows ---
+        cows.forEach(cow => {
+            if (cow.element && cow.element.parentNode) {
+                cow.element.parentNode.removeChild(cow.element);
             }
-            // Store current level data for win condition checking
-            currentLevelData = levelData;
-            // Validate level data
-            const validation = validateLevelData(levelData);
-            if (validation.errors.length > 0) {
-                debug('Level validation errors:', validation.errors, 'error');
-                return;
-            }
-            if (validation.warnings.length > 0) {
-                console.warn('Level validation warnings:', validation.warnings);
-            }
-            // Log level information
-            const mode = getLevelMode(levelData);
-            const difficulty = getLevelDifficulty(levelData);
-            const category = getLevelCategory(levelData);
-            debug(`Loading level ${levelId}: ${levelData.name || 'Unnamed'}`);
-            debug(`Mode: ${mode}, Difficulty: ${difficulty}/5, Category: ${category}`);
-            currentLevelId = levelId;
-            level = new Level({
-                instruction: levelData.Instructions || '',
-                defaultCode: levelData.defaultCode || '',
-                tiles: levelData.rows,
-                cars: levelData.cars || null
+        });
+        // Create and render cows if they exist in the level data
+        cows = [];
+        if (levelData.cows && Array.isArray(levelData.cows)) {
+            levelData.cows.forEach(cowData => {
+                // Swap x and y and add +1 for grass border (same as car)
+                const cow = new Cow(
+                    cowData.defaultX + 1, 
+                    cowData.defaultY + 1, 
+                    cowData.secondaryX + 1, 
+                    cowData.secondaryY + 1
+                );
+                cow.addToGrid(gameDiv);
+                cows.push(cow);
             });
-            window.level = level;
-            const gameDiv = document.getElementById('game');
-            // Swap x and y for finish position and add +1 for grass border
-            finishPos = Array.isArray(levelData.end) ? [levelData.end[1] + 1, levelData.end[0] + 1] : undefined;
-            level.render(gameDiv, finishPos);
+        }
+        // Update global cows array
+        window.cows = cows;
+        loadDefaultCode();
+        // Update line count after loading default code
+        updateLineCount();
+        // Display level instructions with mode information
+        const instructionsDiv = document.getElementById('instructions');
+        if (instructionsDiv && levelData.Instructions) {
+            let instructionText = `<h3>Instructions:</h3><p>${levelData.Instructions}</p>`;
             
-            // Initialize car registry based on level configuration
-            initializeCarRegistry(levelData);
-            
-            // Update UI elements
-            updateModeIndicator();
-            // --- Remove old cow DOM elements before recreating cows ---
-            cows.forEach(cow => {
-                if (cow.element && cow.element.parentNode) {
-                    cow.element.parentNode.removeChild(cow.element);
-                }
-            });
-            // Create and render cows if they exist in the level data
-            cows = [];
-            if (levelData.cows && Array.isArray(levelData.cows)) {
-                levelData.cows.forEach(cowData => {
-                    // Swap x and y and add +1 for grass border (same as car)
-                    const cow = new Cow(
-                        cowData.defaultX + 1, 
-                        cowData.defaultY + 1, 
-                        cowData.secondaryX + 1, 
-                        cowData.secondaryY + 1
-                    );
-                    cow.addToGrid(gameDiv);
-                    cows.push(cow);
-                });
-            }
-            // Update global cows array
-            window.cows = cows;
-            loadDefaultCode();
-            // Update line count after loading default code
-            updateLineCount();
-            // Display level instructions with mode information
-            const instructionsDiv = document.getElementById('instructions');
-            if (instructionsDiv && levelData.Instructions) {
-                let instructionText = `<h3>Instructions:</h3><p>${levelData.Instructions}</p>`;
-                
-                // Add mode-specific information
-                if (mode === 'multi-car') {
-                    const carNames = levelData.cars.map(car => car.name).join(', ');
-                    instructionText += `<p><strong>Mode:</strong> Multi-car (${carNames})</p>`;
-                } else if (mode === 'single-car-oop') {
-                    instructionText += `<p><strong>Mode:</strong> Single car with OOP syntax</p>`;
-                } else {
-                    instructionText += `<p><strong>Mode:</strong> Single car</p>`;
-                }
-                
-                instructionsDiv.innerHTML = instructionText;
+            // Add mode-specific information
+            if (mode === 'multi-car') {
+                const carNames = levelData.cars.map(car => car.name).join(', ');
+                instructionText += `<p><strong>Mode:</strong> Multi-car (${carNames})</p>`;
+            } else if (mode === 'single-car-oop') {
+                instructionText += `<p><strong>Mode:</strong> Single car with OOP syntax</p>`;
+            } else {
+                instructionText += `<p><strong>Mode:</strong> Single car</p>`;
             }
             
-            // Reset game state when loading new level
-            resetGame();
-        })
-        .catch(err => debug('Failed to load level: ' + err, null, 'error'));
+            instructionsDiv.innerHTML = instructionText;
+        }
+        
+        // Reset game state when loading new level
+        resetGame();
+    } catch (err) {
+        debug('Failed to load level: ' + err, null, 'error');
+    }
 }
 
 async function playCode() {
@@ -824,7 +795,15 @@ function startGame() {
 
     saveBtn.onclick = saveCode;
     loadBtn.onclick = handleLoadBtn;
-    playBtn.onclick = playCode;
+    playBtn.onclick = () => {
+        if (playBtn.textContent === 'Finished') {
+            resetGame();
+            playBtn.textContent = 'Play';
+            playBtn.disabled = false;
+        } else {
+            playCode();
+        }
+    };
     resetBtn.onclick = resetCode;
     
     // Set up reset level button
@@ -854,14 +833,31 @@ function startGame() {
     if (levelId) {
         loadLevel(levelId);
     } else {
-        // Load levels first, then show selector
-        fetch('Assets/Maps/Levels.json')
-            .then(response => response.json())
-            .then(data => {
-                allLevels = data.levels;
+        // Load levels from API first, then show selector
+        (async () => {
+            try {
+                const { ids } = await fetch('https://wjhulzebosch.nl/json_ape/api.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({ action: 'list', category: 'sd_racer' })
+                }).then(r => r.json());
+                allLevels = await Promise.all(
+                    ids.map(async id => {
+                        const level = await fetch('https://wjhulzebosch.nl/json_ape/api.php', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                            body: new URLSearchParams({ action: 'get', category: 'sd_racer', id })
+                        }).then(r => r.json());
+                        level.apiId = id;
+                        return level;
+                    })
+                );
+                allLevels.forEach(level => debug(`[LEVEL LIST] apiId: ${level.apiId}, name: ${level.name}, Instructions: ${level.Instructions}`));
                 showLevelSelector();
-            })
-            .catch(err => debug('Failed to load levels: ' + err, null, 'error'));
+            } catch (err) {
+                debug('Failed to load levels: ' + err, null, 'error');
+            }
+        })();
     }
 }
 
@@ -907,12 +903,12 @@ function initializeCarRegistry(levelConfig) {
     // Check if this is a multi-car level
     if (levelConfig.cars && Array.isArray(levelConfig.cars) && levelConfig.cars.length > 0) {
         // Multi-car level
-        debug(`Initializing ${levelConfig.cars.length} cars for level ${levelConfig.id}`);
+        debug(`Initializing ${levelConfig.cars.length} cars for level ${levelConfig.apiId}`);
         
         levelConfig.cars.forEach((carConfig, index) => {
             // Validate car configuration
             if (!carConfig.name) {
-                debug(`Car ${index} missing name in level ${levelConfig.id}`, null, 'error');
+                debug(`Car ${index} missing name in level ${levelConfig.apiId}`, null, 'error');
                 return;
             }
             
@@ -923,7 +919,7 @@ function initializeCarRegistry(levelConfig) {
             
             // Validate position
             if (!position || !Array.isArray(position) || position.length !== 2) {
-                debug(`Car ${carName} has invalid position in level ${levelConfig.id}`, null, 'error');
+                debug(`Car ${carName} has invalid position in level ${levelConfig.apiId}`, null, 'error');
                 return;
             }
             
@@ -960,13 +956,13 @@ function initializeCarRegistry(levelConfig) {
         
         // Validate that we have at least one car
         if (Object.keys(carRegistry).length === 0) {
-            debug(`No valid cars created for level ${levelConfig.id}`, null, 'error');
+            debug(`No valid cars created for level ${levelConfig.apiId}`, null, 'error');
             return;
         }
         
     } else {
         // Single car level (backward compatibility)
-        debug(`Initializing single car for level ${levelConfig.id}`);
+        debug(`Initializing single car for level ${levelConfig.apiId}`);
         
         if (levelConfig.start && Array.isArray(levelConfig.start) && levelConfig.start.length === 2) {
             defaultCar = new Car({ 
@@ -978,7 +974,7 @@ function initializeCarRegistry(levelConfig) {
             defaultCar.render(gameDiv);
             debug(`Created single car at position [${levelConfig.start[0]}, ${levelConfig.start[1]}]`);
         } else {
-            debug(`Invalid start position for level ${levelConfig.id}`, null, 'error');
+            debug(`Invalid start position for level ${levelConfig.apiId}`, null, 'error');
         }
     }
     
@@ -1035,11 +1031,9 @@ function validateLevelData(levelData) {
     const errors = [];
     const warnings = [];
     
-    // Basic required fields
-    if (!levelData.id) {
-        errors.push('Level missing required field: id');
-    }
-    
+    // if (!levelData.id) {
+    //     errors.push('Level missing required field: id');
+    // }
     if (!levelData.name) {
         warnings.push('Level missing recommended field: name');
     }
@@ -1296,4 +1290,54 @@ function updateValidationStatus(status, type = 'info') {
     statusElement.className = `validation-status validation-${type}`;
 }
 
-window.addEventListener('DOMContentLoaded', startGame);
+function addEditLevelButton() {
+    let btn = document.getElementById('editLevelBtn');
+    if (!btn) {
+        btn = document.createElement('button');
+        btn.id = 'editLevelBtn';
+        btn.textContent = 'Edit Level';
+        btn.className = 'edit-level-btn';
+        btn.style.position = 'absolute';
+        btn.style.top = '10px';
+        btn.style.right = '10px';
+        btn.onclick = () => {
+            debug('Edit Level: currentLevelData', currentLevelData);
+            debug('Edit Level: level', level);
+            // Export current level as JSON
+            const levelJson = JSON.stringify(currentLevelData || level);
+            // Store in localStorage for transfer
+            localStorage.setItem('sdRacer_tempLevel', levelJson);
+            // Open levelCreator with a flag to load from temp
+            window.open('levelCreator.html?loadTemp=1', '_blank');
+        };
+        document.body.appendChild(btn);
+    }
+}
+
+// Call this after loading a level
+function afterLevelLoad() {
+    addEditLevelButton();
+}
+
+// Patch loadLevel to call afterLevelLoad at the end
+const _originalLoadLevel = loadLevel;
+loadLevel = async function(...args) {
+    await _originalLoadLevel.apply(this, args);
+    afterLevelLoad();
+};
+
+window.addEventListener('DOMContentLoaded', () => {
+    // If ?loadTemp=1, load the temp level from localStorage
+    if (window.location.search.includes('loadTemp=1')) {
+        const tempLevel = localStorage.getItem('sdRacer_tempLevel');
+        if (tempLevel) {
+            try {
+                loadCustomLevel(JSON.parse(tempLevel));
+                return;
+            } catch (e) {
+                debug('Failed to load temp level: ' + e, null, 'error');
+            }
+        }
+    }
+    startGame();
+});

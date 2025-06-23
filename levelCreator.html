@@ -9,6 +9,14 @@
     <div class="container">
         <h1>🎮 Level Creator</h1>
         <p class="experimental-warning">⚠️ Experimental tool - Use at your own risk. Not all features are fully implemented.</p>
+        <p>With this tool you can create levels for the sdRacer game. You can't however save them. To play your level, press "Play level" or "Export JSON" and copy the JSON to the clipboard. Then start a 'Custom level'  and paste the JSON into the 'Level JSON' field.</p>
+        <p>Steps: Create a grid of the required size; place roads by clicking <i>between</i> two cells. To place a car, click on the car, then on the cell where you want to place it. To place a finish line, click on the finish line, then on the cell where you want to place it. To place a cow, click on the cow, then on the cell where you want to place it. To place a car, click on the car, then on the cell where you want to place it. To place a finish line, click on the finish line, then on the cell where you want to place it. IMPORTANT: If you want to place a cow, you'll need to click to orthogonally connect cells: the first click will be the cows starting cell, the second click will be the cell where the cow will move to when honked.</p>
+        <p>YOu can place max 1 car of each color. If you place more than one car, the game goes into "OOP-mode".</p>
+        <p>For now, only win condition possible is "IsAtFinish()".</p>
+        <p>To create a maze: Select the grids' dimenions, place the car, place the finish, the press 'Generate maze'. This will generate a maze from the car to the finish. NOTE: Multi car maze generation not supported.</p>
+        <p>You can load an existing level by selecting it from the dropdown. NOTE: You can't save a level, export to JSON or play right away</p>
+        <p>To export the level to JSON, press "Export JSON" and copy the JSON to the clipboard. Then start a 'Custom level'  and paste the JSON into the 'Level JSON' field.</p>
+        <p>To import a level from JSON, paste the JSON into the Import/Export text field and press "Import JSON".</p>
         
         <div class="flex-row">
             <div class="form-section">
