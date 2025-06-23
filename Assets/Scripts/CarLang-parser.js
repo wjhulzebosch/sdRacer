@@ -1062,7 +1062,4 @@ class CarLangParser {
     }
 }
 
-// Export for use in other modules
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = CarLangParser;
-} 
+export default CarLangParser; 

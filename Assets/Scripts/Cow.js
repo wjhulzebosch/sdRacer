@@ -233,4 +233,6 @@ class Cow {
         cow.isAtDefault = data.isAtDefault;
         return cow;
     }
-} 
+}
+
+export default Cow; 

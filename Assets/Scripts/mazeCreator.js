@@ -218,7 +218,4 @@ function createSimplePath(maze, start, end) {
     }
 }
 
-// Export function for use in levelCreator
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { generateMaze };
-}
+export { generateMaze };

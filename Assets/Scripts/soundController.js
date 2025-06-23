@@ -185,4 +185,7 @@ document.addEventListener('click', () => {
 
 document.addEventListener('keydown', () => {
     soundController.resumeAudioContext();
-}, { once: true }); 
+}, { once: true });
+
+export default SoundController;
+export { soundController }; 

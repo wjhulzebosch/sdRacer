@@ -648,4 +648,6 @@ document.addEventListener('DOMContentLoaded', () => {
     renderGrid();
     renderCarList();
     loadLevelsFromFile();
-}); 
+});
+
+export { formatJSON, getLevelDetails, setLevelDetails, loadLevelsFromFile }; 

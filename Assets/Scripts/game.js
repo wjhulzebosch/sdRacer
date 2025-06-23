@@ -1,3 +1,13 @@
+import Car from './Car.js';
+import Cow from './Cow.js';
+import Level from './level.js';
+import CarLangParser from './CarLang-parser.js';
+import CarLangEngine from './carlang-engine.js';
+import { generateMaze } from './mazeCreator.js';
+import { soundController } from './soundController.js';
+import CodeValidator from './code-validator.js';
+import { masterValidateCode } from './code-validator.js';
+
 // For now, hardcode a level id and default code
 const LEVEL_ID = 'level1';
 const DEFAULT_CODE = `// Write your CarLang code here!`;
@@ -794,6 +804,11 @@ function loadLevel(levelId) {
 }
 
 async function playCode() {
+    // Update code analysis UI just like Check Code
+    if (!window.liveParser || typeof window.liveParser.checkCode !== 'function') {
+        throw new Error('Code analysis (liveParser) is not available. Cannot run code.');
+    }
+    window.liveParser.checkCode();
     try {
         // Check if button is in "Finished" state - if so, just reset and change button back to Play
         if (playBtn.textContent === 'Finished') {
@@ -806,37 +821,32 @@ async function playCode() {
         playBtn.disabled = true;
         playBtn.textContent = 'Playing';
         hideWinMessage();
-        
-        // First, run checkCode to show AST and validation
-        if (window.liveParser) {
-            window.liveParser.checkCode();
-        }
-        
-        const gameDiv = document.getElementById('game');
-        
-        // Use new CarLang parser and interpreter
+
+        // Get config and registry
         const parserConfig = getParserConfig();
-        const parser = new CarLangParser(parserConfig.mode, parserConfig.availableCars);
-        const ast = parser.parse(codeArea.value);
-        
-        if (ast.errors && ast.errors.length > 0) {
-            throw new Error(`Parse errors: ${ast.errors.join(', ')}`);
+        const code = codeArea.value;
+        const gameDiv = document.getElementById('game');
+
+        // Use masterValidateCode for validation and AST
+        const validationResult = masterValidateCode(code, parserConfig, carRegistry, level, gameDiv);
+        if (!validationResult.valid) {
+            let errorMsg = '';
+            if (validationResult.parseErrors.length > 0) {
+                errorMsg += 'Parse errors:\n' + validationResult.parseErrors.join('\n');
+            }
+            if (validationResult.validation.errors && validationResult.validation.errors.length > 0) {
+                errorMsg += '\nValidation errors:\n' + validationResult.validation.errors.join('\n');
+            }
+            alert(errorMsg);
+            playBtn.textContent = 'Play';
+            playBtn.disabled = false;
+            return;
         }
-        
-        // Validate before execution
-        const interpreter = new CarLangEngine(carRegistry, level, gameDiv);
-        const validation = interpreter.validate(ast);
-        
-        if (!validation.valid) {
-            throw new Error(`Validation errors: ${validation.errors.join(', ')}`);
-        }
-        
+        const ast = validationResult.ast;
         // Store interpreter globally for reset functionality
+        const interpreter = new CarLangEngine(carRegistry, level, gameDiv);
         window.currentInterpreter = interpreter;
-        
-        // Initialize execution with the AST
         interpreter.initializeExecution(ast);
-        
         // Enhanced game loop for step-by-step execution
         const gameLoop = () => {
             const result = interpreter.executeNext();

@@ -87,3 +87,6 @@ function loadLevel1AndDisplay() {
         })
         .catch(err => alert('Failed to load level: ' + err));
 }
+
+export default Level;
+export { loadLevel1AndDisplay };

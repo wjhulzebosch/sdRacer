@@ -262,4 +262,6 @@ class Car {
         const cowAtPosition = globalCows.find(cow => cow.isAtPosition(newX, newY));
         return !!cowAtPosition;
     }
-} 
+}
+
+export default Car; 
