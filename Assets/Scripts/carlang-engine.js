@@ -6,25 +6,48 @@
 
 class CarLangEngine {
     constructor(carRegistry, level, gameDiv) {
-        this.carRegistry = carRegistry || {};
+        // If carRegistry is missing or empty, try to get from game helpers
+        let registryToUse = carRegistry;
+        if (!registryToUse || (typeof registryToUse === 'object' && Object.keys(registryToUse).length === 0)) {
+            if (typeof getCarRegistry === 'function') {
+                registryToUse = getCarRegistry();
+            }
+        }
+        this.carRegistry = registryToUse || {};
         this.defaultCar = null; // For backward compatibility
         this.level = level;
         this.gameDiv = gameDiv;
         this.variables = {};
         this.functions = {};
         
+        // Debug logs for carRegistry and defaultCar
+        if (typeof debug === 'function') {
+            debug('CarLangEngine constructor: carRegistry =', this.carRegistry);
+            if (this.carRegistry && typeof this.carRegistry === 'object') {
+                debug('CarLangEngine constructor: carRegistry keys =', Object.keys(this.carRegistry));
+            }
+        }
+        
         // Set default car for backward compatibility
-        if (carRegistry && typeof carRegistry === 'object') {
-            if (Array.isArray(carRegistry)) {
+        if (this.carRegistry && typeof this.carRegistry === 'object') {
+            if (Array.isArray(this.carRegistry)) {
                 // If passed as array, use first car
-                this.defaultCar = carRegistry[0] || null;
+                this.defaultCar = this.carRegistry[0] || null;
             } else {
-                // If passed as object, use first car or mainCar
-                this.defaultCar = carRegistry.mainCar || carRegistry[Object.keys(carRegistry)[0]] || null;
+                // If passed as object, use first car or mainCar or default
+                this.defaultCar = this.carRegistry.mainCar || this.carRegistry.default || this.carRegistry[Object.keys(this.carRegistry)[0]] || null;
             }
         } else {
             // Legacy support: if passed single car
-            this.defaultCar = carRegistry;
+            this.defaultCar = this.carRegistry;
+        }
+        
+        if (!this.defaultCar && typeof getDefaultCar === 'function') {
+            this.defaultCar = getDefaultCar();
+        }
+        
+        if (typeof debug === 'function') {
+            debug('CarLangEngine constructor: this.defaultCar =', this.defaultCar);
         }
         
         // Execution state
@@ -465,7 +488,7 @@ class CarLangEngine {
      * Honk the car horn
      */
     honk() {
-        console.log('HONK: Starting honk method');
+        debug('HONK: Starting honk method');
         
         // Play honk sound immediately
         if (typeof soundController !== 'undefined') {
@@ -475,7 +498,7 @@ class CarLangEngine {
         // Get car's current position
         const carX = this.defaultCar.currentPosition.x;
         const carY = this.defaultCar.currentPosition.y;
-        console.log('HONK: Car position:', { x: carX, y: carY });
+        debug('HONK: Car position:', { x: carX, y: carY });
         
         // Check for cows in orthogonally adjacent tiles
         const adjacentPositions = [
@@ -484,27 +507,27 @@ class CarLangEngine {
             { x: carX, y: carY + 1 }, // South
             { x: carX - 1, y: carY }  // West
         ];
-        console.log('HONK: Checking adjacent positions:', adjacentPositions);
+        debug('HONK: Checking adjacent positions:', adjacentPositions);
         
         // Get cows from the global cows array (defined in game.js)
         const globalCows = window.cows || [];
-        console.log('HONK: Found cows:', globalCows.length, globalCows);
+        debug('HONK: Found cows:', globalCows.length, globalCows);
         
         // Check each adjacent position for cows
         adjacentPositions.forEach((pos, index) => {
-            console.log(`HONK: Checking position ${index}:`, pos);
+            debug(`HONK: Checking position ${index}:`, pos);
             globalCows.forEach((cow, cowIndex) => {
-                console.log(`HONK: Checking cow ${cowIndex}:`, cow);
-                console.log(`HONK: Cow position:`, { x: cow.currentX, y: cow.currentY });
-                console.log(`HONK: Is cow at position?`, cow.isAtPosition(pos.x, pos.y));
+                debug(`HONK: Checking cow ${cowIndex}:`, cow);
+                debug(`HONK: Cow position:`, { x: cow.currentX, y: cow.currentY });
+                debug(`HONK: Is cow at position?`, cow.isAtPosition(pos.x, pos.y));
                 if (cow.isAtPosition(pos.x, pos.y)) {
-                    console.log(`HONK: Found cow at position ${index}, calling GetHonked()`);
+                    debug(`HONK: Found cow at position ${index}, calling GetHonked()`);
                     cow.GetHonked();
                 }
             });
         });
         
-        console.log('HONK: Honk method completed');
+        debug('HONK: Honk method completed');
     }
 
     /**
@@ -1066,7 +1089,7 @@ class CarLangEngine {
      * Honk the car horn for a specific car
      */
     honkForCar(car) {
-        console.log('HONK: Starting honk method for specific car');
+        debug('HONK: Starting honk method for specific car');
         
         // Play honk sound immediately
         if (typeof soundController !== 'undefined') {
@@ -1076,7 +1099,7 @@ class CarLangEngine {
         // Get car's current position
         const carX = car.currentPosition.x;
         const carY = car.currentPosition.y;
-        console.log('HONK: Car position:', { x: carX, y: carY });
+        debug('HONK: Car position:', { x: carX, y: carY });
         
         // Check for cows in orthogonally adjacent tiles
         const adjacentPositions = [
@@ -1085,27 +1108,27 @@ class CarLangEngine {
             { x: carX, y: carY + 1 }, // South
             { x: carX - 1, y: carY }  // West
         ];
-        console.log('HONK: Checking adjacent positions:', adjacentPositions);
+        debug('HONK: Checking adjacent positions:', adjacentPositions);
         
         // Get cows from the global cows array (defined in game.js)
         const globalCows = window.cows || [];
-        console.log('HONK: Found cows:', globalCows.length, globalCows);
+        debug('HONK: Found cows:', globalCows.length, globalCows);
         
         // Check each adjacent position for cows
         adjacentPositions.forEach((pos, index) => {
-            console.log(`HONK: Checking position ${index}:`, pos);
+            debug(`HONK: Checking position ${index}:`, pos);
             globalCows.forEach((cow, cowIndex) => {
-                console.log(`HONK: Checking cow ${cowIndex}:`, cow);
-                console.log(`HONK: Cow position:`, { x: cow.currentX, y: cow.currentY });
-                console.log(`HONK: Is cow at position?`, cow.isAtPosition(pos.x, pos.y));
+                debug(`HONK: Checking cow ${cowIndex}:`, cow);
+                debug(`HONK: Cow position:`, { x: cow.currentX, y: cow.currentY });
+                debug(`HONK: Is cow at position?`, cow.isAtPosition(pos.x, pos.y));
                 if (cow.isAtPosition(pos.x, pos.y)) {
-                    console.log(`HONK: Found cow at position ${index}, calling GetHonked()`);
+                    debug(`HONK: Found cow at position ${index}, calling GetHonked()`);
                     cow.GetHonked();
                 }
             });
         });
         
-        console.log('HONK: Honk method completed for specific car');
+        debug('HONK: Honk method completed for specific car');
     }
 
     /**
@@ -1154,6 +1177,4 @@ class CarLangEngine {
 }
 
 // Export for use in other modules
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = CarLangEngine;
-} 
+export default CarLangEngine; 

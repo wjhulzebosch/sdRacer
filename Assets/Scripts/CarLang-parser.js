@@ -14,6 +14,10 @@ class CarLangParser {
         this.mode = mode; // 'single' or 'oop'
         this.availableCars = availableCars; // Array of available car names
         this.userDefinedFunctions = new Set(); // Track user-defined functions
+        if (typeof debug === 'function') {
+            debug('CarLangParser constructor: mode =', mode);
+            debug('CarLangParser constructor: availableCars =', availableCars);
+        }
     }
 
     /**
@@ -282,6 +286,11 @@ class CarLangParser {
 
     parseStatement() {
         const token = this.peek();
+        if (typeof debug === 'function') {
+            debug('parseStatement: token =', token);
+            debug('parseStatement: mode =', this.mode);
+            debug('parseStatement: availableCars =', this.availableCars);
+        }
         
         if (this.check('KEYWORD', 'int') || this.check('KEYWORD', 'double') || 
             this.check('KEYWORD', 'string') || this.check('KEYWORD', 'array') ||
@@ -299,11 +308,23 @@ class CarLangParser {
         
         if (this.check('IDENTIFIER')) {
             const nextToken = this.tokens[this.current + 1];
+            if (typeof debug === 'function') {
+                debug('parseStatement: IDENTIFIER nextToken =', nextToken);
+            }
             if (nextToken && nextToken.value === '=') {
                 return this.parseAssignment();
             } else if (nextToken && nextToken.value === '(') {
                 return this.parseFunctionCallStatement();
             } else if (this.mode === 'oop' && nextToken && nextToken.value === '.') {
+                if (typeof debug === 'function') {
+                    debug('parseStatement: Detected OOP method call', {
+                        current: this.current,
+                        token,
+                        nextToken,
+                        mode: this.mode,
+                        availableCars: this.availableCars
+                    });
+                }
                 // This is a method call (object.method)
                 return this.parseFunctionCallStatement();
             }
@@ -377,17 +398,25 @@ class CarLangParser {
     parseFunctionCall() {
         let objectName = null;
         let functionName;
-        
+        if (typeof debug === 'function') {
+            debug('parseFunctionCall: mode =', this.mode);
+            debug('parseFunctionCall: current token =', this.peek());
+            debug('parseFunctionCall: availableCars =', this.availableCars);
+        }
         // Check if this is a method call (object.method)
         if (this.mode === 'oop' && this.check('IDENTIFIER')) {
             const firstIdentifier = this.peek();
             const nextToken = this.tokens[this.current + 1];
-            
+            if (typeof debug === 'function') {
+                debug('parseFunctionCall: OOP check', { firstIdentifier, nextToken });
+            }
             // If next token is a dot, this is a method call
             if (nextToken && nextToken.value === '.') {
                 objectName = this.advance().value;
                 this.advance(); // consume the dot
-                
+                if (typeof debug === 'function') {
+                    debug('parseFunctionCall: OOP method call objectName =', objectName);
+                }
                 // Validate car name
                 if (!this.availableCars.includes(objectName)) {
                     const line = firstIdentifier.line || this.lineNumber;
@@ -571,6 +600,11 @@ class CarLangParser {
     }
 
     parsePrimary() {
+        if (typeof debug === 'function') {
+            debug('parsePrimary: current token =', this.peek());
+            debug('parsePrimary: mode =', this.mode);
+            debug('parsePrimary: availableCars =', this.availableCars);
+        }
         if (this.check('NUMBER')) {
             return this.parseLiteral();
         }
@@ -585,23 +619,35 @@ class CarLangParser {
         
         if (this.check('IDENTIFIER')) {
             const nextToken = this.tokens[this.current + 1];
+            if (typeof debug === 'function') {
+                debug('parsePrimary: IDENTIFIER nextToken =', nextToken);
+            }
             if (nextToken && nextToken.value === '(') {
                 return this.parseFunctionCall();
             } else if (nextToken && nextToken.value === '.') {
+                if (typeof debug === 'function') {
+                    debug('parsePrimary: Detected OOP method call', {
+                        current: this.current,
+                        token: this.peek(),
+                        nextToken,
+                        mode: this.mode,
+                        availableCars: this.availableCars
+                    });
+                }
                 // Handle method calls: object.method()
                 const objectName = this.advance().value;
                 this.advance(); // consume the dot
-                
+                if (typeof debug === 'function') {
+                    debug('parsePrimary: OOP method call objectName =', objectName);
+                }
                 // Validate car name if in OOP mode
                 if (this.mode === 'oop' && !this.availableCars.includes(objectName)) {
                     const line = this.peek().line || this.lineNumber;
                     const context = this.getErrorContext(line);
                     this.errors.push(`Line ${line}: Unknown car '${objectName}'. Available cars: ${this.availableCars.join(', ')}${context}`);
                 }
-                
                 const methodName = this.match('IDENTIFIER');
                 this.match('PUNCTUATION', '(');
-                
                 const args = [];
                 if (!this.check('PUNCTUATION', ')')) {
                     args.push(this.parseExpression());
@@ -610,9 +656,7 @@ class CarLangParser {
                         args.push(this.parseExpression());
                     }
                 }
-                
                 this.match('PUNCTUATION', ')');
-                
                 return {
                     type: 'MethodCall',
                     object: objectName,
@@ -1062,7 +1106,4 @@ class CarLangParser {
     }
 }
 
-// Export for use in other modules
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = CarLangParser;
-} 
+export default CarLangParser; 

@@ -44,7 +44,7 @@ class SoundController {
             });
             
             audio.addEventListener('error', (error) => {
-                console.error(`Failed to load sound '${name}':`, error);
+                debug(`Failed to load sound '${name}':`, error, 'error');
                 reject(error);
             });
             
@@ -143,7 +143,7 @@ class SoundController {
 
         try {
             await Promise.all(loadPromises);
-            console.log('Game sounds preloaded successfully');
+            debug('Game sounds preloaded successfully');
         } catch (error) {
             console.warn('Some sounds failed to load:', error);
         }
@@ -169,6 +169,7 @@ class SoundController {
 
 // Create global sound controller instance
 const soundController = new SoundController();
+window.soundController = soundController;
 
 // Initialize sounds when the page loads
 document.addEventListener('DOMContentLoaded', () => {
@@ -185,4 +186,7 @@ document.addEventListener('click', () => {
 
 document.addEventListener('keydown', () => {
     soundController.resumeAudioContext();
-}, { once: true }); 
+}, { once: true });
+
+export default SoundController;
+export { soundController }; 

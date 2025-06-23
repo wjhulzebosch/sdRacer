@@ -216,12 +216,12 @@ function handleCellClick(y, x) {
 function handleCarPlacement(y, x) {
     // Check if position is already occupied
     if (cars.find(car => car.x === x && car.y === y)) {
-        alert('A car is already placed at this position!');
+        debug('A car is already placed at this position!', null, 'error');
         return;
     }
     
     if (finishPos && finishPos[0] === y && finishPos[1] === x) {
-        alert('Cannot place car on finish line!');
+        debug('Cannot place car on finish line!', null, 'error');
         return;
     }
     
@@ -271,7 +271,7 @@ function handleCowPlacement(y, x) {
                            (Math.abs(y - defaultY) === 1 && x === defaultX);
         
         if (!isOrthogonal) {
-            alert('Secondary position must be orthogonally adjacent to the default position (up, down, left, or right).');
+            debug('Secondary position must be orthogonally adjacent to the default position (up, down, left, or right).', null, 'error');
             return;
         }
         
@@ -429,12 +429,12 @@ function saveCar() {
     const direction = carDirectionSelect.value;
     
     if (!name) {
-        alert('Please enter a car name');
+        debug('Please enter a car name', null, 'error');
         return;
     }
     
     if (cars.find(car => car.name === name && car.id !== editingCarId)) {
-        alert('A car with this name already exists');
+        debug('A car with this name already exists', null, 'error');
         return;
     }
     
@@ -605,7 +605,7 @@ document.getElementById('loadJsonBtn').onclick = () => {
         const level = JSON.parse(jsonText);
         setLevelDetails(level);
     } catch (error) {
-        alert('Invalid JSON: ' + error.message);
+        debug('Invalid JSON: ' + error.message, null, 'error');
     }
 };
 
@@ -638,7 +638,7 @@ async function loadLevelsFromFile() {
             }
         };
     } catch (error) {
-        console.error('Failed to load levels:', error);
+        debug('Failed to load levels:', error, 'error');
     }
 }
 
@@ -648,4 +648,6 @@ document.addEventListener('DOMContentLoaded', () => {
     renderGrid();
     renderCarList();
     loadLevelsFromFile();
-}); 
+});
+
+export { formatJSON, getLevelDetails, setLevelDetails, loadLevelsFromFile }; 

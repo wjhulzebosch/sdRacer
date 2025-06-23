@@ -820,6 +820,10 @@ h1 {
     color: #60a5fa;
 }
 
+#code-editor {
+    width: 100% !important;
+}
+
 /* Code Editor Container */
 .code-editor-container {
     background: linear-gradient(135deg, #1a1e22 0%, #23272b 100%);
@@ -1044,4 +1048,8 @@ h1 {
 .instructions-panel::-webkit-scrollbar-thumb:hover,
 .parser-content::-webkit-scrollbar-thumb:hover {
     background: #4b5563;
+}
+
+.cm-highlighted-line {
+    background: #ffe066 !important;
 }

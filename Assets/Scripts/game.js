@@ -1,8 +1,18 @@
+import Car from './Car.js';
+import Cow from './Cow.js';
+import Level from './level.js';
+import CarLangParser from './CarLang-parser.js';
+import CarLangEngine from './carlang-engine.js';
+import { generateMaze } from './mazeCreator.js';
+import { soundController } from './soundController.js';
+import { ONLY_USE_THIS_TO_VALIDATE } from './code-validator.js';
+import { validateCodeForUI } from './ui-code-validator.js';
+
 // For now, hardcode a level id and default code
 const LEVEL_ID = 'level1';
 const DEFAULT_CODE = `// Write your CarLang code here!`;
 
-let codeArea, saveBtn, loadBtn, playBtn, resetBtn;
+let saveBtn, loadBtn, playBtn, resetBtn;
 // Car registry system
 let carRegistry = {};
 let defaultCar = null; // For backward compatibility
@@ -26,9 +36,6 @@ let currentHighlightedBlock = null;
 const INDENT_SIZE = 4; // Number of spaces per indentation level
 const INDENT_CHAR = ' '.repeat(INDENT_SIZE);
 
-function getCodeArea() {
-    return document.getElementById('code');
-}
 function getSaveBtn() {
     return document.getElementById('saveBtn');
 }
@@ -48,212 +55,77 @@ function getFixIndentationBtn() {
     return document.getElementById('fixIndentationBtn');
 }
 
-// Auto-indentation functions
-function getIndentationLevel(line) {
-    let level = 0;
-    for (let i = 0; i < line.length; i++) {
-        if (line[i] === ' ') {
-            level++;
-        } else {
-            break;
-        }
-    }
-    return Math.floor(level / INDENT_SIZE);
-}
-
-function getIndentationString(level) {
-    return INDENT_CHAR.repeat(level);
-}
-
-function handleAutoIndentation(event) {
-    const textarea = event.target;
-    const key = event.key;
-    
-    if (key === 'Enter') {
-        event.preventDefault();
-        
-        const start = textarea.selectionStart;
-        const end = textarea.selectionEnd;
-        const value = textarea.value;
-        
-        // Get the current line
-        const beforeCursor = value.substring(0, start);
-        const lines = beforeCursor.split('\n');
-        const currentLine = lines[lines.length - 1];
-        
-        // Calculate current indentation level
-        let currentIndentLevel = getIndentationLevel(currentLine);
-        
-        // Check if current line ends with {
-        const trimmedLine = currentLine.trim();
-        if (trimmedLine.endsWith('{')) {
-            currentIndentLevel++;
-        }
-        
-        // Create the new line with proper indentation
-        const newLine = '\n' + getIndentationString(currentIndentLevel);
-        
-        // Insert the new line
-        const newValue = value.substring(0, start) + newLine + value.substring(end);
-        textarea.value = newValue;
-        
-        // Set cursor position after the indentation
-        const newCursorPos = start + newLine.length;
-        textarea.setSelectionRange(newCursorPos, newCursorPos);
-        
-        return false;
-    }
-    
-    return true;
-}
-
-function handleBraceIndentation(event) {
-    const textarea = event.target;
-    const key = event.key;
-    
-    if (key === '}') {
-        const start = textarea.selectionStart;
-        const end = textarea.selectionEnd;
-        const value = textarea.value;
-        
-        // Get the current line
-        const beforeCursor = value.substring(0, start);
-        const lines = beforeCursor.split('\n');
-        const currentLine = lines[lines.length - 1];
-        
-        // Calculate current indentation level
-        let currentIndentLevel = getIndentationLevel(currentLine);
-        
-        // If we're at the beginning of the line (after indentation), decrease indentation
-        const trimmedBeforeCursor = currentLine.trim();
-        if (trimmedBeforeCursor === '') {
-            // We're at the beginning of the line, decrease indentation
-            currentIndentLevel = Math.max(0, currentIndentLevel - 1);
-            
-            // Replace the current line's indentation
-            const newIndentation = getIndentationString(currentIndentLevel);
-            const lineStart = start - (currentLine.length - currentLine.trimStart().length);
-            const newValue = value.substring(0, lineStart) + newIndentation + '}' + value.substring(end);
-            textarea.value = newValue;
-            
-            // Set cursor position after the }
-            const newCursorPos = lineStart + newIndentation.length + 1;
-            textarea.setSelectionRange(newCursorPos, newCursorPos);
-            
-            // Prevent the default behavior to avoid duplicate }
-            event.preventDefault();
-            return false;
-        }
-    }
-    
-    return true;
-}
-
-function setupAutoIndentation() {
-    const textarea = getCodeArea();
-    if (textarea) {
-        textarea.addEventListener('keydown', (event) => {
-            if (!handleAutoIndentation(event)) {
-                return;
-            }
-            if (!handleBraceIndentation(event)) {
-                return;
-            }
-        });
-    }
-}
-
 function fixIndentation() {
-    const textarea = getCodeArea();
-    if (!textarea) return;
-    
-    const originalCode = textarea.value;
-    
+    const originalCode = window.getCodeValue();
+    if (!originalCode) return;
     try {
-        // Test the code first using the CarLang parser
-        const parserConfig = getParserConfig();
-        const parser = new CarLangParser(parserConfig.mode, parserConfig.availableCars);
-        const result = parser.parse(originalCode);
-        
-        if (result.errors && result.errors.length > 0) {
-            alert('Cannot fix indentation: Code has errors:\n' + result.errors.join('\n'));
+        // Use ONLY_USE_THIS_TO_VALIDATE for validation
+        const result = ONLY_USE_THIS_TO_VALIDATE();
+        if (result.parseErrors && result.parseErrors.length > 0) {
+            debug('Cannot fix indentation: Code has errors:\n' + result.parseErrors.join('\n'));
             return;
         }
-        
         // If no errors, proceed to fix indentation
         const lines = originalCode.split('\n');
         const fixedLines = [];
         let currentIndentLevel = 0;
-        
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
             const trimmedLine = line.trim();
-            
             // Skip empty lines but preserve them
             if (trimmedLine === '') {
                 fixedLines.push('');
                 continue;
             }
-            
             // Check if this line should decrease indentation (closing brace)
             if (trimmedLine.startsWith('}')) {
                 currentIndentLevel = Math.max(0, currentIndentLevel - 1);
             }
-            
             // Add the line with proper indentation
             const indentation = getIndentationString(currentIndentLevel);
             fixedLines.push(indentation + trimmedLine);
-            
             // Check if this line should increase indentation (opening brace)
             if (trimmedLine.endsWith('{')) {
                 currentIndentLevel++;
             }
         }
-        
-        // Update the textarea with fixed indentation
-        textarea.value = fixedLines.join('\n');
-        
+        // Update the code using CodeMirror API
+        window.setCodeValue(fixedLines.join('\n'));
         // Show success message
         const fixBtn = getFixIndentationBtn();
         if (fixBtn) {
             fixBtn.textContent = 'Fixed!';
             setTimeout(() => fixBtn.textContent = 'Fix Indentation', 1000);
         }
-        
     } catch (error) {
-        alert('Cannot fix indentation: ' + error.message);
+        debug('Cannot fix indentation: ' + error.message);
     }
 }
 
 function loadCode() {
     const saved = localStorage.getItem('sdRacer_code_' + currentLevelId);
     if (saved !== null) {
-        codeArea.value = saved;
+        window.setCodeValue(saved);
     } else if (level && level.defaultCode) {
-        codeArea.value = level.defaultCode;
+        window.setCodeValue(level.defaultCode);
     } else {
-        codeArea.value = DEFAULT_CODE;
+        window.setCodeValue(DEFAULT_CODE);
     }
 }
 
 function loadDefaultCode() {
     if (level && level.defaultCode) {
-        codeArea.value = level.defaultCode;
+        window.setCodeValue(level.defaultCode);
     } else {
-        codeArea.value = DEFAULT_CODE;
+        window.setCodeValue(DEFAULT_CODE);
     }
-    updateLineNumbers();
 }
 
 function saveCode() {
-    localStorage.setItem('sdRacer_code_' + currentLevelId, codeArea.value);
+    localStorage.setItem('sdRacer_code_' + currentLevelId, window.getCodeValue());
     saveBtn.textContent = 'Saved!';
     setTimeout(() => saveBtn.textContent = 'Save', 1000);
-    
-    // Trigger live parser update
-    if (window.liveParser) {
-        window.liveParser.checkCode();
-    }
+    // Removed validation on save
 }
 
 function handleLoadBtn() {
@@ -330,7 +202,7 @@ function isAtFinish() {
     
     // Log which cars are at the finish for debugging
     if (carsAtFinish.length > 0) {
-        console.log(`Cars at finish: ${carsAtFinish.map(car => car.carType || 'default').join(', ')}`);
+        debug(`Cars at finish: ${carsAtFinish.map(car => car.carType || 'default').join(', ')}`);
     }
     
     return carsAtFinish.length > 0;
@@ -485,10 +357,10 @@ function showCustomLevelLoader(overlay) {
                 loaderOverlay.remove();
                 overlay.remove();
             } else {
-                alert('Invalid level format. Please make sure the JSON contains "id" and "rows" fields.');
+                debug('Invalid level format. Please make sure the JSON contains "id" and "rows" fields.');
             }
         } catch (e) {
-            alert('Invalid JSON format. Please check your level data.');
+            debug('Invalid JSON format. Please check your level data.');
         }
     };
     
@@ -529,8 +401,10 @@ function loadCustomLevel(levelData) {
     level = new Level({
         instruction: levelData.Instructions || '',
         defaultCode: levelData.defaultCode || '',
-        tiles: levelData.rows
+        tiles: levelData.rows,
+        cars: levelData.cars || null
     });
+    window.level = level;
     
     const gameDiv = document.getElementById('game');
     
@@ -593,9 +467,6 @@ function loadCustomLevel(levelData) {
     const url = new URL(window.location);
     url.searchParams.set('levelId', 'custom');
     window.history.pushState({}, '', url);
-    
-    // Update line numbers
-    updateLineNumbers();
 }
 
 function resetGame() {
@@ -701,39 +572,34 @@ function loadLevel(levelId) {
             allLevels = data.levels;
             const levelData = data.levels.find(lvl => lvl.id === levelId);
             if (!levelData) {
-                console.error('Level not found!');
+                debug('Level not found!', null, 'error');
                 return;
             }
-            
             // Store current level data for win condition checking
             currentLevelData = levelData;
-            
             // Validate level data
             const validation = validateLevelData(levelData);
             if (validation.errors.length > 0) {
-                console.error('Level validation errors:', validation.errors);
-                alert(`Level validation failed: ${validation.errors.join(', ')}`);
+                debug('Level validation errors:', validation.errors, 'error');
                 return;
             }
-            
             if (validation.warnings.length > 0) {
                 console.warn('Level validation warnings:', validation.warnings);
             }
-            
             // Log level information
             const mode = getLevelMode(levelData);
             const difficulty = getLevelDifficulty(levelData);
             const category = getLevelCategory(levelData);
-            
-            console.log(`Loading level ${levelId}: ${levelData.name || 'Unnamed'}`);
-            console.log(`Mode: ${mode}, Difficulty: ${difficulty}/5, Category: ${category}`);
-            
+            debug(`Loading level ${levelId}: ${levelData.name || 'Unnamed'}`);
+            debug(`Mode: ${mode}, Difficulty: ${difficulty}/5, Category: ${category}`);
             currentLevelId = levelId;
             level = new Level({
                 instruction: levelData.Instructions || '',
                 defaultCode: levelData.defaultCode || '',
-                tiles: levelData.rows
+                tiles: levelData.rows,
+                cars: levelData.cars || null
             });
+            window.level = level;
             const gameDiv = document.getElementById('game');
             // Swap x and y for finish position and add +1 for grass border
             finishPos = Array.isArray(levelData.end) ? [levelData.end[1] + 1, levelData.end[0] + 1] : undefined;
@@ -744,7 +610,12 @@ function loadLevel(levelId) {
             
             // Update UI elements
             updateModeIndicator();
-            
+            // --- Remove old cow DOM elements before recreating cows ---
+            cows.forEach(cow => {
+                if (cow.element && cow.element.parentNode) {
+                    cow.element.parentNode.removeChild(cow.element);
+                }
+            });
             // Create and render cows if they exist in the level data
             cows = [];
             if (levelData.cows && Array.isArray(levelData.cows)) {
@@ -760,15 +631,11 @@ function loadLevel(levelId) {
                     cows.push(cow);
                 });
             }
-            
             // Update global cows array
             window.cows = cows;
-            
             loadDefaultCode();
-            
             // Update line count after loading default code
             updateLineCount();
-            
             // Display level instructions with mode information
             const instructionsDiv = document.getElementById('instructions');
             if (instructionsDiv && levelData.Instructions) {
@@ -790,53 +657,68 @@ function loadLevel(levelId) {
             // Reset game state when loading new level
             resetGame();
         })
-        .catch(err => console.error('Failed to load level: ' + err));
+        .catch(err => debug('Failed to load level: ' + err, null, 'error'));
 }
 
 async function playCode() {
     try {
-        // Check if button is in "Finished" state - if so, just reset and change button back to Play
-        if (playBtn.textContent === 'Finished') {
-            resetLevelState();
+        // Always show UI validation feedback when Play is pressed
+        validateCodeForUI();
+        // Use ONLY_USE_THIS_TO_VALIDATE for validation before running
+        const result = ONLY_USE_THIS_TO_VALIDATE();
+        if (result.parseErrors && result.parseErrors.length > 0) {
+            let errorMsg = 'Parse errors:\n' + result.parseErrors.join('\n');
+            debug(errorMsg, null, 'error');
             playBtn.textContent = 'Play';
             playBtn.disabled = false;
-            return; // Don't restart execution automatically
+            return;
         }
-        
         playBtn.disabled = true;
         playBtn.textContent = 'Playing';
         hideWinMessage();
-        
-        // First, run checkCode to show AST and validation
-        if (window.liveParser) {
-            window.liveParser.checkCode();
+
+        // Use the same logic as masterValidateCode for parser mode and available cars
+        let mode = 'single';
+        let carNames = [];
+        if (level && typeof level.isSingleMode === 'function' && !level.isSingleMode()) {
+            mode = 'oop';
+            if (Array.isArray(level.cars)) {
+                carNames = level.cars.map(car => car.name);
+            }
         }
-        
+        const code = window.getCodeValue();
         const gameDiv = document.getElementById('game');
-        
-        // Use new CarLang parser and interpreter
-        const parserConfig = getParserConfig();
-        const parser = new CarLangParser(parserConfig.mode, parserConfig.availableCars);
-        const ast = parser.parse(codeArea.value);
-        
-        if (ast.errors && ast.errors.length > 0) {
-            throw new Error(`Parse errors: ${ast.errors.join(', ')}`);
+        const parser = new CarLangParser(mode, carNames);
+        const ast = parser.parse(code);
+        const parseErrors = ast.errors || [];
+        let validation = { valid: true, errors: [], warnings: [] };
+        if (parseErrors.length > 0) {
+            let errorMsg = 'Parse errors:\n' + parseErrors.join('\n');
+            debug(errorMsg, null, 'error');
+            playBtn.textContent = 'Play';
+            playBtn.disabled = false;
+            return;
         }
-        
-        // Validate before execution
-        const interpreter = new CarLangEngine(carRegistry, level, gameDiv);
-        const validation = interpreter.validate(ast);
-        
-        if (!validation.valid) {
-            throw new Error(`Validation errors: ${validation.errors.join(', ')}`);
+        // Build a car map for execution using game helpers
+        let carMap = {};
+        if (mode === 'oop' && Array.isArray(level.cars)) {
+            const registry = getCarRegistry();
+            for (const car of level.cars) {
+                if (registry && registry[car.name]) {
+                    carMap[car.name] = registry[car.name];
+                }
+            }
+        } else if (mode === 'single') {
+            const defaultCar = getDefaultCar();
+            if (defaultCar) {
+                carMap.mainCar = defaultCar;
+                carMap.default = defaultCar;
+            }
         }
-        
         // Store interpreter globally for reset functionality
+        const interpreter = new CarLangEngine(carMap, level, gameDiv);
         window.currentInterpreter = interpreter;
-        
-        // Initialize execution with the AST
         interpreter.initializeExecution(ast);
-        
         // Enhanced game loop for step-by-step execution
         const gameLoop = () => {
             const result = interpreter.executeNext();
@@ -919,8 +801,8 @@ async function playCode() {
         gameLoop();
         
     } catch (e) {
-        console.error('Error in code: ' + e.message);
-        alert('Error: ' + e.message);
+        debug('Error in code: ' + e.message, null, 'error');
+        debug('Error: ' + e.message, null, 'error');
         playBtn.textContent = 'Play';
         playBtn.disabled = false;
     }
@@ -935,7 +817,6 @@ function resetCode() {
 }
 
 function startGame() {
-    codeArea = getCodeArea();
     saveBtn = getSaveBtn();
     loadBtn = getLoadBtn();
     playBtn = getPlayBtn();
@@ -954,19 +835,7 @@ function startGame() {
     const fixIndentationBtn = getFixIndentationBtn();
     if (fixIndentationBtn) fixIndentationBtn.onclick = fixIndentation;
     
-    // Set up auto-indentation for the code editor
-    setupAutoIndentation();
-    
-    // Set up line number updates
-    codeArea.addEventListener('input', updateLineNumbers);
-    codeArea.addEventListener('input', updateLineCount);
-    codeArea.addEventListener('scroll', () => {
-        const lineNumbersDiv = document.getElementById('line-numbers');
-        lineNumbersDiv.scrollTop = codeArea.scrollTop;
-    });
-    
-    // Initialize line numbers and line count
-    updateLineNumbers();
+    // Initialize line count
     updateLineCount();
     
     // Set up info overlay buttons
@@ -992,7 +861,7 @@ function startGame() {
                 allLevels = data.levels;
                 showLevelSelector();
             })
-            .catch(err => console.error('Failed to load levels: ' + err));
+            .catch(err => debug('Failed to load levels: ' + err, null, 'error'));
     }
 }
 
@@ -1001,65 +870,22 @@ function goHome() {
     window.location.href = '/sdRacer/';
 }
 
-// Line highlighting functions
-function updateLineNumbers() {
-    const lineNumbersDiv = document.getElementById('line-numbers');
-    const codeText = codeArea.value;
-    const lines = codeText.split('\n');
-    
-    let lineNumbersHTML = '';
-    for (let i = 1; i <= lines.length; i++) {
-        lineNumbersHTML += `<div class="line-number">${i}</div>`;
-    }
-    
-    lineNumbersDiv.innerHTML = lineNumbersHTML;
-}
-
+// CodeMirror-based line highlighting
 function highlightLine(lineNumber, blockStartLine = null, contextType = null) {
-    // Clear previous highlighting
-    clearLineHighlighting();
-    
-    if (lineNumber && lineNumber > 0) {
-        const lineNumbersDiv = document.getElementById('line-numbers');
-        const lineNumberElements = lineNumbersDiv.querySelectorAll('.line-number');
-        
-        if (lineNumber <= lineNumberElements.length) {
-            // Highlight current line
-            lineNumberElements[lineNumber - 1].classList.add('current-line');
-            currentHighlightedLine = lineNumber;
-            
-            // Highlight block if we're in a control structure
-            if (blockStartLine && contextType && ['if-then', 'if-elseif', 'if-else', 'while', 'for'].includes(contextType)) {
-                highlightBlock(blockStartLine, lineNumberElements);
-                currentHighlightedBlock = blockStartLine;
-            }
-        }
+    // Remove previous highlight if needed
+    if (window._cmHighlightedLine != null) {
+        window.codeMirrorEditor.removeLineClass(window._cmHighlightedLine, 'background', 'cm-highlighted-line');
     }
-}
-
-function highlightBlock(blockStartLine, lineNumberElements) {
-    if (blockStartLine && blockStartLine > 0 && blockStartLine <= lineNumberElements.length) {
-        // Highlight the block start line with a different color
-        lineNumberElements[blockStartLine - 1].classList.add('block-start');
-    }
+    // Highlight the new line (CodeMirror is 0-based)
+    window.codeMirrorEditor.addLineClass(lineNumber - 1, 'background', 'cm-highlighted-line');
+    window._cmHighlightedLine = lineNumber - 1;
 }
 
 function clearLineHighlighting() {
-    const lineNumbersDiv = document.getElementById('line-numbers');
-    const lineNumberElements = lineNumbersDiv.querySelectorAll('.line-number');
-    
-    // Clear current line highlighting
-    if (currentHighlightedLine && lineNumberElements[currentHighlightedLine - 1]) {
-        lineNumberElements[currentHighlightedLine - 1].classList.remove('current-line');
+    if (window._cmHighlightedLine != null) {
+        window.codeMirrorEditor.removeLineClass(window._cmHighlightedLine, 'background', 'cm-highlighted-line');
+        window._cmHighlightedLine = null;
     }
-    
-    // Clear block highlighting
-    if (currentHighlightedBlock && lineNumberElements[currentHighlightedBlock - 1]) {
-        lineNumberElements[currentHighlightedBlock - 1].classList.remove('block-start');
-    }
-    
-    currentHighlightedLine = null;
-    currentHighlightedBlock = null;
 }
 
 // Car registry management functions
@@ -1081,12 +907,12 @@ function initializeCarRegistry(levelConfig) {
     // Check if this is a multi-car level
     if (levelConfig.cars && Array.isArray(levelConfig.cars) && levelConfig.cars.length > 0) {
         // Multi-car level
-        console.log(`Initializing ${levelConfig.cars.length} cars for level ${levelConfig.id}`);
+        debug(`Initializing ${levelConfig.cars.length} cars for level ${levelConfig.id}`);
         
         levelConfig.cars.forEach((carConfig, index) => {
             // Validate car configuration
             if (!carConfig.name) {
-                console.error(`Car ${index} missing name in level ${levelConfig.id}`);
+                debug(`Car ${index} missing name in level ${levelConfig.id}`, null, 'error');
                 return;
             }
             
@@ -1097,21 +923,21 @@ function initializeCarRegistry(levelConfig) {
             
             // Validate position
             if (!position || !Array.isArray(position) || position.length !== 2) {
-                console.error(`Car ${carName} has invalid position in level ${levelConfig.id}`);
+                debug(`Car ${carName} has invalid position in level ${levelConfig.id}`, null, 'error');
                 return;
             }
             
             // Validate car type
             const validCarTypes = ['default', 'red', 'blue', 'green', 'yellow'];
             if (!validCarTypes.includes(carType)) {
-                console.warn(`Car ${carName} has invalid type '${carType}', using 'default'`);
+                debug(`Car ${carName} has invalid type '${carType}', using 'default'`, null, 'warn');
                 carConfig.type = 'default';
             }
             
             // Validate direction
             const validDirections = ['N', 'E', 'S', 'W'];
             if (!validDirections.includes(direction)) {
-                console.warn(`Car ${carName} has invalid direction '${direction}', using 'N'`);
+                debug(`Car ${carName} has invalid direction '${direction}', using 'N'`, null, 'warn');
                 carConfig.direction = 'N';
             }
             
@@ -1129,18 +955,18 @@ function initializeCarRegistry(levelConfig) {
             }
             
             car.render(gameDiv);
-            console.log(`Created car: ${carName} (${carType}) at position [${position[0]}, ${position[1]}] facing ${carConfig.direction}`);
+            debug(`Created car: ${carName} (${carType}) at position [${position[0]}, ${position[1]}] facing ${carConfig.direction}`);
         });
         
         // Validate that we have at least one car
         if (Object.keys(carRegistry).length === 0) {
-            console.error(`No valid cars created for level ${levelConfig.id}`);
+            debug(`No valid cars created for level ${levelConfig.id}`, null, 'error');
             return;
         }
         
     } else {
         // Single car level (backward compatibility)
-        console.log(`Initializing single car for level ${levelConfig.id}`);
+        debug(`Initializing single car for level ${levelConfig.id}`);
         
         if (levelConfig.start && Array.isArray(levelConfig.start) && levelConfig.start.length === 2) {
             defaultCar = new Car({ 
@@ -1150,14 +976,14 @@ function initializeCarRegistry(levelConfig) {
             });
             carRegistry.mainCar = defaultCar;
             defaultCar.render(gameDiv);
-            console.log(`Created single car at position [${levelConfig.start[0]}, ${levelConfig.start[1]}]`);
+            debug(`Created single car at position [${levelConfig.start[0]}, ${levelConfig.start[1]}]`);
         } else {
-            console.error(`Invalid start position for level ${levelConfig.id}`);
+            debug(`Invalid start position for level ${levelConfig.id}`, null, 'error');
         }
     }
     
     // Log final car registry state
-    console.log(`Car registry initialized with ${Object.keys(carRegistry).length} cars:`, Object.keys(carRegistry));
+    debug(`Car registry initialized with ${Object.keys(carRegistry).length} cars:`, Object.keys(carRegistry));
 }
 
 function getCarRegistry() {
@@ -1452,7 +1278,7 @@ function updateLineCount() {
     const lineCountElement = document.getElementById('line-count');
     if (!lineCountElement) return;
     
-    const code = codeArea.value;
+    const code = window.getCodeValue();
     const lines = code.split('\n').filter(line => line.trim() !== '');
     const lineCount = lines.length;
     
