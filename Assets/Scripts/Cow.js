@@ -121,30 +121,17 @@ class Cow {
     
     // Move cow to secondary position (when honked)
     GetHonked() {
-        console.log('COW: GetHonked called for cow at position:', { x: this.currentX, y: this.currentY });
-        
         if (this.isMoving) {
-            console.log('COW: Cow is already moving, ignoring honk');
             return; // Prevent multiple simultaneous moves
         }
         
-        console.log('COW: Setting cow to moving state');
         this.isMoving = true;
         
         // Play cow sound if available
         if (typeof soundController !== 'undefined') {
-            console.log('COW: Playing cow sound');
             soundController.playCow();
         }
-                    
-        if (this.isAtDefaultPosition()) {
-            // If at primary, move to secondary
-            console.log('COW: Moving from primary to secondary position:', { x: this.targetX, y: this.targetY });
-        } else {
-            // If at secondary, move to primary
-            console.log('COW: Moving from secondary to primary position:', { x: this.targetX, y: this.targetY });
-        }
-        
+
         // Animate movement over 1 second (with correct rotation)
         if (this.element) {
             // Determine which direction to face based on target
@@ -166,23 +153,15 @@ class Cow {
 
         // Movement is complete after 1 second
         setTimeout(() => {
-            console.log('COW: Movement completed, allowing movement again');
             this.isMoving = false;
         }, 1000);
         setTimeout(() => {
             this.fixVisualRotationAfterMovement();
         }, 1000);
-        
-        console.log('COW: GetHonked method completed');
     }
     
     // Update the visual position of the cow element (with rotation)
     updateVisualPosition() {
-        console.log('COW: updateVisualPosition called');
-        console.log('COW: Current position:', { x: this.currentX, y: this.currentY });
-        console.log('COW: Element exists:', !!this.element);
-        console.log('COW: Parent element exists:', !!(this.element && this.element.parentElement));
-        
         if (this.element && this.element.parentElement) {
             const tileSize = 64; // Use the same tile size as the game
             const x = this.currentX * tileSize;
@@ -200,9 +179,6 @@ class Cow {
             
             this.element.style.transition = 'none'; // Disable transitions during movement
             this.element.style.transform = `translate(${x}px, ${y}px) rotate(${targetDirection}deg)`;
-            console.log('COW: Transform applied with rotation:', this.element.style.transform);
-        } else {
-            console.log('COW: Cannot update position - element or parent missing');
         }
     }
     

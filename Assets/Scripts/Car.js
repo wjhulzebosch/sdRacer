@@ -1,10 +1,11 @@
 class Car {
-    constructor({ position = { x: 0, y: 0 }, direction = 'N' } = {}) {
+    constructor({ position = { x: 0, y: 0 }, direction = 'N', carType = 'default' } = {}) {
         this.currentPosition = { ...position };
         this.direction = direction; // 'N', 'E', 'S', 'W'
         this.directions = ['N', 'E', 'S', 'W'];
         this.crashed = false;
         this.visualRotation = 0; // Track visual rotation separately
+        this.carType = carType; // 'default', 'red', 'blue', 'green', 'yellow'
     }
 
     // Move the car forward by 1 tile
@@ -115,17 +116,41 @@ class Car {
     // Render the car as a 64x64 div at its current position
     render(parent, tileSize = 64) {
         // Find or create the car div
-        let carDiv = parent.querySelector('.car');
+        let carDiv = parent.querySelector(`.car-${this.carType}`);
         if (!carDiv) {
             carDiv = document.createElement('div');
-            carDiv.className = 'car';
+            carDiv.className = `car car-${this.carType}`;
             carDiv.style.width = tileSize + 'px';
             carDiv.style.height = tileSize + 'px';
             parent.appendChild(carDiv);
         }
         carDiv.style.left = (this.currentPosition.x * tileSize) + 'px';
         carDiv.style.top = (this.currentPosition.y * tileSize) + 'px';
-        carDiv.style.backgroundImage = this.crashed ? "url('Assets/Textures/wreck.png')" : "url('Assets/Textures/Car.png')";
+        
+        // Set texture based on car type
+        let texturePath = 'Assets/Textures/Car.png'; // default
+        if (this.crashed) {
+            texturePath = 'Assets/Textures/Wreck.png';
+        } else {
+            switch (this.carType) {
+                case 'red':
+                    texturePath = 'Assets/Textures/RedCar.png';
+                    break;
+                case 'blue':
+                    texturePath = 'Assets/Textures/BlueCar.png';
+                    break;
+                case 'green':
+                    texturePath = 'Assets/Textures/GreenCar.png';
+                    break;
+                case 'yellow':
+                    texturePath = 'Assets/Textures/YellowCar.png';
+                    break;
+                default:
+                    texturePath = 'Assets/Textures/Car.png';
+            }
+        }
+        
+        carDiv.style.backgroundImage = `url('${texturePath}')`;
         // Use the visual rotation value directly
         carDiv.style.transform = `rotate(${this.visualRotation}deg)`;
     }

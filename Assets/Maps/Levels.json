@@ -153,6 +153,327 @@
                     "currentY": 1
                 }
             ]
-        }
+        },
+        {
+            "id": "8",
+            "category": "OOP Introduction (experimental)",
+            "name": "Multi-Car Test",
+            "author": "sdRacer",
+            "WinCondition": "IsAtFinish()",
+            "Instructions": "This level has multiple cars! Use 'redCar.moveForward()' and 'blueCar.turnRight()' to control specific cars.",
+            "cars": [
+                {
+                    "name": "redCar",
+                    "type": "red",
+                    "position": [3, 0],
+                    "direction": "N"
+                },
+                {
+                    "name": "blueCar",
+                    "type": "blue", 
+                    "position": [3, 2],
+                    "direction": "N"
+                }
+            ],
+            "end": [0, 1],
+            "defaultCode": "// This level has multiple cars!\n// Use 'redCar.moveForward()' and 'blueCar.turnRight()'\nredCar.moveForward();\nblueCar.moveForward();",
+            "rows": [
+                ["1010", "1010", "1010"],
+                ["1010", "1010", "1010"],
+                ["1010", "1010", "1010"],
+                ["1010", "1010", "1010"]
+            ]
+        },
+        {
+            "id": "9",
+            "category": "OOP Introduction (experimental)",
+            "name": "Car Coordination",
+            "author": "sdRacer",
+            "WinCondition": "IsAtFinish()",
+            "Instructions": "Coordinate two cars to reach the finish. The red car needs to move first, then the blue car.",
+            "cars": [
+                {
+                    "name": "redCar",
+                    "type": "red",
+                    "position": [3, 0],
+                    "direction": "N"
+                },
+                {
+                    "name": "blueCar",
+                    "type": "blue", 
+                    "position": [3, 1],
+                    "direction": "N"
+                }
+            ],
+            "end": [0, 0],
+            "defaultCode": "// Coordinate the cars to reach the finish\n// Red car goes first, then blue car\nredCar.moveForward();\nredCar.moveForward();\nredCar.moveForward();\nblueCar.moveForward();\nblueCar.moveForward();\nblueCar.moveForward();",
+            "rows": [
+                ["1010", "1010"],
+                ["1010", "1010"],
+                ["1010", "1010"],
+                ["1010", "1010"]
+            ]
+        },
+        {
+            "id": "10",
+            "category": "OOP Introduction (experimental)",
+            "name": "Four Car Race",
+            "author": "sdRacer",
+            "WinCondition": "IsAtFinish()",
+            "Instructions": "Control four cars in a race! Each car has a different color and starting position. Use 'redCar.moveForward()', 'blueCar.turnRight()', etc.",
+            "cars": [
+                {
+                    "name": "redCar",
+                    "type": "red",
+                    "position": [3, 0],
+                    "direction": "N"
+                },
+                {
+                    "name": "blueCar",
+                    "type": "blue", 
+                    "position": [3, 1],
+                    "direction": "N"
+                },
+                {
+                    "name": "greenCar",
+                    "type": "green",
+                    "position": [3, 2],
+                    "direction": "N"
+                },
+                {
+                    "name": "yellowCar",
+                    "type": "yellow",
+                    "position": [3, 3],
+                    "direction": "N"
+                }
+            ],
+            "end": [0, 1],
+            "defaultCode": "// Race all four cars to the finish!\nredCar.moveForward();\nblueCar.moveForward();\ngreenCar.moveForward();\nyellowCar.moveForward();\n\nredCar.moveForward();\nblueCar.moveForward();\ngreenCar.moveForward();\nyellowCar.moveForward();\n\nredCar.moveForward();\nblueCar.moveForward();\ngreenCar.moveForward();\nyellowCar.moveForward();",
+            "rows": [
+                ["1010", "1010", "1010", "1010"],
+                ["1010", "1010", "1010", "1010"],
+                ["1010", "1010", "1010", "1010"],
+                ["1010", "1010", "1010", "1010"]
+            ]
+        },
+        {
+            "id": "11",
+            "category": "OOP Introduction (experimental)",
+            "name": "Car Maze Coordination",
+            "author": "sdRacer",
+            "WinCondition": "IsAtFinish()",
+            "Instructions": "Navigate two cars through a maze. The red car needs to go left, the blue car needs to go right. Use loops and conditions!",
+            "cars": [
+                {
+                    "name": "redCar",
+                    "type": "red",
+                    "position": [3, 0],
+                    "direction": "N"
+                },
+                {
+                    "name": "blueCar",
+                    "type": "blue", 
+                    "position": [3, 2],
+                    "direction": "N"
+                }
+            ],
+            "end": [0, 1],
+            "defaultCode": "// Navigate both cars through the maze\n// Red car goes left path, blue car goes right path\n\n// Red car path\nredCar.moveForward();\nredCar.turnLeft();\nredCar.moveForward();\nredCar.moveForward();\nredCar.turnRight();\nredCar.moveForward();\n\n// Blue car path\nblueCar.moveForward();\nblueCar.turnRight();\nblueCar.moveForward();\nblueCar.moveForward();\nblueCar.turnLeft();\nblueCar.moveForward();",
+            "rows": [
+                ["1010", "0000", "1010"],
+                ["1000", "0000", "1000"],
+                ["1010", "0000", "1010"],
+                ["1010", "1010", "1010"]
+            ]
+        },
+        {
+            "id": "12",
+            "category": "OOP Showcase (experimental)",
+            "name": "Level 1 - Multiple showcases",
+            "author": "sdRacer",
+            "WinCondition": "IsAtFinish()",
+            "Instructions": "Move the cars towards the finish, but watch out for cows!",
+            "defaultCode": "",
+            "rows": [
+              [
+                "0000",
+                "0000",
+                "0010",
+                "0000",
+                "0000"
+              ],
+              [
+                "0000",
+                "0000",
+                "1010",
+                "0000",
+                "0000"
+              ],
+              [
+                "0000",
+                "0000",
+                "1010",
+                "0000",
+                "0000"
+              ],
+              [
+                "0000",
+                "0000",
+                "1010",
+                "0000",
+                "0000"
+              ],
+              [
+                "0000",
+                "0000",
+                "1010",
+                "0000",
+                "0000"
+              ],
+              [
+                "0000",
+                "0000",
+                "1010",
+                "0000",
+                "0000"
+              ],
+              [
+                "0000",
+                "0000",
+                "1010",
+                "0000",
+                "0000"
+              ],
+              [
+                "0000",
+                "0000",
+                "1010",
+                "0000",
+                "0000"
+              ],
+              [
+                "0000",
+                "0000",
+                "1010",
+                "0000",
+                "0000"
+              ],
+              [
+                "0000",
+                "0000",
+                "1010",
+                "0000",
+                "0000"
+              ],
+              [
+                "0000",
+                "0000",
+                "1010",
+                "0000",
+                "0000"
+              ],
+              [
+                "0000",
+                "0000",
+                "1010",
+                "0000",
+                "0000"
+              ],
+              [
+                "0000",
+                "0000",
+                "1010",
+                "0000",
+                "0000"
+              ],
+              [
+                "0000",
+                "0000",
+                "1010",
+                "0000",
+                "0000"
+              ],
+              [
+                "0000",
+                "0000",
+                "1010",
+                "0000",
+                "0000"
+              ],
+              [
+                "0000",
+                "0000",
+                "1010",
+                "0000",
+                "0000"
+              ],
+              [
+                "0000",
+                "0000",
+                "1010",
+                "0000",
+                "0000"
+              ],
+              [
+                "0000",
+                "0000",
+                "1010",
+                "0000",
+                "0000"
+              ],
+              [
+                "0000",
+                "0000",
+                "1010",
+                "0000",
+                "0000"
+              ],
+              [
+                "0000",
+                "0000",
+                "1000",
+                "0000",
+                "0000"
+              ]
+            ],
+            "cars": [
+              {
+                "name": "blueCar",
+                "type": "blue",
+                "position": [
+                  0,
+                  2
+                ],
+                "direction": "N"
+              },
+              {
+                "name": "greenCar",
+                "type": "green",
+                "position": [
+                  19,
+                  2
+                ],
+                "direction": "N"
+              }
+            ],
+            "end": [
+              9,
+              2
+            ],
+            "cows": [
+              {
+                "defaultX": 2,
+                "defaultY": 4,
+                "secondaryX": 3,
+                "secondaryY": 4
+              },
+              {
+                "defaultX": 2,
+                "defaultY": 17,
+                "secondaryX": 1,
+                "secondaryY": 17
+              }
+            ]
+            }
     ]
 }

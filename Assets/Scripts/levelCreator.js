@@ -3,59 +3,138 @@ function emptyGrid(rows, cols) {
     return Array.from({length: rows}, () => Array(cols).fill('0000'));
 }
 
+// Global state
 let grid = emptyGrid(4, 4);
 let rows = 4, cols = 4;
+let cars = []; // Array of car objects: {name, type, x, y, direction, id}
+let finishPos = null;
+let cows = []; // Array to store cow data: [{defaultX, defaultY, secondaryX, secondaryY, currentX, currentY}]
+let placeMode = null; // 'redCar', 'blueCar', 'greenCar', 'yellowCar', 'finish', 'cow', or null
+let cowPlacementStep = 'default';
+let tempSecondaryPos = null;
+let editingCarId = null; // For car configuration modal
+
+// DOM elements
 const gridDiv = document.getElementById('levelGrid');
 const widthInput = document.getElementById('width');
 const heightInput = document.getElementById('height');
-let carPos = null;
-let finishPos = null;
-let cows = []; // Array to store cow data: [{defaultX, defaultY, secondaryX, secondaryY, currentX, currentY}]
-let placeMode = null; // 'car', 'finish', 'cow', or null
-let cowPlacementStep = 'default'; // 'default' or 'secondary' for cow placement
-let tempSecondaryPos = null; // Temporary secondary position during placement
+const carList = document.getElementById('carList');
+const placementStatus = document.getElementById('placementStatus');
+const gridSizeInfo = document.getElementById('gridSizeInfo');
+const carsPlacedInfo = document.getElementById('carsPlacedInfo');
+const finishInfo = document.getElementById('finishInfo');
 
-const carIcon = document.getElementById('carIcon');
+// Car placement icons
+const redCarIcon = document.getElementById('redCarIcon');
+const blueCarIcon = document.getElementById('blueCarIcon');
+const greenCarIcon = document.getElementById('greenCarIcon');
+const yellowCarIcon = document.getElementById('yellowCarIcon');
 const finishIcon = document.getElementById('finishIcon');
 const cowIcon = document.getElementById('cowIcon');
 
-carIcon.onclick = () => {
-    placeMode = placeMode === 'car' ? null : 'car';
-    updatePlaceModeUI();
-};
-finishIcon.onclick = () => {
-    placeMode = placeMode === 'finish' ? null : 'finish';
-    updatePlaceModeUI();
-};
-cowIcon.onclick = () => {
-    placeMode = placeMode === 'cow' ? null : 'cow';
-    cowPlacementStep = 'default';
-    updatePlaceModeUI();
+// Car management buttons
+const addCarBtn = document.getElementById('addCarBtn');
+const clearCarsBtn = document.getElementById('clearCarsBtn');
+
+// Modal elements
+const carModal = document.getElementById('carModal');
+const carNameInput = document.getElementById('carName');
+const carTypeSelect = document.getElementById('carType');
+const carDirectionSelect = document.getElementById('carDirection');
+const saveCarBtn = document.getElementById('saveCarBtn');
+const cancelCarBtn = document.getElementById('cancelCarBtn');
+const closeCarModal = document.getElementById('closeCarModal');
+
+// Event listeners for car placement
+redCarIcon.onclick = () => setPlaceMode('redCar');
+blueCarIcon.onclick = () => setPlaceMode('blueCar');
+greenCarIcon.onclick = () => setPlaceMode('greenCar');
+yellowCarIcon.onclick = () => setPlaceMode('yellowCar');
+finishIcon.onclick = () => setPlaceMode('finish');
+cowIcon.onclick = () => setPlaceMode('cow');
+
+// Car management
+addCarBtn.onclick = () => openCarModal();
+clearCarsBtn.onclick = clearAllCars;
+
+// Modal events
+saveCarBtn.onclick = saveCar;
+cancelCarBtn.onclick = closeCarModalFunc;
+closeCarModal.onclick = closeCarModalFunc;
+
+// Close modal when clicking outside
+carModal.onclick = (e) => {
+    if (e.target === carModal) {
+        closeCarModalFunc();
+    }
 };
 
+function setPlaceMode(mode) {
+    placeMode = placeMode === mode ? null : mode;
+    updatePlaceModeUI();
+    updatePlacementStatus();
+}
+
 function updatePlaceModeUI() {
-    carIcon.classList.toggle('place-mode', placeMode === 'car');
-    finishIcon.classList.toggle('place-mode', placeMode === 'finish');
-    cowIcon.classList.toggle('place-mode', placeMode === 'cow');
+    // Reset all icons
+    [redCarIcon, blueCarIcon, greenCarIcon, yellowCarIcon, finishIcon, cowIcon].forEach(icon => {
+        icon.classList.remove('place-mode');
+    });
+    
+    // Activate current mode
+    if (placeMode === 'redCar') redCarIcon.classList.add('place-mode');
+    else if (placeMode === 'blueCar') blueCarIcon.classList.add('place-mode');
+    else if (placeMode === 'greenCar') greenCarIcon.classList.add('place-mode');
+    else if (placeMode === 'yellowCar') yellowCarIcon.classList.add('place-mode');
+    else if (placeMode === 'finish') finishIcon.classList.add('place-mode');
+    else if (placeMode === 'cow') cowIcon.classList.add('place-mode');
+}
+
+function updatePlacementStatus() {
+    if (!placeMode) {
+        placementStatus.textContent = 'Click an icon to start placing objects';
+        return;
+    }
+    
+    const statusMessages = {
+        'redCar': 'Click on grid to place Red Car',
+        'blueCar': 'Click on grid to place Blue Car',
+        'greenCar': 'Click on grid to place Green Car',
+        'yellowCar': 'Click on grid to place Yellow Car',
+        'finish': 'Click on grid to place Finish Line',
+        'cow': 'Click on grid to place Cow (first position)'
+    };
+    
+    placementStatus.textContent = statusMessages[placeMode] || 'Click on grid to place object';
 }
 
 function updateGridSize() {
     rows = parseInt(heightInput.value);
     cols = parseInt(widthInput.value);
     grid = emptyGrid(rows, cols);
-    carPos = null;
+    cars = [];
     finishPos = null;
     cows = [];
+    updateGridInfo();
     renderGrid();
+    renderCarList();
 }
+
 widthInput.onchange = updateGridSize;
 heightInput.onchange = updateGridSize;
+
+function updateGridInfo() {
+    gridSizeInfo.textContent = `${cols}x${rows}`;
+    carsPlacedInfo.textContent = cars.length;
+    finishInfo.textContent = finishPos ? `(${finishPos[1]}, ${finishPos[0]})` : 'Not placed';
+}
 
 function renderGrid() {
     gridDiv.innerHTML = '';
     gridDiv.className = 'level-creator-grid';
     gridDiv.style.width = (cols * 48) + 'px';
     gridDiv.style.height = (rows * 48) + 'px';
+    
     // Draw cells
     for (let y = 0; y < rows; y++) {
         for (let x = 0; x < cols; x++) {
@@ -63,27 +142,34 @@ function renderGrid() {
             cell.className = 'level-creator-cell';
             cell.style.left = (x * 48) + 'px';
             cell.style.top = (y * 48) + 'px';
-            cell.style.backgroundImage = `url('Assets/Textures/tiles/Road-${grid[y][x]}.png')`;
+            cell.style.backgroundImage = `url('/sdRacer/Assets/Textures/tiles/Road-${grid[y][x]}.png')`;
             cell.title = grid[y][x];
-            if (carPos && carPos[0] === y && carPos[1] === x) cell.classList.add('car-here');
-            if (finishPos && finishPos[0] === y && finishPos[1] === x) cell.classList.add('finish-here');
             
-            // Check if there's a cow at this position
+            // Check for cars at this position
+            const carAtPosition = cars.find(car => car.x === x && car.y === y);
+            if (carAtPosition) {
+                cell.classList.add('car-here');
+                cell.style.setProperty('--car-image', `url('/sdRacer/Assets/Textures/${getCarTexture(carAtPosition.type)}.png')`);
+            }
+            
+            // Check for finish
+            if (finishPos && finishPos[0] === y && finishPos[1] === x) {
+                cell.classList.add('finish-here');
+            }
+            
+            // Check for cows
             const cowAtPosition = cows.find(cow => cow.currentX === x && cow.currentY === y);
             if (cowAtPosition) {
                 cell.classList.add('cow-here');
             }
             
-            // Show semi-transparent cow for secondary position during placement
+            // Show secondary cow positions
             if (placeMode === 'cow' && cowPlacementStep === 'secondary' && tempSecondaryPos) {
-                console.log('Checking preview for position:', { x, y, tempSecondaryPos });
                 if (x === tempSecondaryPos.x && y === tempSecondaryPos.y) {
-                    console.log('Adding cow-secondary-preview class to position:', { x, y });
                     cell.classList.add('cow-secondary-preview');
                 }
             }
             
-            // Show secondary positions for all placed cows
             cows.forEach(cow => {
                 if (cow.secondaryX !== null && cow.secondaryY !== null && 
                     x === cow.secondaryX && y === cow.secondaryY &&
@@ -92,64 +178,76 @@ function renderGrid() {
                 }
             });
             
-            cell.onclick = () => {
-                if (placeMode === 'car') {
-                    carPos = [y, x];
-                    placeMode = null;
-                    updatePlaceModeUI();
-                    renderGrid();
-                } else if (placeMode === 'finish') {
-                    finishPos = [y, x];
-                    placeMode = null;
-                    updatePlaceModeUI();
-                    renderGrid();
-                } else if (placeMode === 'cow') {
-                    handleCowPlacement(y, x);
-                }
-            };
+            cell.onclick = () => handleCellClick(y, x);
             gridDiv.appendChild(cell);
         }
     }
-    // Draw horizontal borders
-    for (let y = 0; y <= rows; y++) {
-        for (let x = 0; x < cols; x++) {
-            if (y === 0 || y === rows) continue;
-            const btn = document.createElement('button');
-            btn.className = 'level-creator-border-btn h';
-            btn.style.left = (x * 48) + 'px';
-            btn.style.top = (y * 48 - 4) + 'px';
-            // Is there a connection N/S?
-            const n = parseInt(grid[y-1][x][2]); // S of above
-            const s = parseInt(grid[y][x][0]);   // N of below
-            if (n || s) btn.classList.add('active');
-            btn.onclick = () => toggleConnection(y-1, x, y, x, 'S', 'N');
-            gridDiv.appendChild(btn);
-        }
-    }
-    // Draw vertical borders
-    for (let y = 0; y < rows; y++) {
-        for (let x = 0; x <= cols; x++) {
-            if (x === 0 || x === cols) continue;
-            const btn = document.createElement('button');
-            btn.className = 'level-creator-border-btn v';
-            btn.style.left = (x * 48 - 4) + 'px';
-            btn.style.top = (y * 48) + 'px';
-            // Is there a connection E/W?
-            const w = parseInt(grid[y][x-1][1]); // E of left
-            const e = parseInt(grid[y][x][3]);   // W of right
-            if (w || e) btn.classList.add('active');
-            btn.onclick = () => toggleConnection(y, x-1, y, x, 'E', 'W');
-            gridDiv.appendChild(btn);
-        }
+    
+    // Draw borders
+    drawBorders();
+}
+
+function getCarTexture(carType) {
+    const textures = {
+        'red': 'RedCar',
+        'blue': 'BlueCar',
+        'green': 'GreenCar',
+        'yellow': 'YellowCar',
+        'default': 'Car'
+    };
+    return textures[carType] || 'Car';
+}
+
+function handleCellClick(y, x) {
+    if (placeMode === 'finish') {
+        finishPos = [y, x];
+        placeMode = null;
+        updatePlaceModeUI();
+        updatePlacementStatus();
+        updateGridInfo();
+        renderGrid();
+    } else if (placeMode === 'cow') {
+        handleCowPlacement(y, x);
+    } else if (placeMode && placeMode.endsWith('Car')) {
+        handleCarPlacement(y, x);
     }
 }
 
-function handleCowPlacement(y, x) {
-    console.log('handleCowPlacement called:', { y, x, cowPlacementStep, placeMode });
+function handleCarPlacement(y, x) {
+    // Check if position is already occupied
+    if (cars.find(car => car.x === x && car.y === y)) {
+        alert('A car is already placed at this position!');
+        return;
+    }
     
+    if (finishPos && finishPos[0] === y && finishPos[1] === x) {
+        alert('Cannot place car on finish line!');
+        return;
+    }
+    
+    // Create new car
+    const carType = placeMode.replace('Car', '');
+    const carId = Date.now() + Math.random();
+    const newCar = {
+        id: carId,
+        name: `${carType}Car`,
+        type: carType,
+        x: x,
+        y: y,
+        direction: 'N'
+    };
+    
+    cars.push(newCar);
+    placeMode = null;
+    updatePlaceModeUI();
+    updatePlacementStatus();
+    updateGridInfo();
+    renderGrid();
+    renderCarList();
+}
+
+function handleCowPlacement(y, x) {
     if (cowPlacementStep === 'default') {
-        console.log('Placing default position');
-        // Place default position
         const newCow = {
             defaultX: x,
             defaultY: y,
@@ -160,260 +258,394 @@ function handleCowPlacement(y, x) {
         };
         cows.push(newCow);
         cowPlacementStep = 'secondary';
-        tempSecondaryPos = null; // Reset temporary position
-        console.log('Cow added, step changed to secondary, cows:', cows);
+        tempSecondaryPos = null;
+        updatePlacementStatus();
+        placementStatus.textContent = 'Click to place cow secondary position (must be adjacent)';
         renderGrid();
-        // Don't reset placement mode yet - wait for secondary position
     } else if (cowPlacementStep === 'secondary') {
-        console.log('Placing secondary position');
-        // Place secondary position
         const lastCow = cows[cows.length - 1];
         const defaultX = lastCow.defaultX;
         const defaultY = lastCow.defaultY;
         
-        // Check if secondary position is orthogonally adjacent to default
         const isOrthogonal = (Math.abs(x - defaultX) === 1 && y === defaultY) || 
                            (Math.abs(y - defaultY) === 1 && x === defaultX);
-        
-        console.log('Orthogonal check:', { x, y, defaultX, defaultY, isOrthogonal });
         
         if (!isOrthogonal) {
             alert('Secondary position must be orthogonally adjacent to the default position (up, down, left, or right).');
             return;
         }
         
-        // Set temporary position for preview
         tempSecondaryPos = { x: x, y: y };
-        console.log('Set tempSecondaryPos:', tempSecondaryPos);
         renderGrid();
         
-        // Update the last cow with secondary position
         lastCow.secondaryX = x;
         lastCow.secondaryY = y;
         
-        // Reset placement mode immediately but keep the cow visible
         placeMode = null;
         cowPlacementStep = 'default';
         tempSecondaryPos = null;
-        console.log('Placement complete, resetting mode');
         updatePlaceModeUI();
+        updatePlacementStatus();
         renderGrid();
+    }
+}
+
+function drawBorders() {
+    // Horizontal borders
+    for (let y = 0; y <= rows; y++) {
+        for (let x = 0; x < cols; x++) {
+            if (y === 0 || y === rows) continue;
+            const btn = document.createElement('button');
+            btn.className = 'level-creator-border-btn h';
+            btn.style.left = (x * 48) + 'px';
+            btn.style.top = (y * 48 - 4) + 'px';
+            const n = parseInt(grid[y-1][x][2]);
+            const s = parseInt(grid[y][x][0]);
+            if (n || s) btn.classList.add('active');
+            btn.onclick = () => toggleConnection(y-1, x, y, x, 'S', 'N');
+            gridDiv.appendChild(btn);
+        }
+    }
+    
+    // Vertical borders
+    for (let y = 0; y < rows; y++) {
+        for (let x = 0; x <= cols; x++) {
+            if (x === 0 || x === cols) continue;
+            const btn = document.createElement('button');
+            btn.className = 'level-creator-border-btn v';
+            btn.style.left = (x * 48 - 4) + 'px';
+            btn.style.top = (y * 48) + 'px';
+            const w = parseInt(grid[y][x-1][1]);
+            const e = parseInt(grid[y][x][3]);
+            if (w || e) btn.classList.add('active');
+            btn.onclick = () => toggleConnection(y, x-1, y, x, 'E', 'W');
+            gridDiv.appendChild(btn);
+        }
     }
 }
 
 function toggleConnection(y1, x1, y2, x2, dir1, dir2) {
-    // NESW: 0=N, 1=E, 2=S, 3=W
-    const dirIdx = {N:0, E:1, S:2, W:3};
-    let arr1 = grid[y1][x1].split('');
-    let arr2 = grid[y2][x2].split('');
-    if (arr1[dirIdx[dir1]] === '1') {
-        arr1[dirIdx[dir1]] = '0';
-        arr2[dirIdx[dir2]] = '0';
+    const bitMap = { 'N': 0, 'E': 1, 'S': 2, 'W': 3 };
+    
+    // Convert current values to binary strings and then to arrays for easier manipulation
+    const current1 = grid[y1][x1].split('').map(Number);
+    const current2 = grid[y2][x2].split('').map(Number);
+    
+    const bit1 = bitMap[dir1];
+    const bit2 = bitMap[dir2];
+    
+    // Toggle the bits
+    if (current1[bit1]) {
+        // Remove connection
+        current1[bit1] = 0;
+        current2[bit2] = 0;
     } else {
-        arr1[dirIdx[dir1]] = '1';
-        arr2[dirIdx[dir2]] = '1';
+        // Add connection
+        current1[bit1] = 1;
+        current2[bit2] = 1;
     }
-    grid[y1][x1] = arr1.join('');
-    grid[y2][x2] = arr2.join('');
+    
+    // Convert back to strings
+    grid[y1][x1] = current1.join('');
+    grid[y2][x2] = current2.join('');
+    
     renderGrid();
 }
-renderGrid();
 
-// Level details
+// Car Management Functions
+function renderCarList() {
+    carList.innerHTML = '';
+    
+    if (cars.length === 0) {
+        carList.innerHTML = '<div style="text-align: center; color: #9ca3af; padding: 20px;">No cars placed yet</div>';
+        return;
+    }
+    
+    cars.forEach(car => {
+        const carItem = document.createElement('div');
+        carItem.className = 'car-item';
+        
+        carItem.innerHTML = `
+            <div class="car-info">
+                <div class="car-preview" style="background-image: url('/sdRacer/Assets/Textures/${getCarTexture(car.type)}.png')"></div>
+                <div class="car-details">
+                    <div class="car-name">${car.name}</div>
+                    <div class="car-type">${car.type} car at (${car.x}, ${car.y}) facing ${car.direction}</div>
+                </div>
+            </div>
+            <div class="car-actions">
+                <button onclick="editCar(${car.id})" class="btn-secondary">✏️</button>
+                <button onclick="removeCar(${car.id})" class="btn-warning">🗑️</button>
+            </div>
+        `;
+        
+        carList.appendChild(carItem);
+    });
+}
+
+function editCar(carId) {
+    const car = cars.find(c => c.id === carId);
+    if (!car) return;
+    
+    editingCarId = carId;
+    carNameInput.value = car.name;
+    carTypeSelect.value = car.type;
+    carDirectionSelect.value = car.direction;
+    
+    carModal.style.display = 'block';
+}
+
+function removeCar(carId) {
+    if (confirm('Are you sure you want to remove this car?')) {
+        cars = cars.filter(car => car.id !== carId);
+        updateGridInfo();
+        renderGrid();
+        renderCarList();
+    }
+}
+
+function clearAllCars() {
+    if (cars.length === 0) return;
+    
+    if (confirm(`Are you sure you want to remove all ${cars.length} cars?`)) {
+        cars = [];
+        updateGridInfo();
+        renderGrid();
+        renderCarList();
+    }
+}
+
+function openCarModal() {
+    editingCarId = null;
+    carNameInput.value = '';
+    carTypeSelect.value = 'red';
+    carDirectionSelect.value = 'N';
+    carModal.style.display = 'block';
+}
+
+function saveCar() {
+    const name = carNameInput.value.trim();
+    const type = carTypeSelect.value;
+    const direction = carDirectionSelect.value;
+    
+    if (!name) {
+        alert('Please enter a car name');
+        return;
+    }
+    
+    if (cars.find(car => car.name === name && car.id !== editingCarId)) {
+        alert('A car with this name already exists');
+        return;
+    }
+    
+    if (editingCarId) {
+        // Update existing car
+        const car = cars.find(c => c.id === editingCarId);
+        if (car) {
+            car.name = name;
+            car.type = type;
+            car.direction = direction;
+        }
+    } else {
+        // Create new car (will be placed on next grid click)
+        const carId = Date.now() + Math.random();
+        const newCar = {
+            id: carId,
+            name: name,
+            type: type,
+            x: -1, // Will be set when placed
+            y: -1,
+            direction: direction
+        };
+        cars.push(newCar);
+        
+        // Set placement mode for this car
+        setPlaceMode(`${type}Car`);
+    }
+    
+    closeCarModalFunc();
+    renderCarList();
+}
+
+function closeCarModalFunc() {
+    carModal.style.display = 'none';
+    editingCarId = null;
+}
+
+// Level Data Functions
 function getLevelDetails() {
-    return {
+    const level = {
         id: document.getElementById('id').value,
         category: document.getElementById('category').value,
         name: document.getElementById('name').value,
         author: document.getElementById('author').value,
         WinCondition: document.getElementById('winCondition').value,
         Instructions: document.getElementById('instructions').value,
-        start: carPos ? carPos.slice() : null,
-        end: finishPos ? finishPos.slice() : null,
         defaultCode: document.getElementById('defaultCode').value,
-        rows: grid.map(row => row.slice()),
+        rows: grid,
+        cars: cars.map(car => ({
+            name: car.name,
+            type: car.type,
+            position: [car.y, car.x],
+            direction: car.direction
+        })),
+        end: finishPos ? [finishPos[0], finishPos[1]] : null,
         cows: cows.map(cow => ({
             defaultX: cow.defaultX,
             defaultY: cow.defaultY,
             secondaryX: cow.secondaryX,
-            secondaryY: cow.secondaryY,
-            currentX: cow.currentX,
-            currentY: cow.currentY
+            secondaryY: cow.secondaryY
         }))
     };
+    
+    return level;
 }
+
 function setLevelDetails(level) {
     document.getElementById('id').value = level.id || '';
     document.getElementById('category').value = level.category || '';
     document.getElementById('name').value = level.name || '';
     document.getElementById('author').value = level.author || '';
-    document.getElementById('winCondition').value = level.WinCondition || 'IsAtFinish()';
-    document.getElementById('instructions').value = level.Instructions || '';
-    carPos = (level.start && level.start.length === 2) ? level.start.slice() : null;
-    finishPos = (level.end && level.end.length === 2) ? level.end.slice() : null;
+    document.getElementById('winCondition').value = level.WinCondition || level.winCondition || 'IsAtFinish()';
+    document.getElementById('instructions').value = level.Instructions || level.instructions || '';
     document.getElementById('defaultCode').value = level.defaultCode || '';
+    
+    // Handle grid data - Levels.json uses 'rows' instead of 'grid'
     if (level.rows) {
-        rows = level.rows.length;
-        cols = level.rows[0].length;
+        grid = level.rows;
+        rows = grid.length;
+        cols = grid[0].length;
         widthInput.value = cols;
         heightInput.value = rows;
-        // Ensure all tile codes are strings
-        grid = level.rows.map(row => row.map(cell => String(cell)));
-        // Load cows if they exist
-        cows = level.cows ? level.cows.map(cow => ({
-            defaultX: cow.defaultX,
-            defaultY: cow.defaultY,
-            secondaryX: cow.secondaryX,
-            secondaryY: cow.secondaryY,
-            currentX: cow.currentX,
-            currentY: cow.currentY
-        })) : [];
-        renderGrid();
-    } else {
-        renderGrid();
+    } else if (level.grid) {
+        grid = level.grid;
+        rows = grid.length;
+        cols = grid[0].length;
+        widthInput.value = cols;
+        heightInput.value = rows;
     }
+    
+    // Handle cars data - Levels.json uses different structure
+    if (level.cars) {
+        cars = level.cars.map((car, index) => {
+            const carData = {
+                id: Date.now() + index + Math.random(),
+                name: car.name,
+                type: car.type,
+                direction: car.direction
+            };
+            
+            // Handle different position formats
+            if (car.position && Array.isArray(car.position)) {
+                carData.y = car.position[0];
+                carData.x = car.position[1];
+            } else if (car.x !== undefined && car.y !== undefined) {
+                carData.x = car.x;
+                carData.y = car.y;
+            }
+            
+            return carData;
+        });
+    }
+    
+    // Handle finish position - Levels.json uses 'end' instead of 'finish'
+    if (level.end && Array.isArray(level.end)) {
+        finishPos = [level.end[0], level.end[1]];
+    } else if (level.finish) {
+        finishPos = [level.finish.y, level.finish.x];
+    }
+    
+    // Handle cows data
+    if (level.cows) {
+        cows = level.cows.map(cow => ({
+            ...cow,
+            currentX: cow.defaultX,
+            currentY: cow.defaultY
+        }));
+    }
+    
+    updateGridInfo();
+    renderGrid();
+    renderCarList();
 }
-document.getElementById('showJsonBtn').onclick = () => {
-    // Validate that car and finish positions are set
-    if (!carPos) {
-        alert('Error: Please place the car first by clicking the car icon and then clicking on the grid.');
-        return;
-    }
-    if (!finishPos) {
-        alert('Error: Please place the finish line first by clicking the finish icon and then clicking on the grid.');
-        return;
-    }
-    
-    const levelData = getLevelDetails();
-    
-    // Custom JSON formatter that keeps arrays on single lines
-    function formatJSON(obj, indent = 0) {
-        const spaces = '    '.repeat(indent);
-        const nextSpaces = '    '.repeat(indent + 1);
-        
+
+// JSON Export/Import
+function formatJSON(obj, indent = 0) {
+    const spaces = ' '.repeat(indent);
+    if (typeof obj === 'object' && obj !== null) {
         if (Array.isArray(obj)) {
             if (obj.length === 0) return '[]';
-            if (obj.every(item => typeof item === 'string' || typeof item === 'number')) {
-                // Format strings with quotes, numbers without
-                const formattedItems = obj.map(item => {
-                    if (typeof item === 'string') {
-                        return JSON.stringify(item);
-                    }
-                    return String(item);
-                });
-                return '[' + formattedItems.join(', ') + ']';
-            }
-            return '[\n' + obj.map(item => nextSpaces + formatJSON(item, indent + 1)).join(',\n') + '\n' + spaces + ']';
+            const items = obj.map(item => formatJSON(item, indent + 2)).join(',\n' + spaces);
+            return '[\n' + spaces + items + '\n' + spaces.slice(0, -2) + ']';
+        } else {
+            const keys = Object.keys(obj);
+            if (keys.length === 0) return '{}';
+            const items = keys.map(key => {
+                const value = formatJSON(obj[key], indent + 2);
+                return `"${key}": ${value}`;
+            }).join(',\n' + spaces);
+            return '{\n' + spaces + items + '\n' + spaces.slice(0, -2) + '}';
         }
-        
-        if (typeof obj === 'object' && obj !== null) {
-            const entries = Object.entries(obj);
-            if (entries.length === 0) return '{}';
-            
-            return '{\n' + entries.map(([key, value]) => 
-                nextSpaces + '"' + key + '": ' + formatJSON(value, indent + 1)
-            ).join(',\n') + '\n' + spaces + '}';
-        }
-        
-        if (typeof obj === 'string') return JSON.stringify(obj);
+    } else if (typeof obj === 'string') {
+        return `"${obj.replace(/"/g, '\\"')}"`;
+    } else {
         return String(obj);
     }
-    
-    document.getElementById('jsonArea').value = formatJSON(levelData);
+}
+
+// Event handlers for existing buttons
+document.getElementById('showJsonBtn').onclick = () => {
+    const level = getLevelDetails();
+    document.getElementById('jsonArea').value = formatJSON(level, 0);
 };
+
 document.getElementById('loadJsonBtn').onclick = () => {
     try {
-        const level = JSON.parse(document.getElementById('jsonArea').value);
+        const jsonText = document.getElementById('jsonArea').value;
+        const level = JSON.parse(jsonText);
         setLevelDetails(level);
-    } catch (e) {
-        alert('Invalid JSON');
+    } catch (error) {
+        alert('Invalid JSON: ' + error.message);
     }
 };
 
-// Load levels from Levels.json and populate dropdown
+// Load levels from file
 async function loadLevelsFromFile() {
     try {
         const response = await fetch('Assets/Maps/Levels.json');
         const data = await response.json();
-        const levelSelector = document.getElementById('levelSelector');
         
-        // Clear existing options except the first one
-        levelSelector.innerHTML = '<option value="">Select a level...</option>';
+        // Access the levels array from the JSON structure
+        const levels = data.levels || [];
         
-        // Add each level to the dropdown
-        data.levels.forEach(level => {
+        const selector = document.getElementById('levelSelector');
+        selector.innerHTML = '<option value="">Select a level...</option>';
+        
+        levels.forEach(level => {
             const option = document.createElement('option');
             option.value = level.id;
-            option.textContent = `${level.category} - ${level.name}`;
-            levelSelector.appendChild(option);
+            option.textContent = `${level.id}: ${level.name}`;
+            selector.appendChild(option);
         });
+        
+        selector.onchange = () => {
+            const selectedId = selector.value;
+            if (selectedId) {
+                const selectedLevel = levels.find(l => l.id == selectedId);
+                if (selectedLevel) {
+                    setLevelDetails(selectedLevel);
+                }
+            }
+        };
     } catch (error) {
-        console.error('Error loading levels:', error);
+        console.error('Failed to load levels:', error);
     }
 }
 
-// Handle loading a level from the dropdown
-document.getElementById('loadLevelBtn').onclick = async () => {
-    const selectedLevelId = document.getElementById('levelSelector').value;
-    if (!selectedLevelId) {
-        alert('Please select a level from the dropdown first.');
-        return;
-    }
-    
-    try {
-        const response = await fetch('Assets/Maps/Levels.json');
-        const data = await response.json();
-        const selectedLevel = data.levels.find(level => level.id === selectedLevelId);
-        
-        if (selectedLevel) {
-            setLevelDetails(selectedLevel);
-        } else {
-            alert('Selected level not found.');
-        }
-    } catch (error) {
-        console.error('Error loading level:', error);
-        alert('Error loading level from file.');
-    }
-};
-
-// Initialize the level dropdown when the page loads
-loadLevelsFromFile();
-
-// Generate maze button handler
-document.getElementById('generateMazeBtn').onclick = () => {
-    // Check if car and finish positions are set
-    if (!carPos) {
-        alert('Please place the car first by clicking the car icon and then clicking on the grid.');
-        return;
-    }
-    if (!finishPos) {
-        alert('Please place the finish line first by clicking the finish icon and then clicking on the grid.');
-        return;
-    }
-    
-    try {
-        // Use current grid dimensions and positions
-        const width = cols;
-        const height = rows;
-        const start = [carPos[1], carPos[0]]; // Convert from [y,x] to [x,y] format
-        const end = [finishPos[1], finishPos[0]]; // Convert from [y,x] to [x,y] format
-        
-        // Generate the maze
-        const result = generateMaze(width, height, start, end);
-        
-        // Update the grid with the generated maze
-        grid = result.maze;
-        
-        // Keep the existing car and finish positions
-        // (carPos and finishPos remain unchanged)
-        
-        // Clear any existing cows
-        cows = [];
-        
-        // Render the new grid
-        renderGrid();
-        
-    } catch (error) {
-        alert('Error generating maze: ' + error.message);
-    }
-}; 
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+    updateGridInfo();
+    renderGrid();
+    renderCarList();
+    loadLevelsFromFile();
+}); 
