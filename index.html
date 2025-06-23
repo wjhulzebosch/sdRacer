@@ -138,6 +138,26 @@
                     <li><code>greenCar.honk()</code> - Honk the green car's horn</li>
                 </ul>
                 
+                <h3>🎯 Custom Car Methods</h3>
+                <p>You can define custom methods for cars using the Class Car syntax:</p>
+                <div class="code-example">
+                    <pre><code>Class Car {
+  void moveOrTurn() {
+    if(self.isRoadAhead()) {
+      self.moveForward();
+    } else {
+      self.turnLeft();
+    }
+  }
+}
+
+while(true) {
+  greenCar.moveOrTurn();
+  blueCar.moveOrTurn();
+}</code></pre>
+                </div>
+                <p>Inside custom methods, use <code>self.methodName()</code> to call methods on the current car instance. Available methods: <code>moveForward()</code>, <code>turnLeft()</code>, <code>turnRight()</code>, <code>isRoadAhead()</code>, <code>isCowAhead()</code>, <code>honk()</code>, etc.</p>
+                
                 <h3>💡 Tips</h3>
                 <ul>
                     <li>Use "Check Code" to validate your syntax before running</li>

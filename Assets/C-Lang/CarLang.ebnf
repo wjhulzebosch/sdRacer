@@ -7,7 +7,9 @@ comment         = "//", { anyCharacterExceptNewline } ;
 statement       = variableDeclaration
                 | assignment
                 | functionDeclaration
+                | classDeclaration
                 | functionCall
+                | methodCall
                 | ifStatement
                 | whileStatement
                 | forStatement
@@ -28,6 +30,14 @@ parameter           = type, identifier ;
 
 functionCall        = identifier, "(", [ argumentList ], ")", ";" ;          // e.g. moveForward();
 argumentList        = expression, { ",", expression } ;
+
+// ==== Classes ====
+classDeclaration    = "Class", "Car", "{", { methodDeclaration }, "}" ;     // e.g. Class Car { void honkIfNeeded() { ... } }
+methodDeclaration   = type, identifier, "(", [ parameterList ], ")", block ; // e.g. void honkIfNeeded() { ... }
+
+// ==== Method Calls ====
+methodCall          = (carInstance | "self"), ".", identifier, "(", [ argumentList ], ")", ";" ; // e.g. blueCar.honkIfNeeded(); or self.moveForward();
+carInstance         = "redCar" | "blueCar" | "greenCar" | "yellowCar" ;
 
 // ==== Control Flow ====
 ifStatement     = "if", "(", expression, ")", block,
