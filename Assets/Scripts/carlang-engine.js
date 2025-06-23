@@ -21,11 +21,9 @@ class CarLangEngine {
         this.functions = {};
         
         // Debug logs for carRegistry and defaultCar
-        if (typeof debug === 'function') {
-            debug('CarLangEngine constructor: carRegistry =', this.carRegistry);
-            if (this.carRegistry && typeof this.carRegistry === 'object') {
-                debug('CarLangEngine constructor: carRegistry keys =', Object.keys(this.carRegistry));
-            }
+        debug('CarLangEngine constructor: carRegistry =', this.carRegistry);
+        if (this.carRegistry && typeof this.carRegistry === 'object') {
+            debug('CarLangEngine constructor: carRegistry keys =', Object.keys(this.carRegistry));
         }
         
         // Set default car for backward compatibility
@@ -46,9 +44,7 @@ class CarLangEngine {
             this.defaultCar = getDefaultCar();
         }
         
-        if (typeof debug === 'function') {
-            debug('CarLangEngine constructor: this.defaultCar =', this.defaultCar);
-        }
+        debug('CarLangEngine constructor: this.defaultCar =', this.defaultCar);
         
         // Execution state
         this.ast = null;

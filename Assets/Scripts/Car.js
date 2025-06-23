@@ -165,13 +165,11 @@ class Car {
             case 'S': newY += 1; break;
             case 'W': newX -= 1; break;
         }
-        
-        // First check if the tile exists and is not grass
         const tile = level.getTile(newX, newY);
+        debug(`[isRoadAhead] carType: ${this.carType}, current: (${this.currentPosition.x},${this.currentPosition.y}), dir: ${this.direction}, check: (${newX},${newY}), tile: ${tile}`);
         if (!tile || tile === '0000') {
             return false;
         }
-        
         // Now check if the road is actually connected
         return this.isRoadConnected(level, newX, newY);
     }
