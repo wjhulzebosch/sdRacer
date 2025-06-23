@@ -20,6 +20,7 @@ let finishPos = null;
 let allLevels = [];
 let cows = []; // Array to store cow instances
 let currentLevelData = null; // Track current level configuration
+let currentCustomLevelData = null;
 
 // Make cows globally accessible for CarLang engine
 window.cows = cows;
@@ -285,7 +286,7 @@ function showLevelSelector() {
     createLevelBtn.textContent = 'Create Your Own Level';
     createLevelBtn.className = 'create-level-btn';
     createLevelBtn.onclick = () => {
-        window.open('levelCreator.html', '_blank');
+        window.location.href = 'levelCreator.html';
     };
     
     const loadCustomBtn = document.createElement('button');
@@ -383,12 +384,18 @@ function showCustomLevelLoader(overlay) {
 
 function loadCustomLevel(levelData) {
     debug('loadCustomLevel: loading levelData', levelData);
+    
+    // Helper to unescape line breaks
+    function unescapeLineBreaks(str) {
+        return typeof str === 'string' ? str.replace(/\\n/g, '\n') : str;
+    }
+    
     // Set current level ID to custom
     currentLevelId = 'custom';
     // Create level object
     level = new Level({
         instruction: levelData.Instructions || '',
-        defaultCode: levelData.defaultCode || '',
+        defaultCode: unescapeLineBreaks(levelData.defaultCode || ''),
         tiles: levelData.rows,
         cars: levelData.cars || null
     });
@@ -435,6 +442,9 @@ function loadCustomLevel(levelData) {
         instructionsDiv.innerHTML = instructionText;
     }
     resetGame();
+    afterLevelLoad();
+    currentCustomLevelData = levelData;
+    currentLevelData = null;
 }
 
 function resetGame() {
@@ -546,6 +556,7 @@ async function loadLevel(levelId) {
         }
         // Store current level data for win condition checking
         currentLevelData = levelData;
+        currentCustomLevelData = null;
         // Validate level data
         const validation = validateLevelData(levelData);
         if (validation.errors.length > 0) {
@@ -563,9 +574,15 @@ async function loadLevel(levelId) {
         debug(`Mode: ${mode}, Difficulty: ${difficulty}/5, Category: ${category}`);
         debug(`[LOAD LEVEL] apiId: ${levelId}, name: ${levelData.name}, Instructions: ${levelData.Instructions}`);
         currentLevelId = levelId;
+        
+        // Helper to unescape line breaks
+        function unescapeLineBreaks(str) {
+            return typeof str === 'string' ? str.replace(/\\n/g, '\n') : str;
+        }
+        
         level = new Level({
             instruction: levelData.Instructions || '',
-            defaultCode: levelData.defaultCode || '',
+            defaultCode: unescapeLineBreaks(levelData.defaultCode || ''),
             tiles: levelData.rows,
             cars: levelData.cars || null
         });
@@ -805,30 +822,27 @@ function startGame() {
         }
     };
     resetBtn.onclick = resetCode;
-    
     // Set up reset level button
     const resetLvlBtn = getResetLvlBtn();
     if (resetLvlBtn) resetLvlBtn.onclick = resetLevel;
-    
     // Set up fix indentation button
     const fixIndentationBtn = getFixIndentationBtn();
     if (fixIndentationBtn) fixIndentationBtn.onclick = fixIndentation;
-    
     // Initialize line count
     updateLineCount();
-    
     // Set up info overlay buttons
     const infoBtn = document.getElementById('infoBtn');
     const closeInfoBtn = document.getElementById('closeInfoBtn');
     if (infoBtn) infoBtn.onclick = showInfoOverlay;
     if (closeInfoBtn) closeInfoBtn.onclick = hideInfoOverlay;
-    
     // Set up home button
     const homeBtn = document.getElementById('homeBtn');
     if (homeBtn) homeBtn.onclick = goHome;
-    
     setupWinButtons();
-    
+    // Prevent loading selector or level if in custom mode
+    if (window.location.search.includes('loadTemp=1')) {
+        return;
+    }
     const levelId = getLevelIdFromURL();
     if (levelId) {
         loadLevel(levelId);
@@ -1304,11 +1318,11 @@ function addEditLevelButton() {
             debug('Edit Level: currentLevelData', currentLevelData);
             debug('Edit Level: level', level);
             // Export current level as JSON
-            const levelJson = JSON.stringify(currentLevelData || level);
+            const levelJson = JSON.stringify(currentCustomLevelData || currentLevelData || level);
             // Store in localStorage for transfer
             localStorage.setItem('sdRacer_tempLevel', levelJson);
             // Open levelCreator with a flag to load from temp
-            window.open('levelCreator.html?loadTemp=1', '_blank');
+            window.location.href = 'levelCreator.html?loadTemp=1';
         };
         document.body.appendChild(btn);
     }
@@ -1333,6 +1347,7 @@ window.addEventListener('DOMContentLoaded', () => {
         if (tempLevel) {
             try {
                 loadCustomLevel(JSON.parse(tempLevel));
+                startGame();
                 return;
             } catch (e) {
                 debug('Failed to load temp level: ' + e, null, 'error');
