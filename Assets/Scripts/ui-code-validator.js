@@ -1,4 +1,4 @@
-import { masterValidateCode } from './code-validator.js';
+import { masterValidateCode, ONLY_USE_THIS_TO_VALIDATE } from './code-validator.js';
 
 function escapeHtml(text) {
     const div = document.createElement('div');
@@ -11,44 +11,18 @@ function escapeHtml(text) {
  * Uses masterValidateCode for validation. Intended to be called when 'Check code' is pressed.
  */
 export function validateCodeForUI() {
-    debug('validateCodeForUI');
-    const codeTextarea = document.getElementById('code');
+    console.log('validateCodeForUI');
     const parserDisplay = document.getElementById('parser-display');
-    if (!codeTextarea || !parserDisplay) {
+    if (!parserDisplay) {
         debug('Required elements not found', null, 'error');
         return;
     }
-    // Get the level instance from global context
-    const level = (typeof window.level !== 'undefined') ? window.level : null;
-    if (!level) {
-        parserDisplay.innerHTML = '<div class="validation-error" style="margin-bottom: 10px; font-weight: bold;">ERROR: Level instance is missing. Validation aborted.</div>';
-        debug('ERROR: Level instance is missing.', null, 'error');
-        return;
-    }
-    if (typeof level.isSingleMode !== 'function') {
-        parserDisplay.innerHTML = '<div class="validation-error" style="margin-bottom: 10px; font-weight: bold;">ERROR: Could not read mode/cars info from level instance. Validation aborted.</div>';
-        debug('ERROR: Could not read mode/cars info from level instance.', null, 'error');
-        return;
-    }
-    const code = codeTextarea.value;
-    let parserConfig;
-    if (level.isSingleMode()) {
-        parserConfig = { mode: 'single', availableCars: [] };
-    } else {
-        // Try to get car names from level.cars
-        const availableCars = Array.isArray(level.cars) ? level.cars.map(car => car.name) : [];
-        parserConfig = { mode: 'oop', availableCars };
-    }
-    // --- DEBUG LOGS ---
-    debug('level:', level);
-    debug('level.cars:', level.cars);
-    debug('parserConfig (from level):', parserConfig);
-    const gameDiv = document.getElementById('game') || null;
-    const result = masterValidateCode(code, parserConfig, level, gameDiv);
+    // Use ONLY_USE_THIS_TO_VALIDATE for validation
+    const result = ONLY_USE_THIS_TO_VALIDATE();
     let displayHTML = '';
-    // Show parser config at the top
+    // Show parser config at the top (for debug)
     displayHTML += `<div style="color: #60a5fa; margin-bottom: 10px; font-size: 0.95em;">` +
-        `<b>Parser Settings:</b> mode = <code>${parserConfig.mode}</code>, availableCars = <code>${Array.isArray(parserConfig.availableCars) ? parserConfig.availableCars.join(', ') : ''}</code>` +
+        `<b>Parser Settings:</b> mode = <code>${result.ast && result.ast.mode ? result.ast.mode : ''}</code>, availableCars = <code>${result.ast && result.ast.availableCars ? result.ast.availableCars.join(', ') : ''}</code>` +
         `</div>`;
     if (result.parseErrors.length > 0) {
         displayHTML += `<div class="validation-error" style="margin-bottom: 10px; font-weight: bold;">Parse Errors:</div>`;

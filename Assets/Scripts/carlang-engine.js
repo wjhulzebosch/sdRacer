@@ -6,25 +6,48 @@
 
 class CarLangEngine {
     constructor(carRegistry, level, gameDiv) {
-        this.carRegistry = carRegistry || {};
+        // If carRegistry is missing or empty, try to get from game helpers
+        let registryToUse = carRegistry;
+        if (!registryToUse || (typeof registryToUse === 'object' && Object.keys(registryToUse).length === 0)) {
+            if (typeof getCarRegistry === 'function') {
+                registryToUse = getCarRegistry();
+            }
+        }
+        this.carRegistry = registryToUse || {};
         this.defaultCar = null; // For backward compatibility
         this.level = level;
         this.gameDiv = gameDiv;
         this.variables = {};
         this.functions = {};
         
+        // Debug logs for carRegistry and defaultCar
+        if (typeof debug === 'function') {
+            debug('CarLangEngine constructor: carRegistry =', this.carRegistry);
+            if (this.carRegistry && typeof this.carRegistry === 'object') {
+                debug('CarLangEngine constructor: carRegistry keys =', Object.keys(this.carRegistry));
+            }
+        }
+        
         // Set default car for backward compatibility
-        if (carRegistry && typeof carRegistry === 'object') {
-            if (Array.isArray(carRegistry)) {
+        if (this.carRegistry && typeof this.carRegistry === 'object') {
+            if (Array.isArray(this.carRegistry)) {
                 // If passed as array, use first car
-                this.defaultCar = carRegistry[0] || null;
+                this.defaultCar = this.carRegistry[0] || null;
             } else {
-                // If passed as object, use first car or mainCar
-                this.defaultCar = carRegistry.mainCar || carRegistry[Object.keys(carRegistry)[0]] || null;
+                // If passed as object, use first car or mainCar or default
+                this.defaultCar = this.carRegistry.mainCar || this.carRegistry.default || this.carRegistry[Object.keys(this.carRegistry)[0]] || null;
             }
         } else {
             // Legacy support: if passed single car
-            this.defaultCar = carRegistry;
+            this.defaultCar = this.carRegistry;
+        }
+        
+        if (!this.defaultCar && typeof getDefaultCar === 'function') {
+            this.defaultCar = getDefaultCar();
+        }
+        
+        if (typeof debug === 'function') {
+            debug('CarLangEngine constructor: this.defaultCar =', this.defaultCar);
         }
         
         // Execution state

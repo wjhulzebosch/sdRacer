@@ -5,15 +5,14 @@ import CarLangParser from './CarLang-parser.js';
 import CarLangEngine from './carlang-engine.js';
 import { generateMaze } from './mazeCreator.js';
 import { soundController } from './soundController.js';
-import CodeValidator from './code-validator.js';
-import { masterValidateCode } from './code-validator.js';
+import { ONLY_USE_THIS_TO_VALIDATE } from './code-validator.js';
 import { validateCodeForUI } from './ui-code-validator.js';
 
 // For now, hardcode a level id and default code
 const LEVEL_ID = 'level1';
 const DEFAULT_CODE = `// Write your CarLang code here!`;
 
-let codeArea, saveBtn, loadBtn, playBtn, resetBtn;
+let saveBtn, loadBtn, playBtn, resetBtn;
 // Car registry system
 let carRegistry = {};
 let defaultCar = null; // For backward compatibility
@@ -37,9 +36,6 @@ let currentHighlightedBlock = null;
 const INDENT_SIZE = 4; // Number of spaces per indentation level
 const INDENT_CHAR = ' '.repeat(INDENT_SIZE);
 
-function getCodeArea() {
-    return document.getElementById('code');
-}
 function getSaveBtn() {
     return document.getElementById('saveBtn');
 }
@@ -59,132 +55,12 @@ function getFixIndentationBtn() {
     return document.getElementById('fixIndentationBtn');
 }
 
-// Auto-indentation functions
-function getIndentationLevel(line) {
-    let level = 0;
-    for (let i = 0; i < line.length; i++) {
-        if (line[i] === ' ') {
-            level++;
-        } else {
-            break;
-        }
-    }
-    return Math.floor(level / INDENT_SIZE);
-}
-
-function getIndentationString(level) {
-    return INDENT_CHAR.repeat(level);
-}
-
-function handleAutoIndentation(event) {
-    const textarea = event.target;
-    const key = event.key;
-    
-    if (key === 'Enter') {
-        event.preventDefault();
-        
-        const start = textarea.selectionStart;
-        const end = textarea.selectionEnd;
-        const value = textarea.value;
-        
-        // Get the current line
-        const beforeCursor = value.substring(0, start);
-        const lines = beforeCursor.split('\n');
-        const currentLine = lines[lines.length - 1];
-        
-        // Calculate current indentation level
-        let currentIndentLevel = getIndentationLevel(currentLine);
-        
-        // Check if current line ends with {
-        const trimmedLine = currentLine.trim();
-        if (trimmedLine.endsWith('{')) {
-            currentIndentLevel++;
-        }
-        
-        // Create the new line with proper indentation
-        const newLine = '\n' + getIndentationString(currentIndentLevel);
-        
-        // Insert the new line
-        const newValue = value.substring(0, start) + newLine + value.substring(end);
-        textarea.value = newValue;
-        
-        // Set cursor position after the indentation
-        const newCursorPos = start + newLine.length;
-        textarea.setSelectionRange(newCursorPos, newCursorPos);
-        
-        return false;
-    }
-    
-    return true;
-}
-
-function handleBraceIndentation(event) {
-    const textarea = event.target;
-    const key = event.key;
-    
-    if (key === '}') {
-        const start = textarea.selectionStart;
-        const end = textarea.selectionEnd;
-        const value = textarea.value;
-        
-        // Get the current line
-        const beforeCursor = value.substring(0, start);
-        const lines = beforeCursor.split('\n');
-        const currentLine = lines[lines.length - 1];
-        
-        // Calculate current indentation level
-        let currentIndentLevel = getIndentationLevel(currentLine);
-        
-        // If we're at the beginning of the line (after indentation), decrease indentation
-        const trimmedBeforeCursor = currentLine.trim();
-        if (trimmedBeforeCursor === '') {
-            // We're at the beginning of the line, decrease indentation
-            currentIndentLevel = Math.max(0, currentIndentLevel - 1);
-            
-            // Replace the current line's indentation
-            const newIndentation = getIndentationString(currentIndentLevel);
-            const lineStart = start - (currentLine.length - currentLine.trimStart().length);
-            const newValue = value.substring(0, lineStart) + newIndentation + '}' + value.substring(end);
-            textarea.value = newValue;
-            
-            // Set cursor position after the }
-            const newCursorPos = lineStart + newIndentation.length + 1;
-            textarea.setSelectionRange(newCursorPos, newCursorPos);
-            
-            // Prevent the default behavior to avoid duplicate }
-            event.preventDefault();
-            return false;
-        }
-    }
-    
-    return true;
-}
-
-function setupAutoIndentation() {
-    const textarea = getCodeArea();
-    if (textarea) {
-        textarea.addEventListener('keydown', (event) => {
-            if (!handleAutoIndentation(event)) {
-                return;
-            }
-            if (!handleBraceIndentation(event)) {
-                return;
-            }
-        });
-    }
-}
-
 function fixIndentation() {
-    const textarea = getCodeArea();
-    if (!textarea) return;
-    
-    const originalCode = textarea.value;
-    
+    const originalCode = window.getCodeValue();
+    if (!originalCode) return;
     try {
-        // Test the code first using masterValidateCode
-        const parserConfig = getParserConfig();
-        // Use masterValidateCode instead of CarLangParser.parse
-        const result = masterValidateCode(originalCode, parserConfig, carRegistry, level, null);
+        // Use ONLY_USE_THIS_TO_VALIDATE for validation
+        const result = ONLY_USE_THIS_TO_VALIDATE();
         if (result.parseErrors && result.parseErrors.length > 0) {
             debug('Cannot fix indentation: Code has errors:\n' + result.parseErrors.join('\n'));
             return;
@@ -213,8 +89,8 @@ function fixIndentation() {
                 currentIndentLevel++;
             }
         }
-        // Update the textarea with fixed indentation
-        textarea.value = fixedLines.join('\n');
+        // Update the code using CodeMirror API
+        window.setCodeValue(fixedLines.join('\n'));
         // Show success message
         const fixBtn = getFixIndentationBtn();
         if (fixBtn) {
@@ -229,25 +105,24 @@ function fixIndentation() {
 function loadCode() {
     const saved = localStorage.getItem('sdRacer_code_' + currentLevelId);
     if (saved !== null) {
-        codeArea.value = saved;
+        window.setCodeValue(saved);
     } else if (level && level.defaultCode) {
-        codeArea.value = level.defaultCode;
+        window.setCodeValue(level.defaultCode);
     } else {
-        codeArea.value = DEFAULT_CODE;
+        window.setCodeValue(DEFAULT_CODE);
     }
 }
 
 function loadDefaultCode() {
     if (level && level.defaultCode) {
-        codeArea.value = level.defaultCode;
+        window.setCodeValue(level.defaultCode);
     } else {
-        codeArea.value = DEFAULT_CODE;
+        window.setCodeValue(DEFAULT_CODE);
     }
-    updateLineNumbers();
 }
 
 function saveCode() {
-    localStorage.setItem('sdRacer_code_' + currentLevelId, codeArea.value);
+    localStorage.setItem('sdRacer_code_' + currentLevelId, window.getCodeValue());
     saveBtn.textContent = 'Saved!';
     setTimeout(() => saveBtn.textContent = 'Save', 1000);
     // Removed validation on save
@@ -592,9 +467,6 @@ function loadCustomLevel(levelData) {
     const url = new URL(window.location);
     url.searchParams.set('levelId', 'custom');
     window.history.pushState({}, '', url);
-    
-    // Update line numbers
-    updateLineNumbers();
 }
 
 function resetGame() {
@@ -797,12 +669,14 @@ async function playCode() {
     try {
         // Always show UI validation feedback when Play is pressed
         validateCodeForUI();
-        // Check if button is in "Finished" state - if so, just reset and change button back to Play
-        if (playBtn.textContent === 'Finished') {
-            resetLevelState();
+        // Use ONLY_USE_THIS_TO_VALIDATE for validation before running
+        const result = ONLY_USE_THIS_TO_VALIDATE();
+        if (result.parseErrors && result.parseErrors.length > 0) {
+            let errorMsg = 'Parse errors:\n' + result.parseErrors.join('\n');
+            debug(errorMsg, null, 'error');
             playBtn.textContent = 'Play';
             playBtn.disabled = false;
-            return; // Don't restart execution automatically
+            return;
         }
         playBtn.disabled = true;
         playBtn.textContent = 'Playing';
@@ -817,7 +691,7 @@ async function playCode() {
                 carNames = level.cars.map(car => car.name);
             }
         }
-        const code = codeArea.value;
+        const code = window.getCodeValue();
         const gameDiv = document.getElementById('game');
         const parser = new CarLangParser(mode, carNames);
         const ast = parser.parse(code);
@@ -830,13 +704,20 @@ async function playCode() {
             playBtn.disabled = false;
             return;
         }
-        // Build a car map for execution (name -> Car instance)
+        // Build a car map for execution using game helpers
         let carMap = {};
         if (mode === 'oop' && Array.isArray(level.cars)) {
+            const registry = getCarRegistry();
             for (const car of level.cars) {
-                if (carRegistry && carRegistry[car.name]) {
-                    carMap[car.name] = carRegistry[car.name];
+                if (registry && registry[car.name]) {
+                    carMap[car.name] = registry[car.name];
                 }
+            }
+        } else if (mode === 'single') {
+            const defaultCar = getDefaultCar();
+            if (defaultCar) {
+                carMap.mainCar = defaultCar;
+                carMap.default = defaultCar;
             }
         }
         // Store interpreter globally for reset functionality
@@ -941,7 +822,6 @@ function resetCode() {
 }
 
 function startGame() {
-    codeArea = getCodeArea();
     saveBtn = getSaveBtn();
     loadBtn = getLoadBtn();
     playBtn = getPlayBtn();
@@ -960,19 +840,7 @@ function startGame() {
     const fixIndentationBtn = getFixIndentationBtn();
     if (fixIndentationBtn) fixIndentationBtn.onclick = fixIndentation;
     
-    // Set up auto-indentation for the code editor
-    setupAutoIndentation();
-    
-    // Set up line number updates
-    codeArea.addEventListener('input', updateLineNumbers);
-    codeArea.addEventListener('input', updateLineCount);
-    codeArea.addEventListener('scroll', () => {
-        const lineNumbersDiv = document.getElementById('line-numbers');
-        lineNumbersDiv.scrollTop = codeArea.scrollTop;
-    });
-    
-    // Initialize line numbers and line count
-    updateLineNumbers();
+    // Initialize line count
     updateLineCount();
     
     // Set up info overlay buttons
@@ -1007,65 +875,22 @@ function goHome() {
     window.location.href = '/sdRacer/';
 }
 
-// Line highlighting functions
-function updateLineNumbers() {
-    const lineNumbersDiv = document.getElementById('line-numbers');
-    const codeText = codeArea.value;
-    const lines = codeText.split('\n');
-    
-    let lineNumbersHTML = '';
-    for (let i = 1; i <= lines.length; i++) {
-        lineNumbersHTML += `<div class="line-number">${i}</div>`;
-    }
-    
-    lineNumbersDiv.innerHTML = lineNumbersHTML;
-}
-
+// CodeMirror-based line highlighting
 function highlightLine(lineNumber, blockStartLine = null, contextType = null) {
-    // Clear previous highlighting
-    clearLineHighlighting();
-    
-    if (lineNumber && lineNumber > 0) {
-        const lineNumbersDiv = document.getElementById('line-numbers');
-        const lineNumberElements = lineNumbersDiv.querySelectorAll('.line-number');
-        
-        if (lineNumber <= lineNumberElements.length) {
-            // Highlight current line
-            lineNumberElements[lineNumber - 1].classList.add('current-line');
-            currentHighlightedLine = lineNumber;
-            
-            // Highlight block if we're in a control structure
-            if (blockStartLine && contextType && ['if-then', 'if-elseif', 'if-else', 'while', 'for'].includes(contextType)) {
-                highlightBlock(blockStartLine, lineNumberElements);
-                currentHighlightedBlock = blockStartLine;
-            }
-        }
+    // Remove previous highlight if needed
+    if (window._cmHighlightedLine != null) {
+        window.codeMirrorEditor.removeLineClass(window._cmHighlightedLine, 'background', 'cm-highlighted-line');
     }
-}
-
-function highlightBlock(blockStartLine, lineNumberElements) {
-    if (blockStartLine && blockStartLine > 0 && blockStartLine <= lineNumberElements.length) {
-        // Highlight the block start line with a different color
-        lineNumberElements[blockStartLine - 1].classList.add('block-start');
-    }
+    // Highlight the new line (CodeMirror is 0-based)
+    window.codeMirrorEditor.addLineClass(lineNumber - 1, 'background', 'cm-highlighted-line');
+    window._cmHighlightedLine = lineNumber - 1;
 }
 
 function clearLineHighlighting() {
-    const lineNumbersDiv = document.getElementById('line-numbers');
-    const lineNumberElements = lineNumbersDiv.querySelectorAll('.line-number');
-    
-    // Clear current line highlighting
-    if (currentHighlightedLine && lineNumberElements[currentHighlightedLine - 1]) {
-        lineNumberElements[currentHighlightedLine - 1].classList.remove('current-line');
+    if (window._cmHighlightedLine != null) {
+        window.codeMirrorEditor.removeLineClass(window._cmHighlightedLine, 'background', 'cm-highlighted-line');
+        window._cmHighlightedLine = null;
     }
-    
-    // Clear block highlighting
-    if (currentHighlightedBlock && lineNumberElements[currentHighlightedBlock - 1]) {
-        lineNumberElements[currentHighlightedBlock - 1].classList.remove('block-start');
-    }
-    
-    currentHighlightedLine = null;
-    currentHighlightedBlock = null;
 }
 
 // Car registry management functions
@@ -1458,7 +1283,7 @@ function updateLineCount() {
     const lineCountElement = document.getElementById('line-count');
     if (!lineCountElement) return;
     
-    const code = codeArea.value;
+    const code = window.getCodeValue();
     const lines = code.split('\n').filter(line => line.trim() !== '');
     const lineCount = lines.length;
     

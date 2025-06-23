@@ -169,6 +169,7 @@ class SoundController {
 
 // Create global sound controller instance
 const soundController = new SoundController();
+window.soundController = soundController;
 
 // Initialize sounds when the page loads
 document.addEventListener('DOMContentLoaded', () => {
