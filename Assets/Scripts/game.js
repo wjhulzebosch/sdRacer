@@ -417,8 +417,6 @@ function loadCustomLevel(levelData) {
     }
     window.cows = cows;
     loadDefaultCode();
-    // Update line count after loading default code
-    updateLineCount();
     // Auto-indent the loaded code
     autoIndent();
     // Display level instructions with mode information
@@ -506,6 +504,8 @@ function resetLevel() {
     
     // Load default code for the current level
     loadDefaultCode();
+    // Auto-indent the loaded code
+    autoIndent();
 }
 
 function resetLevelState() {
@@ -617,8 +617,6 @@ async function loadLevel(levelId) {
         // Update global cows array
         window.cows = cows;
         loadDefaultCode();
-        // Update line count after loading default code
-        updateLineCount();
         // Auto-indent the loaded code
         autoIndent();
         // Display level instructions with mode information
@@ -801,6 +799,8 @@ function resetCode() {
     
     // Reset code to level default
     loadDefaultCode();
+    // Auto-indent the loaded code
+    autoIndent();
     resetBtn.textContent = 'Reset code';
 }
 
