@@ -161,16 +161,59 @@
     <script type="module" src="Assets/Scripts/game.js"></script>
     <script type="module" src="Assets/Scripts/ui-code-validator.js"></script>
     <script src="Assets/External/CodeMirror/codemirror.min.js"></script>
+    <script>
+    // Improved CarLang mode for CodeMirror with working indentation
+    CodeMirror.defineMode('carlang', function(config) {
+        function makeIndent(level) {
+            if (config.indentWithTabs) {
+                return Array(level + 1).join('\t');
+            } else {
+                return Array(level * config.indentUnit + 1).join(' ');
+            }
+        }
+        return {
+            startState: function() { return {level: 0}; },
+            token: function(stream, state) {
+                if (stream.sol()) {
+                    // At start of line
+                }
+                if (stream.peek() === '{') {
+                    stream.next();
+                    state.level++;
+                    return 'bracket';
+                }
+                if (stream.peek() === '}') {
+                    stream.next();
+                    state.level = Math.max(0, state.level - 1);
+                    return 'bracket';
+                }
+                stream.skipToEnd();
+                return null;
+            },
+            indent: function(state, textAfter) {
+                let level = state.level;
+                if (/^}/.test(textAfter)) level = Math.max(0, level - 1);
+                return makeIndent(level);
+            },
+            electricChars: "{}",
+            lineComment: '//',
+            fold: 'brace',
+            copyState: function(state) { return {level: state.level}; }
+        };
+    });
+    </script>
     <script type="module">
     // Initialize CodeMirror
     window.codeMirrorEditor = CodeMirror(document.getElementById('code-editor'), {
         value: '',
         lineNumbers: true,
-        mode: 'javascript', // You can change this to your language
+        mode: 'carlang',
         theme: 'default',
         indentUnit: 4,
         tabSize: 4,
-        indentWithTabs: false,
+        smartIndent: true,
+        indentWithTabs: true,
+        electricChars: true,
         autofocus: true,
     });
     // Helper to get/set code (replace all codeArea.value usage in JS with these)

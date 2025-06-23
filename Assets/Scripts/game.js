@@ -45,50 +45,24 @@ function getFixIndentationBtn() {
 }
 
 function fixIndentation() {
-    const originalCode = window.getCodeValue();
-    if (!originalCode) return;
-    try {
-        // Use ONLY_USE_THIS_TO_VALIDATE for validation
-        const result = ONLY_USE_THIS_TO_VALIDATE();
-        if (result.parseErrors && result.parseErrors.length > 0) {
-            debug('Cannot fix indentation: Code has errors:\n' + result.parseErrors.join('\n'));
-            return;
-        }
-        // If no errors, proceed to fix indentation
-        const lines = originalCode.split('\n');
-        const fixedLines = [];
-        let currentIndentLevel = 0;
-        for (let i = 0; i < lines.length; i++) {
-            const line = lines[i];
-            const trimmedLine = line.trim();
-            // Skip empty lines but preserve them
-            if (trimmedLine === '') {
-                fixedLines.push('');
-                continue;
-            }
-            // Check if this line should decrease indentation (closing brace)
-            if (trimmedLine.startsWith('}')) {
-                currentIndentLevel = Math.max(0, currentIndentLevel - 1);
-            }
-            // Add the line with proper indentation
-            const indentation = getIndentationString(currentIndentLevel);
-            fixedLines.push(indentation + trimmedLine);
-            // Check if this line should increase indentation (opening brace)
-            if (trimmedLine.endsWith('{')) {
-                currentIndentLevel++;
-            }
-        }
-        // Update the code using CodeMirror API
-        window.setCodeValue(fixedLines.join('\n'));
-        // Show success message
-        const fixBtn = getFixIndentationBtn();
-        if (fixBtn) {
-            fixBtn.textContent = 'Fixed!';
-            setTimeout(() => fixBtn.textContent = 'Fix Indentation', 1000);
-        }
-    } catch (error) {
-        debug('Cannot fix indentation: ' + error.message);
+    if (!window.codeMirrorEditor) return;
+    const cm = window.codeMirrorEditor;
+    cm.operation(function() {
+        const lastLine = cm.lastLine();
+        cm.setSelection({line: 0, ch: 0}, {line: lastLine, ch: cm.getLine(lastLine).length});
+        cm.indentSelection('smart');
+        cm.setCursor({line: 0, ch: 0}); // Optionally reset cursor to start
+    });
+    const fixBtn = getFixIndentationBtn();
+    if (fixBtn) {
+        fixBtn.textContent = 'Fixed!';
+        setTimeout(() => fixBtn.textContent = 'Fix Indentation', 1000);
     }
+}
+
+function customIndentation(code) {
+    
+
 }
 
 function loadCode() {
