@@ -180,56 +180,46 @@ function fixIndentation() {
     const originalCode = textarea.value;
     
     try {
-        // Test the code first using the CarLang parser
+        // Test the code first using masterValidateCode
         const parserConfig = getParserConfig();
-        const parser = new CarLangParser(parserConfig.mode, parserConfig.availableCars);
-        const result = parser.parse(originalCode);
-        
-        if (result.errors && result.errors.length > 0) {
-            alert('Cannot fix indentation: Code has errors:\n' + result.errors.join('\n'));
+        // Use masterValidateCode instead of CarLangParser.parse
+        const result = masterValidateCode(originalCode, parserConfig, carRegistry, level, null);
+        if (result.parseErrors && result.parseErrors.length > 0) {
+            alert('Cannot fix indentation: Code has errors:\n' + result.parseErrors.join('\n'));
             return;
         }
-        
         // If no errors, proceed to fix indentation
         const lines = originalCode.split('\n');
         const fixedLines = [];
         let currentIndentLevel = 0;
-        
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
             const trimmedLine = line.trim();
-            
             // Skip empty lines but preserve them
             if (trimmedLine === '') {
                 fixedLines.push('');
                 continue;
             }
-            
             // Check if this line should decrease indentation (closing brace)
             if (trimmedLine.startsWith('}')) {
                 currentIndentLevel = Math.max(0, currentIndentLevel - 1);
             }
-            
             // Add the line with proper indentation
             const indentation = getIndentationString(currentIndentLevel);
             fixedLines.push(indentation + trimmedLine);
-            
             // Check if this line should increase indentation (opening brace)
             if (trimmedLine.endsWith('{')) {
                 currentIndentLevel++;
             }
         }
-        
         // Update the textarea with fixed indentation
         textarea.value = fixedLines.join('\n');
-        
         // Show success message
         const fixBtn = getFixIndentationBtn();
         if (fixBtn) {
             fixBtn.textContent = 'Fixed!';
             setTimeout(() => fixBtn.textContent = 'Fix Indentation', 1000);
         }
-        
     } catch (error) {
         alert('Cannot fix indentation: ' + error.message);
     }
@@ -259,11 +249,7 @@ function saveCode() {
     localStorage.setItem('sdRacer_code_' + currentLevelId, codeArea.value);
     saveBtn.textContent = 'Saved!';
     setTimeout(() => saveBtn.textContent = 'Save', 1000);
-    
-    // Trigger live parser update
-    if (window.liveParser) {
-        window.liveParser.checkCode();
-    }
+    // Removed validation on save
 }
 
 function handleLoadBtn() {
