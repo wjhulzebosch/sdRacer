@@ -4,7 +4,7 @@
  */
 
 import CarLangParser from './CarLang-parser.js';
-import CarLangEngine from './NewCarLangEngine.js';
+import CarLangEngine from './carlang-engine.js';
 
 export function ONLY_USE_THIS_TO_VALIDATE() {
     // Get the code from the textarea
@@ -24,25 +24,17 @@ export function ONLY_USE_THIS_TO_VALIDATE() {
  * @returns {object} { ast, parseErrors, validation, valid }
  */
 export function masterValidateCode(code, level, gameDiv) {
-    if (typeof window === 'undefined' || !window.world) {
-        throw new Error('World is not loaded yet. Please load a level before validating or parsing code.');
-    }
     // Use level.isSingleMode() and level.cars as the single source of truth
     let mode = 'single';
     let carNames = [];
-    if (typeof window !== 'undefined') {
-        console.debug('[CarLang VALIDATOR] window.level:', window.level);
-        console.debug('[CarLang VALIDATOR] window.world:', window.world);
-    }
     if (level && typeof level.isSingleMode === 'function' && !level.isSingleMode()) {
         mode = 'oop';
         if (Array.isArray(level.cars)) {
             carNames = level.cars.map(car => car.name);
         }
     }
-    console.debug('[CarLang VALIDATOR] mode:', mode, 'carNames:', carNames, 'level:', level);
     const parser = new CarLangParser(mode, carNames);
-    const ast = parser.parse(code, { mode, availableCars: carNames });
+    const ast = parser.parse(code);
     const parseErrors = ast.errors || [];
     let validation = { valid: true, errors: [], warnings: [] };
     if (parseErrors.length === 0) {
