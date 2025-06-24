@@ -322,6 +322,7 @@ class World {
                         tileDiv.style.top = (y * tileSize) + 'px';
                         tileDiv.style.width = tileSize + 'px';
                         tileDiv.style.height = tileSize + 'px';
+                        tileDiv.style.zIndex = '1';
                         
                         // Set tile texture based on road type
                         const roadType = tile.getRoadType();

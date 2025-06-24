@@ -195,6 +195,7 @@ class Cow extends Entity {
             cowDiv.style.backgroundSize = 'contain';
             cowDiv.style.position = 'absolute';
             cowDiv.style.transition = 'left 1s ease, top 1s ease, transform 1s ease';
+            cowDiv.style.zIndex = '2';
             gameDiv.appendChild(cowDiv);
         }
         

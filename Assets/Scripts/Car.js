@@ -239,6 +239,7 @@ class Car extends Entity {
             carDiv.style.height = tileSize + 'px';
             carDiv.style.position = 'absolute';
             carDiv.style.transition = 'left 1s linear, top 1s linear, transform 1s linear';
+            carDiv.style.zIndex = '2';
             gameDiv.appendChild(carDiv);
         }
         

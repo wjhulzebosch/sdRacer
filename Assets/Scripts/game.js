@@ -728,7 +728,10 @@ async function playCode() {
             throw new Error('CRITICAL: Game div not found in DOM during playCode');
         }
         
-        const parser = new CarLangParser(world, carNames);
+        // Use long names with "Car" suffix for cleaner syntax
+        const availableCars = carNames.map(carName => carName + 'Car');
+        
+        const parser = new CarLangParser(world, availableCars);
         if (!parser) {
             throw new Error('CRITICAL: Failed to create CarLangParser instance');
         }
@@ -763,7 +766,9 @@ async function playCode() {
                         throw new Error('CRITICAL: Car missing carType: ' + JSON.stringify(car));
                     }
                     const carName = car.carType || 'default';
-                    carMap[carName] = car;
+                    // Use long name with "Car" suffix for execution
+                    const carNameWithSuffix = carName + 'Car';
+                    carMap[carNameWithSuffix] = car;
                 });
             } else {
                 // Single car mode
@@ -1107,6 +1112,10 @@ function initializeCarRegistry(levelConfig) {
             
             carRegistry[carName] = car;
             
+            // Also register with "Car" suffix for better syntax (e.g., blueCar, redCar)
+            const carNameWithSuffix = carName + 'Car';
+            carRegistry[carNameWithSuffix] = car;
+            
             // Set first car as default for backward compatibility
             if (index === 0) {
                 defaultCar = car;
@@ -1179,9 +1188,12 @@ function getParserConfig() {
     const mode = world.getMode();
     const carNames = world.getCarNames();
     
+    // Only use long names with "Car" suffix
+    const availableCars = carNames.map(carName => carName + 'Car');
+    
     return {
         mode: mode,
-        availableCars: carNames
+        availableCars: availableCars
     };
 }
 
@@ -1533,7 +1545,10 @@ function initializeCarRegistryFromWorld() {
         }
         
         const carName = car.carType || 'default';
-        carRegistry[carName] = car;
+        
+        // Only register with "Car" suffix for cleaner syntax (e.g., blueCar, redCar)
+        const carNameWithSuffix = carName + 'Car';
+        carRegistry[carNameWithSuffix] = car;
         
         // For backward compatibility, set default car
         if (!defaultCar || carName === 'default') {

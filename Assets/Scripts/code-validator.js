@@ -32,7 +32,10 @@ export function masterValidateCode(code, world, gameDiv) {
     const mode = world.getMode();
     const carNames = world.getCarNames();
     
-    const parser = new CarLangParser(world, carNames);
+    // Use long names with "Car" suffix for cleaner syntax
+    const availableCars = carNames.map(carName => carName + 'Car');
+    
+    const parser = new CarLangParser(world, availableCars);
     const ast = parser.parse(code);
     const parseErrors = ast.errors || [];
     let validation = { valid: true, errors: [], warnings: [] };
@@ -40,7 +43,7 @@ export function masterValidateCode(code, world, gameDiv) {
         // Build a car map for validation (name -> dummy object)
         let carMap = {};
         if (mode === 'oop') {
-            carNames.forEach(carName => {
+            availableCars.forEach(carName => {
                 carMap[carName] = {}; // dummy object for validation
             });
         }

@@ -20,6 +20,7 @@ body {
     background: #111;
     box-shadow: 0 4px 24px #000a;
     border-radius: 12px;
+    position: relative;
 }
 .right-panel {
     display: flex;
