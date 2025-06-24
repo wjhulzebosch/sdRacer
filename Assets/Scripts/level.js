@@ -47,8 +47,7 @@ class Level {
         const tileSize = 64;
         gameDiv.innerHTML = '';
         gameDiv.style.position = 'relative';
-        gameDiv.style.width = (this.width * tileSize) + 'px';
-        gameDiv.style.height = (this.height * tileSize) + 'px';
+        // Remove JavaScript sizing - let CSS handle it
 
         for (let y = 0; y < this.tiles.length; y++) {
             for (let x = 0; x < this.tiles[y].length; x++) {

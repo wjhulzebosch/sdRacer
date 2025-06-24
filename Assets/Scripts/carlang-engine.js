@@ -65,7 +65,9 @@ class CarLangEngine {
             'isRoadAhead': () => this.defaultCar.isRoadAhead(this.world),
             'isCowAhead': () => this.defaultCar.isCowAhead(this.world),
             'honk': () => this.honk(),
-            'not': (value) => !value
+            'not': (value) => !value,
+            'GetDirectionToFinish': () => this.defaultCar.getDirectionToFinish(this.world),
+            'GetCurrentDirection': () => this.defaultCar.getCurrentDirection()
         };
         
         // Function validation rules
@@ -77,7 +79,9 @@ class CarLangEngine {
             'explode': { args: 0, description: 'Make car crash' },
             'isRoadAhead': { args: 0, description: 'Check if there is a road ahead (ignores cows)' },
             'isCowAhead': { args: 0, description: 'Check if there is a cow ahead (ignores roads)' },
-            'honk': { args: 0, description: 'Honk the car horn' }
+            'honk': { args: 0, description: 'Honk the car horn' },
+            'GetDirectionToFinish': { args: 0, description: 'Get direction to finish line (North, East, South, West, or null if no path)' },
+            'GetCurrentDirection': { args: 0, description: 'Get current car direction (North, East, South, West)' }
         };
     }
 
@@ -1190,7 +1194,9 @@ class CarLangEngine {
             'explode': () => car.crash(this.gameDiv),
             'isRoadAhead': () => car.isRoadAhead(this.world),
             'isCowAhead': () => car.isCowAhead(this.world),
-            'honk': () => this.honkForCar(car)
+            'honk': () => this.honkForCar(car),
+            'GetDirectionToFinish': () => car.getDirectionToFinish(this.world),
+            'GetCurrentDirection': () => car.getCurrentDirection()
         };
         
         // Execute the method

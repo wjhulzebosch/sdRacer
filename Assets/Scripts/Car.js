@@ -285,6 +285,38 @@ class Car extends Entity {
         carDiv.style.backgroundImage = `url('${texturePath}')`;
         carDiv.style.backgroundSize = 'contain';
     }
+    
+    // Get direction to finish using GPS
+    getDirectionToFinish(world) {
+        if (!world || !world.gps) {
+            console.log('[Car] GPS not available for direction to finish');
+            return null;
+        }
+        
+        // Find finish entity
+        const finishes = world.getEntitiesOfType('finish');
+        if (finishes.length === 0) {
+            console.log('[Car] No finish found in world');
+            return null;
+        }
+        
+        const finish = finishes[0]; // Use first finish
+        const currentPos = { x: this.x, y: this.y };
+        const finishPos = { x: finish.x, y: finish.y };
+        
+        return world.gps.getDirection(currentPos, finishPos);
+    }
+    
+    // Get current direction as string
+    getCurrentDirection() {
+        const directionMap = {
+            'N': 'North',
+            'E': 'East', 
+            'S': 'South',
+            'W': 'West'
+        };
+        return directionMap[this.direction] || null;
+    }
 }
 
 export default Car; 
