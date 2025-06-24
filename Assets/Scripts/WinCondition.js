@@ -30,7 +30,13 @@ class WinCondition {
     
     checkSingleCarWin(world) {
         const finishEntities = world.getEntitiesOfType('finish');
-        return finishEntities.some(finish => finish.checkWinCondition(world));
+        const result = finishEntities.some(finish => {
+            const winResult = finish.checkWinCondition(world);
+            debug(`[WinCondition] Finish at (${finish.x}, ${finish.y}) checkWinCondition returned: ${winResult}`);
+            return winResult;
+        });
+        debug(`[WinCondition] checkSingleCarWin final result: ${result}`);
+        return result;
     }
     
     checkMultiCarWin(world) {

@@ -182,11 +182,25 @@ function isAtFinish() {
         throw new Error('CRITICAL: isAtFinish called but world is null/undefined');
     }
     
+    // Debug: Show car and finish positions
+    const cars = world.getEntitiesOfType('car');
+    const finishes = world.getEntitiesOfType('finish');
+    
+    debug(`[isAtFinish] Cars: ${cars.map(car => `${car.carType} at (${car.x}, ${car.y})`).join(', ')}`);
+    debug(`[isAtFinish] Finishes: ${finishes.map(f => `at (${f.x}, ${f.y})`).join(', ')}`);
+    
+    // Debug: Show ALL entities to check for duplicates
+    debug(`[isAtFinish] ALL entities in world: ${Array.from(world.entities.values()).map(({entity, x, y}) => `${entity.type} ${entity.id} at (${x}, ${y})`).join(', ')}`);
+    
     // Use world's win condition system
     const result = world.checkWinCondition();
     if (typeof result !== 'boolean') {
         throw new Error('CRITICAL: world.checkWinCondition() returned non-boolean: ' + typeof result + ' - ' + JSON.stringify(result));
     }
+    
+    // Debug logging
+    debug(`[isAtFinish] Called, result: ${result}`);
+    
     return result;
 }
 
@@ -677,6 +691,14 @@ async function loadLevel(levelId) {
 
 async function playCode() {
     try {
+        // Hide any existing win message at the start
+        hideWinMessage();
+        
+        if (isGameRunning) {
+            debug('Game is already running', null, 'warning');
+            return;
+        }
+
         autoIndent();
         
         // Always show UI validation feedback when Play is pressed

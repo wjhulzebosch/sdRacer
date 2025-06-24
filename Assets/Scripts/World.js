@@ -291,12 +291,19 @@ class World {
     
     // Reset world to initial state
     reset() {
+        debug(`[World.reset] Starting reset. Entities before reset: ${Array.from(this.entities.values()).map(({entity, x, y}) => `${entity.type} ${entity.id} at (${x}, ${y})`).join(', ')}`);
+        
         // Reset all entities to their initial positions
         this.entities.forEach(({ entity }) => {
             if (entity.reset) {
+                debug(`[World.reset] Resetting entity ${entity.type} ${entity.id}`);
                 entity.reset();
+            } else {
+                debug(`[World.reset] Entity ${entity.type} ${entity.id} has no reset method`);
             }
         });
+        
+        debug(`[World.reset] Reset complete. Entities after reset: ${Array.from(this.entities.values()).map(({entity, x, y}) => `${entity.type} ${entity.id} at (${x}, ${y})`).join(', ')}`);
     }
     
     // Render world to game div

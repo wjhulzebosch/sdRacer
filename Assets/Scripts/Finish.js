@@ -17,7 +17,10 @@ class Finish extends Entity {
     
     checkWinCondition(world) {
         const entities = world.getEntitiesAt(this.x, this.y);
-        return entities.some(entity => entity.type === 'car');
+        debug(`[Finish] checkWinCondition at (${this.x}, ${this.y}) found entities: ${entities.map(e => `${e.type} at (${e.x}, ${e.y})`).join(', ')}`);
+        const result = entities.some(entity => entity.type === 'car');
+        debug(`[Finish] checkWinCondition result: ${result}`);
+        return result;
     }
     
     // Get all cars at the finish

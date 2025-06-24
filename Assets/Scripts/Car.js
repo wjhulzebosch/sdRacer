@@ -33,10 +33,18 @@ class Car extends Entity {
     
     // Reset car to initial state
     reset() {
+        const oldX = this.x;
+        const oldY = this.y;
+        
         this.setPosition(this.initialX, this.initialY);
         this.direction = this.initialDirection;
         this.crashed = false;
         this.visualRotation = 0;
+        
+        // Update World's entity tracking if world exists
+        if (window.world) {
+            window.world.moveEntity(this, oldX, oldY, this.initialX, this.initialY);
+        }
         
         // Immediately update visual position without transitions
         const gameDiv = document.getElementById('game');
