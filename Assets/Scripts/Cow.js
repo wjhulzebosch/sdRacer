@@ -121,7 +121,7 @@ class Cow extends Entity {
         if (this.isMoving) {
             return; // Prevent multiple simultaneous moves
         }
-        
+
         this.isMoving = true;
         
         // Play cow sound if available
@@ -129,22 +129,6 @@ class Cow extends Entity {
             soundController.playCow();
         }
 
-        // Animate movement over 1 second (with correct rotation)
-        if (this.element) {
-            // Determine which direction to face based on target
-            let targetDirection;
-            if (this.targetX === this.defaultX && this.targetY === this.defaultY) {
-                // Moving to default position
-                targetDirection = this.defaultDirection;
-            } else {
-                // Moving to secondary position
-                targetDirection = this.secondaryDirection;
-            }
-            
-            this.element.style.transition = 'transform 1s ease-in-out';
-            this.element.style.transform = `translate(${this.targetX * 64}px, ${this.targetY * 64}px) rotate(${targetDirection}deg)`;
-        }
-        
         // Update position immediately for collision detection
         const currentPos = this.getPosition();
         const targetPos = this.isAtDefaultPosition() 
@@ -154,10 +138,15 @@ class Cow extends Entity {
         world.moveEntity(this, currentPos.x, currentPos.y, targetPos.x, targetPos.y);
         this.setPosition(targetPos.x, targetPos.y);
 
-        // Movement is complete after 1 second
+        // Force immediate render to show movement
+        window.world.render(document.getElementById('game'));
+
+        // Movement is complete after a short delay
         setTimeout(() => {
             this.isMoving = false;
         }, 1000);
+        
+        // Fix rotation after movement completes
         setTimeout(() => {
             this.fixVisualRotationAfterMovement();
         }, 1000);
@@ -205,7 +194,7 @@ class Cow extends Entity {
             cowDiv.style.backgroundImage = 'url("Assets/Textures/Cow.png")';
             cowDiv.style.backgroundSize = 'contain';
             cowDiv.style.position = 'absolute';
-            cowDiv.style.transition = 'left 0.3s ease, top 0.3s ease, transform 0.3s ease';
+            cowDiv.style.transition = 'left 1s ease, top 1s ease, transform 1s ease';
             gameDiv.appendChild(cowDiv);
         }
         
@@ -213,14 +202,16 @@ class Cow extends Entity {
         cowDiv.style.left = (this.x * tileSize) + 'px';
         cowDiv.style.top = (this.y * tileSize) + 'px';
         
-        // Set rotation based on current position
-        let rotation = 0;
-        if (this.isAtDefaultPosition()) {
-            rotation = this.secondaryDirection;
-        } else {
-            rotation = this.defaultDirection;
+        // Only update rotation if not moving (keep current rotation during movement)
+        if (!this.isMoving) {
+            let rotation = 0;
+            if (this.isAtDefaultPosition()) {
+                rotation = this.secondaryDirection;
+            } else {
+                rotation = this.defaultDirection;
+            }
+            cowDiv.style.transform = `rotate(${rotation}deg)`;
         }
-        cowDiv.style.transform = `rotate(${rotation}deg)`;
     }
     
     // Remove cow from the game grid
