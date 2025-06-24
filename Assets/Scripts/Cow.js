@@ -230,10 +230,19 @@ class Cow extends Entity {
     
     // Reset cow to default state
     reset() {
+        const oldX = this.x;
+        const oldY = this.y;
+        
         this.setPosition(this.defaultX, this.defaultY);
         this.targetX = this.secondaryX;
         this.targetY = this.secondaryY;
         this.isMoving = false;
+        
+        // Update World's entity tracking if world exists
+        if (window.world) {
+            window.world.moveEntity(this, oldX, oldY, this.defaultX, this.defaultY);
+        }
+        
         this.updateVisualPosition();
     }
     
