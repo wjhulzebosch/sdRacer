@@ -1,23 +1,30 @@
-import World from './World.js';
-import NewCar from './NewCar.js';
-import NewCow from './NewCow.js';
-import Finish from './Finish.js';
-import WinCondition from './WinCondition.js';
+import Car from './Car.js';
+import Cow from './Cow.js';
+import Level from './level.js';
 import CarLangParser from './CarLang-parser.js';
-import NewCarLangEngine from './NewCarLangEngine.js';
+import CarLangEngine from './carlang-engine.js';
 import { soundController } from './soundController.js';
 import { ONLY_USE_THIS_TO_VALIDATE } from './code-validator.js';
 import { validateCodeForUI } from './ui-code-validator.js';
 
+// For now, hardcode a level id and default code
 const DEFAULT_CODE = `// Write your CarLang code here!`;
 
 let saveBtn, loadBtn, playBtn, resetBtn;
+// Car registry system
+let carRegistry = {};
+let defaultCar = null; // For backward compatibility
+let level = null;
 let currentLevelId = null;
+let finishPos = null;
 let allLevels = [];
-let currentLevelData = null;
+let cows = []; // Array to store cow instances
+let currentLevelData = null; // Track current level configuration
 let currentCustomLevelData = null;
-let isGameRunning = false;
-let world = null;
+let isGameRunning = false; // Track if game is currently running
+
+// Make cows globally accessible for CarLang engine
+window.cows = cows;
 
 function getSaveBtn() {
     return document.getElementById('saveBtn');
@@ -81,16 +88,16 @@ function loadCode() {
     const saved = localStorage.getItem('sdRacer_code_' + currentLevelId);
     if (saved !== null) {
         window.setCodeValue(saved);
-    } else if (world && world.defaultCode) {
-        window.setCodeValue(world.defaultCode);
+    } else if (level && level.defaultCode) {
+        window.setCodeValue(level.defaultCode);
     } else {
         window.setCodeValue(DEFAULT_CODE);
     }
 }
 
 function loadDefaultCode() {
-    if (world && world.defaultCode) {
-        window.setCodeValue(world.defaultCode);
+    if (level && level.defaultCode) {
+        window.setCodeValue(level.defaultCode);
     } else {
         window.setCodeValue(DEFAULT_CODE);
     }
@@ -168,15 +175,24 @@ function hideInfoOverlay() {
 }
 
 function isAtFinish() {
-    return world ? world.checkWinCondition() : false;
+    if (!finishPos) return false;
+    
+    // Check if any car is at the finish position
+    const allCars = Object.values(carRegistry);
+    const carsAtFinish = allCars.filter(car => 
+        car.currentPosition.x === finishPos[0] && car.currentPosition.y === finishPos[1]
+    );
+    
+    // Log which cars are at the finish for debugging
+    if (carsAtFinish.length > 0) {
+        debug(`Cars at finish: ${carsAtFinish.map(car => car.carType || 'default').join(', ')}`);
+    }
+    
+    return carsAtFinish.length > 0;
 }
 
 function isPositionBlockedByCow(x, y) {
-    if (world) {
-        const entities = world.getEntitiesAt(x, y);
-        return entities.some(entity => entity.type === 'cow');
-    }
-    return false;
+    return cows.some(cow => cow.blocksMovement(x, y));
 }
 
 function setupWinButtons() {
@@ -370,24 +386,37 @@ function loadCustomLevel(levelData) {
     
     // Set current level ID to custom
     currentLevelId = 'custom';
-    
-    // NEW: Create World instance
-    const height = levelData.rows.length + 2;
-    const width = levelData.rows[0] ? levelData.rows[0].length + 2 : 2;
-    world = new World(width, height);
-    window.world = world;
-    world.loadLevelData(levelData);
-    
+    // Create level object
+    level = new Level({
+        instruction: levelData.Instructions || '',
+        defaultCode: unescapeLineBreaks(levelData.defaultCode || ''),
+        tiles: levelData.rows,
+        cars: levelData.cars || null
+    });
+    window.level = level;
     const gameDiv = document.getElementById('game');
     // Set finish position
-    const finishPos = Array.isArray(levelData.end) ? [levelData.end[1] + 1, levelData.end[0] + 1] : undefined;
-    world.render(gameDiv, finishPos);
-    
+    finishPos = Array.isArray(levelData.end) ? [levelData.end[1] + 1, levelData.end[0] + 1] : undefined;
+    level.render(gameDiv, finishPos);
+    // Initialize car registry based on level configuration
+    initializeCarRegistry(levelData);
     updateModeIndicator();
-    
-    // NEW: Render entities from World
-    renderWorldEntities(gameDiv);
-    
+    // Create and render cows if they exist in the level data
+    cows = [];
+    if (levelData.cows && Array.isArray(levelData.cows)) {
+        levelData.cows.forEach(cowData => {
+            // Swap x and y and add +1 for grass border (same as car)
+            const cow = new Cow(
+                cowData.defaultX + 1, 
+                cowData.defaultY + 1, 
+                cowData.secondaryX + 1, 
+                cowData.secondaryY + 1
+            );
+            cow.addToGrid(gameDiv);
+            cows.push(cow);
+        });
+    }
+    window.cows = cows;
     loadDefaultCode();
     // Auto-indent the loaded code
     autoIndent();
@@ -417,14 +446,15 @@ function resetGame() {
     // Hide car status indicator
     hideCarStatus();
     
-    // NEW: Reset World if available
-    if (world) {
-        world.reset();
-        const gameDiv = document.getElementById('game');
-        if (gameDiv) {
-            renderWorldEntities(gameDiv);
-        }
+    // Reinitialize car registry to reset cars to initial positions
+    if (currentLevelData) {
+        initializeCarRegistry(currentLevelData);
     }
+    
+    // Reset cows to their initial positions
+    cows.forEach(cow => {
+        cow.reset();
+    });
     
     // Clear any existing highlighting
     clearLineHighlighting();
@@ -451,14 +481,15 @@ function resetLevel() {
     // Hide car status indicator
     hideCarStatus();
     
-    // NEW: Reset World if available
-    if (world) {
-        world.reset();
-        const gameDiv = document.getElementById('game');
-        if (gameDiv) {
-            renderWorldEntities(gameDiv);
-        }
+    // Reinitialize car registry to reset cars to initial positions
+    if (currentLevelData) {
+        initializeCarRegistry(currentLevelData);
     }
+    
+    // Reset cows to their initial positions
+    cows.forEach(cow => {
+        cow.reset();
+    });
     
     // Clear any existing highlighting
     clearLineHighlighting();
@@ -484,14 +515,15 @@ function resetLevelState() {
     // Hide car status indicator
     hideCarStatus();
     
-    // NEW: Reset World if available
-    if (world) {
-        world.reset();
-        const gameDiv = document.getElementById('game');
-        if (gameDiv) {
-            renderWorldEntities(gameDiv);
-        }
+    // Reinitialize car registry to reset cars to initial positions
+    if (currentLevelData) {
+        initializeCarRegistry(currentLevelData);
     }
+    
+    // Reset cows to their initial positions
+    cows.forEach(cow => {
+        cow.reset();
+    });
     
     // Clear any existing highlighting
     clearLineHighlighting();
@@ -547,23 +579,46 @@ async function loadLevel(levelId) {
             return typeof str === 'string' ? str.replace(/\\n/g, '\n') : str;
         }
         
-        // NEW: Create World instance
-        const height = levelData.rows.length + 2;
-        const width = levelData.rows[0] ? levelData.rows[0].length + 2 : 2;
-        world = new World(width, height);
-        window.world = world;
-        world.loadLevelData(levelData);
-        
+        level = new Level({
+            instruction: levelData.Instructions || '',
+            defaultCode: unescapeLineBreaks(levelData.defaultCode || ''),
+            tiles: levelData.rows,
+            cars: levelData.cars || null
+        });
+        window.level = level;
         const gameDiv = document.getElementById('game');
         // Swap x and y for finish position and add +1 for grass border
-        const finishPos = Array.isArray(levelData.end) ? [levelData.end[1] + 1, levelData.end[0] + 1] : undefined;
-        world.render(gameDiv, finishPos);
+        finishPos = Array.isArray(levelData.end) ? [levelData.end[1] + 1, levelData.end[0] + 1] : undefined;
+        level.render(gameDiv, finishPos);
         
+        // Initialize car registry based on level configuration
+        initializeCarRegistry(levelData);
+        
+        // Update UI elements
         updateModeIndicator();
-        
-        // NEW: Render entities from World
-        renderWorldEntities(gameDiv);
-        
+        // --- Remove old cow DOM elements before recreating cows ---
+        cows.forEach(cow => {
+            if (cow.element && cow.element.parentNode) {
+                cow.element.parentNode.removeChild(cow.element);
+            }
+        });
+        // Create and render cows if they exist in the level data
+        cows = [];
+        if (levelData.cows && Array.isArray(levelData.cows)) {
+            levelData.cows.forEach(cowData => {
+                // Swap x and y and add +1 for grass border (same as car)
+                const cow = new Cow(
+                    cowData.defaultX + 1, 
+                    cowData.defaultY + 1, 
+                    cowData.secondaryX + 1, 
+                    cowData.secondaryY + 1
+                );
+                cow.addToGrid(gameDiv);
+                cows.push(cow);
+            });
+        }
+        // Update global cows array
+        window.cows = cows;
         loadDefaultCode();
         // Auto-indent the loaded code
         autoIndent();
@@ -592,16 +647,6 @@ async function loadLevel(levelId) {
     }
 }
 
-function renderWorldEntities(gameDiv) {
-    if (!world || !gameDiv) return;
-    // Clear old cow elements only (keep cars for transitions)
-    gameDiv.querySelectorAll('.cow').forEach(el => el.remove());
-    // Render cars (they will reuse existing divs if available)
-    world.getEntitiesOfType('car').forEach(car => car.render(gameDiv));
-    // Render cows
-    world.getEntitiesOfType('cow').forEach(cow => cow.render(gameDiv));
-}
-
 async function playCode() {
     try {
         autoIndent();
@@ -620,13 +665,19 @@ async function playCode() {
         isGameRunning = true;
         hideWinMessage();
 
-        // Use canonical world methods for parser mode and available cars
-        let mode = world.getMode();
-        let carNames = world.getCarNames();
+        // Use the same logic as masterValidateCode for parser mode and available cars
+        let mode = 'single';
+        let carNames = [];
+        if (level && typeof level.isSingleMode === 'function' && !level.isSingleMode()) {
+            mode = 'oop';
+            if (Array.isArray(level.cars)) {
+                carNames = level.cars.map(car => car.name);
+            }
+        }
         const code = window.getCodeValue();
         const gameDiv = document.getElementById('game');
         const parser = new CarLangParser(mode, carNames);
-        const ast = parser.parse(code, { mode, availableCars: carNames });
+        const ast = parser.parse(code);
         const parseErrors = ast.errors || [];
         let validation = { valid: true, errors: [], warnings: [] };
         if (parseErrors.length > 0) {
@@ -637,18 +688,22 @@ async function playCode() {
         }
         // Build a car map for execution using game helpers
         let carMap = {};
-        if (mode === 'oop') {
-            const cars = world.getEntitiesOfType('car');
-            cars.forEach(car => { carMap[car.carType] = car; });
-        } else {
-            const cars = world.getEntitiesOfType('car');
-            if (cars.length > 0) {
-                carMap.mainCar = cars[0];
-                carMap.default = cars[0];
+        if (mode === 'oop' && Array.isArray(level.cars)) {
+            const registry = getCarRegistry();
+            for (const car of level.cars) {
+                if (registry && registry[car.name]) {
+                    carMap[car.name] = registry[car.name];
+                }
+            }
+        } else if (mode === 'single') {
+            const defaultCar = getDefaultCar();
+            if (defaultCar) {
+                carMap.mainCar = defaultCar;
+                carMap.default = defaultCar;
             }
         }
         // Store interpreter globally for reset functionality
-        const interpreter = new NewCarLangEngine(carMap, world, gameDiv);
+        const interpreter = new CarLangEngine(carMap, level, gameDiv);
         window.currentInterpreter = interpreter;
         interpreter.initializeExecution(ast);
         // Enhanced game loop for step-by-step execution
@@ -677,14 +732,18 @@ async function playCode() {
                     
                     // Check win condition after any command that might affect car position
                     if (result.functionName && ['moveForward', 'moveBackward', 'turnLeft', 'turnRight'].includes(result.functionName)) {
-                        if (world) {
-                            const gameDiv = document.getElementById('game');
-                            renderWorldEntities(gameDiv);
+                        if (isAtFinish()) {
+                            hideCarStatus(); // Hide status when game ends
+                            showWinMessage();
+                            clearLineHighlighting();
+                            playBtn.textContent = 'Finished';
+                            isGameRunning = false;
+                            return; // Stop execution on win
                         }
                     }
                     
                     // Continue immediately for non-visual commands
-                    setTimeout(gameLoop, 100);
+                    requestAnimationFrame(gameLoop);
                     break;
                     
                 case 'PAUSED':
@@ -697,14 +756,18 @@ async function playCode() {
                         
                         // Check win condition after movement commands
                         if (result.functionName && ['moveForward', 'moveBackward'].includes(result.functionName)) {
-                            if (world) {
-                                const gameDiv = document.getElementById('game');
-                                renderWorldEntities(gameDiv);
+                            if (isAtFinish()) {
+                                hideCarStatus(); // Hide status when game ends
+                                showWinMessage();
+                                clearLineHighlighting();
+                                playBtn.textContent = 'Finished';
+                                isGameRunning = false;
+                                return; // Stop execution on win
                             }
                         }
                         
                         // Continue with next command
-                        setTimeout(gameLoop, 100);
+                        requestAnimationFrame(gameLoop);
                     }, 1000); // 1 second delay for visual commands
                     break;
                     
@@ -716,7 +779,7 @@ async function playCode() {
                     isGameRunning = false;
                     
                     // Final win condition check
-                    if (world) {
+                    if (isAtFinish()) {
                         showWinMessage();
                     }
                     break;
@@ -862,6 +925,148 @@ function clearLineHighlighting() {
     }
 }
 
+// Car registry management functions
+function initializeCarRegistry(levelConfig) {
+    // Clear existing registry
+    carRegistry = {};
+    defaultCar = null;
+    
+    // Remove existing car elements from DOM
+    const gameDiv = document.getElementById('game');
+    const existingCars = gameDiv.querySelectorAll('.car');
+    existingCars.forEach(car => car.remove());
+    
+    if (!levelConfig) {
+        console.warn('No level configuration provided to initializeCarRegistry');
+        return;
+    }
+    
+    // Check if this is a multi-car level
+    if (levelConfig.cars && Array.isArray(levelConfig.cars) && levelConfig.cars.length > 0) {
+        // Multi-car level
+        debug(`Initializing ${levelConfig.cars.length} cars for level ${levelConfig.apiId}`);
+        
+        levelConfig.cars.forEach((carConfig, index) => {
+            // Validate car configuration
+            if (!carConfig.name) {
+                debug(`Car ${index} missing name in level ${levelConfig.apiId}`, null, 'error');
+                return;
+            }
+            
+            const carName = carConfig.name;
+            const carType = carConfig.type || 'default';
+            const position = carConfig.position;
+            const direction = carConfig.direction || 'N';
+            
+            // Validate position
+            if (!position || !Array.isArray(position) || position.length !== 2) {
+                debug(`Car ${carName} has invalid position in level ${levelConfig.apiId}`, null, 'error');
+                return;
+            }
+            
+            // Validate car type
+            const validCarTypes = ['default', 'red', 'blue', 'green', 'yellow'];
+            if (!validCarTypes.includes(carType)) {
+                debug(`Car ${carName} has invalid type '${carType}', using 'default'`, null, 'warn');
+                carConfig.type = 'default';
+            }
+            
+            // Validate direction
+            const validDirections = ['N', 'E', 'S', 'W'];
+            if (!validDirections.includes(direction)) {
+                debug(`Car ${carName} has invalid direction '${direction}', using 'N'`, null, 'warn');
+                carConfig.direction = 'N';
+            }
+            
+            const car = new Car({
+                position: { x: position[1] + 1, y: position[0] + 1 },
+                direction: carConfig.direction,
+                carType: carConfig.type
+            });
+            
+            carRegistry[carName] = car;
+            
+            // Set first car as default for backward compatibility
+            if (index === 0) {
+                defaultCar = car;
+            }
+            
+            car.render(gameDiv);
+            debug(`Created car: ${carName} (${carType}) at position [${position[0]}, ${position[1]}] facing ${carConfig.direction}`);
+        });
+        
+        // Validate that we have at least one car
+        if (Object.keys(carRegistry).length === 0) {
+            debug(`No valid cars created for level ${levelConfig.apiId}`, null, 'error');
+            return;
+        }
+        
+    } else {
+        // Single car level (backward compatibility)
+        debug(`Initializing single car for level ${levelConfig.apiId}`);
+        
+        if (levelConfig.start && Array.isArray(levelConfig.start) && levelConfig.start.length === 2) {
+            defaultCar = new Car({ 
+                position: { x: levelConfig.start[1] + 1, y: levelConfig.start[0] + 1 }, 
+                direction: 'N',
+                carType: 'default'
+            });
+            carRegistry.mainCar = defaultCar;
+            defaultCar.render(gameDiv);
+            debug(`Created single car at position [${levelConfig.start[0]}, ${levelConfig.start[1]}]`);
+        } else {
+            debug(`Invalid start position for level ${levelConfig.apiId}`, null, 'error');
+        }
+    }
+    
+    // Log final car registry state
+    debug(`Car registry initialized with ${Object.keys(carRegistry).length} cars:`, Object.keys(carRegistry));
+}
+
+function getCarRegistry() {
+    return carRegistry;
+}
+
+function getDefaultCar() {
+    return defaultCar;
+}
+
+function getCarByName(carName) {
+    return carRegistry[carName];
+}
+
+function getAllCars() {
+    return Object.values(carRegistry);
+}
+
+function clearCarRegistry() {
+    carRegistry = {};
+    defaultCar = null;
+    
+    // Remove car elements from DOM
+    const gameDiv = document.getElementById('game');
+    const existingCars = gameDiv.querySelectorAll('.car');
+    existingCars.forEach(car => car.remove());
+}
+
+// Helper function to get parser configuration based on current level
+function getParserConfig() {
+    const carCount = Object.keys(carRegistry).length;
+    const availableCars = Object.keys(carRegistry);
+    
+    if (carCount <= 1) {
+        return {
+            mode: 'single',
+            availableCars: []
+        };
+    } else {
+        return {
+            mode: 'oop',
+            availableCars: availableCars
+        };
+    }
+}
+
 // Level data validation and management functions
 function validateLevelData(levelData) {
     const errors = [];
@@ -978,15 +1183,44 @@ function getLevelCategory(levelData) {
  * Enhanced win condition checking with detailed feedback
  */
 function checkWinCondition() {
-    return world && world.winCondition ? world.winCondition.getWinDetails(world) : { won: false, details: null };
+    if (!finishPos) return { won: false, details: null };
+    
+    const allCars = Object.values(carRegistry);
+    const carsAtFinish = allCars.filter(car => 
+        car.currentPosition.x === finishPos[0] && car.currentPosition.y === finishPos[1]
+    );
+    
+    if (carsAtFinish.length === 0) {
+        return { won: false, details: null };
+    }
+    
+    // Determine win type based on level configuration
+    const levelMode = getLevelMode(currentLevelData);
+    let winDetails = {
+        carsAtFinish: carsAtFinish.map(car => car.carType || 'default'),
+        totalCars: allCars.length,
+        mode: levelMode
+    };
+    
+    if (levelMode === 'multi-car') {
+        // In multi-car mode, check if all cars need to reach finish
+        const allCarsReached = carsAtFinish.length === allCars.length;
+        winDetails.allCarsReached = allCarsReached;
+        winDetails.won = allCarsReached; // You can modify this logic based on level requirements
+    } else {
+        // In single-car mode, any car reaching finish is a win
+        winDetails.won = true;
+    }
+    
+    return { won: winDetails.won, details: winDetails };
 }
 
 /**
  * Show car status indicator during execution
  */
 function showCarStatus() {
-    const cars = world ? world.getEntitiesOfType('car') : [];
-    if (cars.length <= 1) return; // Only show for multi-car levels
+    const allCars = Object.values(carRegistry);
+    if (allCars.length <= 1) return; // Only show for multi-car levels
     
     let statusIndicator = document.getElementById('car-status-indicator');
     if (!statusIndicator) {
@@ -1009,16 +1243,17 @@ function showCarStatus() {
     
     let statusHTML = '<div style="color: #10b981; font-weight: bold; margin-bottom: 8px;">Car Status:</div>';
     
-    cars.forEach(car => {
+    allCars.forEach(car => {
+        const carName = Object.keys(carRegistry).find(key => carRegistry[key] === car) || 'unknown';
         const carType = car.carType || 'default';
-        const isAtFinish = world && world.checkWinCondition();
+        const isAtFinish = finishPos && car.currentPosition.x === finishPos[0] && car.currentPosition.y === finishPos[1];
         
         const statusClass = isAtFinish ? 'validation-success' : 'validation-info';
         const statusText = isAtFinish ? '✓ Finished' : '🔄 Active';
         
         statusHTML += `
             <div class="${statusClass}" style="margin: 4px 0; padding: 4px 8px; border-radius: 4px;">
-                <span style="font-weight: bold;">${carType}</span> (${carType}): ${statusText}
+                <span style="font-weight: bold;">${carName}</span> (${carType}): ${statusText}
             </div>
         `;
     });
@@ -1040,8 +1275,7 @@ function hideCarStatus() {
  * Update car status during execution
  */
 function updateCarStatus() {
-    const cars = world ? world.getEntitiesOfType('car') : [];
-    if (cars.length > 1) {
+    if (Object.keys(carRegistry).length > 1) {
         showCarStatus();
     } else {
         hideCarStatus();
@@ -1058,8 +1292,7 @@ function updateModeIndicator() {
     
     if (!modeIndicator || !modeText || !carCount) return;
     
-    const cars = world ? world.getEntitiesOfType('car') : [];
-    const carCountNum = cars.length;
+    const carCountNum = Object.keys(carRegistry).length;
     const parserConfig = getParserConfig();
     
     if (parserConfig.mode === 'oop') {
@@ -1110,9 +1343,9 @@ function addEditLevelButton() {
         btn.style.right = '10px';
         btn.onclick = () => {
             debug('Edit Level: currentLevelData', currentLevelData);
-            debug('Edit Level: world', world);
+            debug('Edit Level: level', level);
             // Export current level as JSON
-            const levelJson = JSON.stringify(currentCustomLevelData || currentLevelData || world);
+            const levelJson = JSON.stringify(currentCustomLevelData || currentLevelData || level);
             // Store in localStorage for transfer
             localStorage.setItem('sdRacer_tempLevel', levelJson);
             // Open levelCreator with a flag to load from temp
@@ -1150,19 +1383,3 @@ window.addEventListener('DOMContentLoaded', () => {
     }
     startGame();
 });
-
-function getParserConfig() {
-    if (!world) {
-        return { mode: 'single', carNames: [] };
-    }
-    
-    const cars = world.getEntitiesOfType('car');
-    if (cars.length > 1) {
-        return { 
-            mode: 'oop', 
-            carNames: cars.map(car => car.carType) 
-        };
-    } else {
-        return { mode: 'single', carNames: [] };
-    }
-}

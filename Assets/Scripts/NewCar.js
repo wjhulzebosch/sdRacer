@@ -8,6 +8,19 @@ class Car extends Entity {
         this.crashed = false;
         this.visualRotation = 0;
         this.directions = ['N', 'E', 'S', 'W'];
+        
+        // Store initial state for reset
+        this.initialX = x;
+        this.initialY = y;
+        this.initialDirection = direction;
+    }
+    
+    // Reset car to initial state
+    reset() {
+        this.setPosition(this.initialX, this.initialY);
+        this.direction = this.initialDirection;
+        this.crashed = false;
+        this.visualRotation = 0;
     }
     
     isCowAhead(world) {
@@ -155,15 +168,6 @@ class Car extends Entity {
         }
         
         return true;
-    }
-    
-    // Legacy compatibility methods
-    get currentPosition() {
-        return this.getPosition();
-    }
-    
-    set currentPosition(pos) {
-        this.setPosition(pos.x, pos.y);
     }
     
     // Render method for compatibility

@@ -13,6 +13,7 @@ class CarLangEngine {
                 registryToUse = getCarRegistry();
             }
         }
+        console.debug('[NewCarLangEngine] Initializing with carRegistry:', carRegistry);
         this.carRegistry = registryToUse || {};
         this.defaultCar = null; // For backward compatibility
         this.world = world; // Use world instead of level
@@ -37,6 +38,10 @@ class CarLangEngine {
         
         if (!this.defaultCar && typeof getDefaultCar === 'function') {
             this.defaultCar = getDefaultCar();
+        }
+        console.debug('[NewCarLangEngine] defaultCar set to:', this.defaultCar);
+        if (!this.defaultCar) {
+            throw new Error('[NewCarLangEngine] ERROR: defaultCar is null or undefined after initialization!');
         }
         
         // Execution state
@@ -79,6 +84,10 @@ class CarLangEngine {
             'isCowAhead': { args: 0, description: 'Check if there is a cow ahead (ignores roads)' },
             'honk': { args: 0, description: 'Honk the car horn' }
         };
+
+        // Add debug/error logging for car registry and defaultCar
+        // Throw errors if car registry or defaultCar is invalid
+        // Remove silent fails in method calls
     }
 
     /**
@@ -1138,12 +1147,9 @@ class CarLangEngine {
      */
     executeMethodCall(statement) {
         const args = statement.arguments.map(arg => this.evaluateExpression(arg));
-        
         // Get the target car
         let car;
         if (statement.object === 'self') {
-            // "self" refers to the current car instance in method context
-            // Search for car reference in current context and parent contexts
             let context = this.currentContext;
             while (context) {
                 if (context.car) {
@@ -1153,67 +1159,41 @@ class CarLangEngine {
                 }
                 context = context.parent;
             }
-            
             if (!car) {
                 debug(`[executeMethodCall] ERROR: Cannot use 'self' outside of method context. Current context:`, this.currentContext);
                 throw new Error(`Cannot use 'self' outside of a method context`);
             }
         } else {
-            // Regular car instance method call
             const carName = statement.object;
             car = this.carRegistry[carName];
-            
             if (!car) {
                 throw new Error(`Unknown car: ${carName}`);
             }
         }
-        
-        debug(`[executeMethodCall] Executing ${statement.object}.${statement.method}() - Car crashed: ${car.crashed}`);
-        
-        // Check if the car is crashed - if so, skip the command
-        if (car.crashed) {
-            debug(`[executeMethodCall] Skipping command for crashed car: ${statement.object}`);
-            // Even if this car is crashed, check if all cars are now crashed
-            if (this.areAllCarsCrashed()) {
-                debug(`[executeMethodCall] All cars crashed, ending execution`);
-                return { status: 'COMPLETE' };
+        if (!car) {
+            throw new Error('[NewCarLangEngine] ERROR: Car is null or undefined in executeMethodCall!');
+        }
+        // --- BEGIN PATCH: Match old system logic for custom methods ---
+        // 1. Built-in car method
+        if (typeof car[statement.method] === 'function') {
+            if (car.crashed) {
+                console.debug('[NewCarLangEngine] Skipping command for crashed car:', statement.object);
+                if (this.areAllCarsCrashed()) {
+                    console.debug('[NewCarLangEngine] All cars crashed, ending execution');
+                    return { status: 'COMPLETE' };
+                }
+                return null;
             }
-            return null;
+            return car[statement.method](...args);
         }
-        
-        // Map method names to car methods
-        const methodMap = {
-            'moveForward': () => car.moveForward(this.world),
-            'moveBackward': () => car.moveBackward(this.world),
-            'turnRight': () => car.turnRight(),
-            'turnLeft': () => car.turnLeft(),
-            'explode': () => car.crash(),
-            'isRoadAhead': () => car.isRoadAhead(this.world),
-            'isCowAhead': () => car.isCowAhead(this.world),
-            'honk': () => this.honkForCar(car)
-        };
-        
-        // Execute the method
-        let result = null;
-        if (methodMap[statement.method]) {
-            debug(`[executeMethodCall] Executing built-in method: ${statement.method}`);
-            result = methodMap[statement.method](...args);
-            debug(`[executeMethodCall] Method executed, car crashed: ${car.crashed}`);
-        } else if (this.customMethods[statement.method]) {
-            debug(`[executeMethodCall] Executing custom method: ${statement.method}`);
-            result = this.executeCustomMethod(statement.method, car, args);
-            debug(`[executeMethodCall] Custom method executed, car crashed: ${car.crashed}`);
-        } else {
-            console.warn(`Unknown method: ${statement.method}`);
+        // 2. Custom method in this.customMethods
+        if (this.customMethods && this.customMethods[statement.method]) {
+            return this.executeCustomMethod(statement.method, car, args);
         }
-        
-        // Check if all cars are crashed after executing the method
-        if (this.areAllCarsCrashed()) {
-            debug(`[executeMethodCall] All cars crashed after method execution, ending execution`);
-            return { status: 'COMPLETE' };
-        }
-        
-        return result;
+        // 3. Otherwise, error
+        console.error('[NewCarLangEngine] ERROR: Car does not implement method and not a custom method:', statement.method, 'car:', car);
+        throw new Error('Car does not implement method: ' + statement.method);
+        // --- END PATCH ---
     }
 
     /**

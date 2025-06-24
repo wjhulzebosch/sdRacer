@@ -258,6 +258,16 @@ class World {
             }
         });
     }
+    
+    // Canonical state query methods
+    getMode() {
+        const cars = this.getEntitiesOfType('car');
+        return cars.length > 1 ? 'oop' : 'single';
+    }
+    
+    getCarNames() {
+        return this.getEntitiesOfType('car').map(car => car.carType);
+    }
 }
 
 export default World; 

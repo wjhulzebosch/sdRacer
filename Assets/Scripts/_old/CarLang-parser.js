@@ -15,31 +15,14 @@ class CarLangParser {
         this.availableCars = availableCars; // Array of available car names
         this.userDefinedFunctions = new Set(); // Track user-defined functions
         this.customMethods = new Set(); // Track custom methods defined in Class Car
-        // Build a translation map: redCar -> red, blueCar -> blue, etc.
-        this.carNameTranslation = {};
-        if (Array.isArray(this.availableCars)) {
-            for (const car of this.availableCars) {
-                this.carNameTranslation[car + 'Car'] = car;
-            }
-        }
     }
 
     /**
      * Parse the input source code
      * @param {string} source - The source code to parse
-     * @param {Object} [options] - Optional settings (mode, availableCars)
      * @returns {Object} - The parsed AST (Abstract Syntax Tree)
      */
     parse(source) {
-        // Get the mode and availableCars from the world
-        this.mode = window.world.getMode();
-        this.availableCars = window.world.getCarNames();
-        // Explicit error if mode or availableCars are not set
-        if (!this.mode || !Array.isArray(this.availableCars) || this.availableCars.length === 0) {
-            const errMsg = `Parser settings error: mode and availableCars must be set. Got mode='${this.mode}', availableCars='${this.availableCars}'.`;
-            this.errors.push(errMsg);
-            if (typeof console !== 'undefined') console.error(errMsg);
-        }
         this.sourceLines = source.split('\n');
         this.tokens = this.tokenize(source);
         this.current = 0;
@@ -47,38 +30,24 @@ class CarLangParser {
         this.lineNumber = 1;
         
         const program = this.parseProgram();
+        
         const ast = {
             type: 'Program',
             body: program,
-            errors: this.errors,
-            mode: this.mode,
-            availableCars: this.availableCars
+            errors: this.errors
         };
-
-        // --- BEGIN: Old system's two-pass collection/validation logic ---
-        // First pass: collect all user-defined functions and custom methods from the AST
-        this.userDefinedFunctions = new Set();
-        this.customMethods = new Set();
-        this.traverseAST(ast, (node) => {
-            if (node.type === 'FunctionDeclaration') {
-                this.userDefinedFunctions.add(node.name);
-            }
-            if (node.type === 'ClassDeclaration') {
-                for (const method of node.methods) {
-                    this.customMethods.add(method.name);
-                }
-            }
-        });
-        // --- END: Old system's two-pass collection/validation logic ---
-
+        
         // Validate syntax based on mode
         this.validateSyntax(ast);
+        
         // Run enhanced validation for better error reporting
         const enhancedValidation = this.validateEnhanced(ast);
+        
         // Combine all errors
         ast.errors = [...this.errors, ...enhancedValidation.errors];
         ast.warnings = enhancedValidation.warnings;
         ast.valid = this.errors.length === 0 && enhancedValidation.errors.length === 0;
+        
         return ast;
     }
 
@@ -420,16 +389,10 @@ class CarLangParser {
                 objectName = this.advance().value;
                 this.advance(); // consume the dot
                 // Validate car name or allow "self"
-                if (objectName !== 'self') {
-                    let canonicalName = objectName;
-                    if (this.carNameTranslation[objectName]) {
-                        canonicalName = this.carNameTranslation[objectName];
-                    }
-                    if (!this.availableCars.includes(canonicalName)) {
-                        const line = firstIdentifier.line || this.lineNumber;
-                        const context = this.getErrorContext(line);
-                        this.errors.push(`Line ${line}: Unknown car '${objectName}'. Available cars: ${this.availableCars.join(', ')} or use 'self'${context}`);
-                    }
+                if (objectName !== 'self' && !this.availableCars.includes(objectName)) {
+                    const line = firstIdentifier.line || this.lineNumber;
+                    const context = this.getErrorContext(line);
+                    this.errors.push(`Line ${line}: Unknown car '${objectName}'. Available cars: ${this.availableCars.join(', ')} or use 'self'${context}`);
                 }
             }
         }
@@ -453,13 +416,9 @@ class CarLangParser {
         
         // Return different AST structure based on mode
         if (objectName) {
-            let canonicalName = objectName;
-            if (this.carNameTranslation[objectName]) {
-                canonicalName = this.carNameTranslation[objectName];
-            }
             return {
                 type: 'MethodCall',
-                object: canonicalName,
+                object: objectName,
                 method: functionName,
                 arguments: args,
                 line: nameToken.line
@@ -633,16 +592,10 @@ class CarLangParser {
                 const objectName = this.advance().value;
                 this.advance(); // consume the dot
                 // Validate car name if in OOP mode (allow "self")
-                if (this.mode === 'oop' && objectName !== 'self') {
-                    let canonicalName = objectName;
-                    if (this.carNameTranslation[objectName]) {
-                        canonicalName = this.carNameTranslation[objectName];
-                    }
-                    if (!this.availableCars.includes(canonicalName)) {
-                        const line = this.peek().line || this.lineNumber;
-                        const context = this.getErrorContext(line);
-                        this.errors.push(`Line ${line}: Unknown car '${objectName}'. Available cars: ${this.availableCars.join(', ')} or use 'self'${context}`);
-                    }
+                if (this.mode === 'oop' && objectName !== 'self' && !this.availableCars.includes(objectName)) {
+                    const line = this.peek().line || this.lineNumber;
+                    const context = this.getErrorContext(line);
+                    this.errors.push(`Line ${line}: Unknown car '${objectName}'. Available cars: ${this.availableCars.join(', ')} or use 'self'${context}`);
                 }
                 const methodName = this.match('IDENTIFIER');
                 this.match('PUNCTUATION', '(');
@@ -992,25 +945,23 @@ class CarLangParser {
             this.errors.push(`Line ${line}: Cannot use '${statement.object}.${statement.method}()' in single-car mode. Use '${statement.method}()' instead.${context}`);
             return;
         }
-        if (statement.object !== 'self') {
-            let canonicalName = statement.object;
-            if (this.carNameTranslation[statement.object]) {
-                canonicalName = this.carNameTranslation[statement.object];
-            }
-            if (!this.availableCars.includes(canonicalName)) {
-                const availableCarsList = this.availableCars.length > 0 ? this.availableCars.join(', ') : 'none';
-                const line = statement.line || this.lineNumber;
-                const context = this.getErrorContext(line);
-                this.errors.push(`Line ${line}: Unknown car '${statement.object}'. Available cars: ${availableCarsList} or use 'self'.${context}`);
-            }
+        
+        // Validate car name in OOP mode (allow "self" or valid car names)
+        if (statement.object !== 'self' && !this.availableCars.includes(statement.object)) {
+            const line = statement.line || this.lineNumber;
+            const context = this.getErrorContext(line);
+            const availableCarsList = this.availableCars.length > 0 ? this.availableCars.join(', ') : 'none';
+            this.errors.push(`Line ${line}: Unknown car '${statement.object}'. Available cars: ${availableCarsList} or use 'self'.${context}`);
+            return;
         }
+        
+        // Validate method name - allow both built-in and custom methods
         const validMethods = [
             'moveForward', 'moveBackward', 'turnLeft', 'turnRight', 
             'honk', 'isRoadAhead', 'isCowAhead', 'isAtFinish'
         ];
-        // Allow custom methods for all cars, not just 'self'
-        const isCustomMethod = this.customMethods.has(statement.method);
-        if (!validMethods.includes(statement.method) && !isCustomMethod) {
+        
+        if (!validMethods.includes(statement.method) && !this.customMethods.has(statement.method)) {
             const line = statement.line || this.lineNumber;
             const context = this.getErrorContext(line);
             const allMethods = [...validMethods, ...Array.from(this.customMethods)];
