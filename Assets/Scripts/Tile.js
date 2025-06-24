@@ -5,23 +5,42 @@ class Tile {
     }
     
     setRoadType(type) {
+        if (typeof type !== 'string') {
+            throw new Error('CRITICAL: setRoadType called with non-string type: ' + typeof type);
+        }
         this.roadType = type;
     }
     
     getRoadType() {
+        if (typeof this.roadType !== 'string') {
+            throw new Error('CRITICAL: roadType is not a string: ' + typeof this.roadType);
+        }
         return this.roadType;
     }
     
     addEntity(entity) {
+        if (!entity) {
+            throw new Error('CRITICAL: addEntity called with null/undefined entity');
+        }
+        if (!entity.id) {
+            throw new Error('CRITICAL: Entity missing id: ' + JSON.stringify(entity));
+        }
         this.entities.add(entity);
     }
     
     removeEntity(entity) {
+        if (!entity) {
+            throw new Error('CRITICAL: removeEntity called with null/undefined entity');
+        }
         this.entities.delete(entity);
     }
     
     getEntities() {
-        return Array.from(this.entities);
+        const result = Array.from(this.entities);
+        if (!Array.isArray(result)) {
+            throw new Error('CRITICAL: getEntities returned non-array: ' + typeof result);
+        }
+        return result;
     }
     
     getEntitiesOfType(type) {
@@ -38,13 +57,21 @@ class Tile {
     
     isConnectedTo(otherTile, direction) {
         if (!otherTile || !this.isRoad() || !otherTile.isRoad()) {
+            console.log(`[isConnectedTo] FAIL: Invalid tiles or not roads`);
             return false;
         }
         
         // Road connection logic
         const oppositeDirection = this.getOppositeDirection(direction);
-        return this.roadType[direction] === '1' && 
-               otherTile.roadType[oppositeDirection] === '1';
+        const thisHasConnection = this.roadType[direction] === '1';
+        const otherHasConnection = otherTile.roadType[oppositeDirection] === '1';
+        
+        console.log(`[isConnectedTo] Checking connection:`);
+        console.log(`  This tile: ${this.roadType}, direction: ${direction}, has connection: ${thisHasConnection}`);
+        console.log(`  Other tile: ${otherTile.roadType}, opposite direction: ${oppositeDirection}, has connection: ${otherHasConnection}`);
+        console.log(`  Result: ${thisHasConnection && otherHasConnection}`);
+        
+        return thisHasConnection && otherHasConnection;
     }
     
     getOppositeDirection(direction) {
@@ -54,7 +81,9 @@ class Tile {
             2: 0, // South -> North
             3: 1  // West -> East
         };
-        return opposites[direction] || direction;
+        const result = opposites[direction] || direction;
+        console.log(`[getOppositeDirection] Input: ${direction}, Output: ${result}`);
+        return result;
     }
     
     // Check if this tile has a specific entity

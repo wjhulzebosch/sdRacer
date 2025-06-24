@@ -10,6 +10,10 @@ export function debug(message, data = null, level = 'log') {
         case 'error':
             console.error(message, data);
             break;
+        default:
+            console.log('DEBUG: Unknown debug level:', level);
+            console.log(message, data);
+            break;
     }
 }
 // Make debug globally available

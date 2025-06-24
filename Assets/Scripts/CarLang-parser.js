@@ -5,13 +5,19 @@
  */
 
 class CarLangParser {
-    constructor(mode = 'single', availableCars = []) {
+    constructor(world, availableCars = []) {
         this.tokens = [];
         this.current = 0;
         this.errors = [];
         this.sourceLines = [];
         this.lineNumber = 1;
-        this.mode = mode; // 'single' or 'oop'
+        
+        // Use world.getMode() as the single source of truth for mode
+        if (!world) {
+            throw new Error('CRITICAL: CarLangParser constructor requires world parameter');
+        }
+        this.world = world;
+        this.mode = world.getMode(); // Cache the mode for performance
         this.availableCars = availableCars; // Array of available car names
         this.userDefinedFunctions = new Set(); // Track user-defined functions
         this.customMethods = new Set(); // Track custom methods defined in Class Car
@@ -34,7 +40,9 @@ class CarLangParser {
         const ast = {
             type: 'Program',
             body: program,
-            errors: this.errors
+            errors: this.errors,
+            mode: this.mode,
+            availableCars: this.availableCars
         };
         
         // Validate syntax based on mode

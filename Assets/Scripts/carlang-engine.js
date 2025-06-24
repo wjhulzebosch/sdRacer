@@ -5,7 +5,7 @@
  */
 
 class CarLangEngine {
-    constructor(carRegistry, level, gameDiv) {
+    constructor(carRegistry, world, gameDiv) {
         // If carRegistry is missing or empty, try to get from game helpers
         let registryToUse = carRegistry;
         if (!registryToUse || (typeof registryToUse === 'object' && Object.keys(registryToUse).length === 0)) {
@@ -15,7 +15,7 @@ class CarLangEngine {
         }
         this.carRegistry = registryToUse || {};
         this.defaultCar = null; // For backward compatibility
-        this.level = level;
+        this.world = world; // Store world reference
         this.gameDiv = gameDiv;
         this.variables = {};
         this.functions = {};
@@ -57,13 +57,13 @@ class CarLangEngine {
         
         // Map CarLang function names to Car.js methods (for single-car mode)
         this.functionMap = {
-            'moveForward': () => this.defaultCar.moveForward(this.level, this.gameDiv),
-            'moveBackward': () => this.defaultCar.moveBackward(this.level, this.gameDiv),
+            'moveForward': () => this.defaultCar.moveForward(this.world, this.gameDiv),
+            'moveBackward': () => this.defaultCar.moveBackward(this.world, this.gameDiv),
             'turnRight': () => this.defaultCar.turnRight(this.gameDiv),
             'turnLeft': () => this.defaultCar.turnLeft(this.gameDiv),
             'explode': () => this.defaultCar.crash(this.gameDiv),
-            'isRoadAhead': () => this.defaultCar.isRoadAhead(this.level),
-            'isCowAhead': () => this.defaultCar.isCowAhead(),
+            'isRoadAhead': () => this.defaultCar.isRoadAhead(this.world),
+            'isCowAhead': () => this.defaultCar.isCowAhead(this.world),
             'honk': () => this.honk(),
             'not': (value) => !value
         };
@@ -128,6 +128,7 @@ class CarLangEngine {
      * @returns {Object} - Execution status with details
      */
     executeNext() {
+        debug('executeNext called', null, 'log');
         if (!this.isExecuting || !this.currentContext) {
             return { status: 'COMPLETE' };
         }
@@ -254,6 +255,7 @@ class CarLangEngine {
             };
             
         } catch (error) {
+            debug('CRITICAL ERROR in executeNext:', error, 'error');
             this.isExecuting = false;
             return { 
                 status: 'ERROR', 
@@ -460,13 +462,16 @@ class CarLangEngine {
      * Check if all cars are crashed
      */
     areAllCarsCrashed() {
+        debug(`[areAllCarsCrashed] carRegistry keys: ${Object.keys(this.carRegistry).join(', ')}`);
+        debug(`[areAllCarsCrashed] carRegistry values:`, Object.values(this.carRegistry));
+        
         const cars = Object.values(this.carRegistry);
         const crashedCars = cars.filter(car => car.crashed);
         const allCrashed = cars.length > 0 && cars.every(car => car.crashed);
         
         debug(`[areAllCarsCrashed] Total cars: ${cars.length}, Crashed cars: ${crashedCars.length}, All crashed: ${allCrashed}`);
         cars.forEach((car, index) => {
-            debug(`[areAllCarsCrashed] Car ${index}: ${car.carType || 'default'}, crashed: ${car.crashed}`);
+            debug(`[areAllCarsCrashed] Car ${index}: ${car.carType || 'default'}, crashed: ${car.crashed}, id: ${car.id}`);
         });
         
         return allCrashed;
@@ -505,13 +510,13 @@ class CarLangEngine {
             // For method context, we need to create a custom function map that uses the target car
             if (this.currentContext && this.currentContext.type === 'method') {
                 const methodFunctionMap = {
-                    'moveForward': () => targetCar.moveForward(this.level, this.gameDiv),
-                    'moveBackward': () => targetCar.moveBackward(this.level, this.gameDiv),
+                    'moveForward': () => targetCar.moveForward(this.world, this.gameDiv),
+                    'moveBackward': () => targetCar.moveBackward(this.world, this.gameDiv),
                     'turnRight': () => targetCar.turnRight(this.gameDiv),
                     'turnLeft': () => targetCar.turnLeft(this.gameDiv),
                     'explode': () => targetCar.crash(this.gameDiv),
-                    'isRoadAhead': () => targetCar.isRoadAhead(this.level),
-                    'isCowAhead': () => targetCar.isCowAhead(),
+                    'isRoadAhead': () => targetCar.isRoadAhead(this.world),
+                    'isCowAhead': () => targetCar.isCowAhead(this.world),
                     'honk': () => this.honkForCar(targetCar),
                     'not': (value) => !value
                 };
@@ -580,8 +585,8 @@ class CarLangEngine {
         if (typeof soundController !== 'undefined') {
             soundController.playCarHorn();
         }
-        const carX = this.defaultCar.currentPosition.x;
-        const carY = this.defaultCar.currentPosition.y;
+        const carX = this.defaultCar.x;
+        const carY = this.defaultCar.y;
         debug('HONK: Car position:', { x: carX, y: carY });
         // Only check the tile in front of the car
         let frontX = carX;
@@ -601,8 +606,8 @@ class CarLangEngine {
             debug(`HONK: Cow position:`, { x: cow.currentX, y: cow.currentY });
             debug(`HONK: Is cow at front position?`, cow.isAtPosition(frontPos.x, frontPos.y));
             if (cow.isAtPosition(frontPos.x, frontPos.y)) {
-                debug(`HONK: Found cow at front position, calling GetHonked()`);
-                cow.GetHonked();
+                debug(`HONK: Found cow at front position, calling GetHonked(window.world)`);
+                cow.GetHonked(window.world);
             }
         });
         debug('HONK: Honk method completed');
@@ -1178,13 +1183,13 @@ class CarLangEngine {
         
         // Map method names to car methods
         const methodMap = {
-            'moveForward': () => car.moveForward(this.level, this.gameDiv),
-            'moveBackward': () => car.moveBackward(this.level, this.gameDiv),
+            'moveForward': () => car.moveForward(this.world, this.gameDiv),
+            'moveBackward': () => car.moveBackward(this.world, this.gameDiv),
             'turnRight': () => car.turnRight(this.gameDiv),
             'turnLeft': () => car.turnLeft(this.gameDiv),
             'explode': () => car.crash(this.gameDiv),
-            'isRoadAhead': () => car.isRoadAhead(this.level),
-            'isCowAhead': () => car.isCowAhead(),
+            'isRoadAhead': () => car.isRoadAhead(this.world),
+            'isCowAhead': () => car.isCowAhead(this.world),
             'honk': () => this.honkForCar(car)
         };
         
@@ -1223,8 +1228,8 @@ class CarLangEngine {
         }
         
         // Get car's current position
-        const carX = car.currentPosition.x;
-        const carY = car.currentPosition.y;
+        const carX = car.x;
+        const carY = car.y;
         debug('HONK: Car position:', { x: carX, y: carY });
         
         // Check for cows in orthogonally adjacent tiles
@@ -1248,13 +1253,12 @@ class CarLangEngine {
                 debug(`HONK: Cow position:`, { x: cow.currentX, y: cow.currentY });
                 debug(`HONK: Is cow at position?`, cow.isAtPosition(pos.x, pos.y));
                 if (cow.isAtPosition(pos.x, pos.y)) {
-                    debug(`HONK: Found cow at position ${index}, calling GetHonked()`);
-                    cow.GetHonked();
+                    debug(`HONK: Found cow at front position, calling GetHonked()`);
+                    cow.GetHonked(window.world);
                 }
             });
         });
-        
-        debug('HONK: Honk method completed for specific car');
+        debug('HONK: Honk method completed');
     }
 
     /**

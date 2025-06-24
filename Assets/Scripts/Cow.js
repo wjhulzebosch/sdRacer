@@ -2,6 +2,22 @@ import Entity from './Entity.js';
 
 class Cow extends Entity {
     constructor(id, defaultX, defaultY, secondaryX, secondaryY) {
+        if (typeof id !== 'string') {
+            throw new Error('CRITICAL: Cow constructor: id must be string, got: ' + typeof id);
+        }
+        if (typeof defaultX !== 'number') {
+            throw new Error('CRITICAL: Cow constructor: defaultX must be number, got: ' + typeof defaultX);
+        }
+        if (typeof defaultY !== 'number') {
+            throw new Error('CRITICAL: Cow constructor: defaultY must be number, got: ' + typeof defaultY);
+        }
+        if (typeof secondaryX !== 'number') {
+            throw new Error('CRITICAL: Cow constructor: secondaryX must be number, got: ' + typeof secondaryX);
+        }
+        if (typeof secondaryY !== 'number') {
+            throw new Error('CRITICAL: Cow constructor: secondaryY must be number, got: ' + typeof secondaryY);
+        }
+        
         super(id, 'cow', defaultX, defaultY);
         this.defaultX = defaultX;
         this.defaultY = defaultY;
@@ -189,9 +205,11 @@ class Cow extends Entity {
             cowDiv.style.backgroundImage = 'url("Assets/Textures/Cow.png")';
             cowDiv.style.backgroundSize = 'contain';
             cowDiv.style.position = 'absolute';
+            cowDiv.style.transition = 'left 0.3s ease, top 0.3s ease, transform 0.3s ease';
             gameDiv.appendChild(cowDiv);
         }
         
+        // Update position and rotation (preserves smooth transitions)
         cowDiv.style.left = (this.x * tileSize) + 'px';
         cowDiv.style.top = (this.y * tileSize) + 'px';
         

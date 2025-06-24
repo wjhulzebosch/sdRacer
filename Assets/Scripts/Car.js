@@ -2,6 +2,22 @@ import Entity from './Entity.js';
 
 class Car extends Entity {
     constructor(id, x, y, direction = 'N', carType = 'default') {
+        if (typeof id !== 'string') {
+            throw new Error('CRITICAL: Car constructor: id must be string, got: ' + typeof id);
+        }
+        if (typeof x !== 'number') {
+            throw new Error('CRITICAL: Car constructor: x must be number, got: ' + typeof x);
+        }
+        if (typeof y !== 'number') {
+            throw new Error('CRITICAL: Car constructor: y must be number, got: ' + typeof y);
+        }
+        if (typeof direction !== 'string') {
+            throw new Error('CRITICAL: Car constructor: direction must be string, got: ' + typeof direction);
+        }
+        if (typeof carType !== 'string') {
+            throw new Error('CRITICAL: Car constructor: carType must be string, got: ' + typeof carType);
+        }
+        
         super(id, 'car', x, y);
         this.direction = direction;
         this.carType = carType;
@@ -21,6 +37,22 @@ class Car extends Entity {
         this.direction = this.initialDirection;
         this.crashed = false;
         this.visualRotation = 0;
+        
+        // Immediately update visual position without transitions
+        const gameDiv = document.getElementById('game');
+        if (gameDiv) {
+            const carDiv = gameDiv.querySelector(`.car-${this.carType}`);
+            if (carDiv) {
+                carDiv.style.transition = 'none';
+                carDiv.style.left = (this.x * 64) + 'px';
+                carDiv.style.top = (this.y * 64) + 'px';
+                carDiv.style.transform = `rotate(${this.visualRotation}deg)`;
+                // Re-enable transitions after instant positioning
+                setTimeout(() => {
+                    carDiv.style.transition = 'left 1s linear, top 1s linear, transform 1s linear';
+                }, 0);
+            }
+        }
     }
     
     isCowAhead(world) {
@@ -37,39 +69,23 @@ class Car extends Entity {
     isRoadConnected(world, targetX, targetY) {
         const currentTile = world.getTile(this.x, this.y);
         const targetTile = world.getTile(targetX, targetY);
-        
+
         if (!currentTile || !targetTile || !currentTile.isRoad() || !targetTile.isRoad()) {
             return false;
         }
-        
+
         // Determine the direction from current to target
         const dx = targetX - this.x;
         const dy = targetY - this.y;
-        
-        // Check if the movement direction is valid (orthogonal only)
-        if (Math.abs(dx) + Math.abs(dy) !== 1) {
-            return false;
-        }
-        
-        // Determine which direction we're moving
-        let currentDirection, targetDirection;
-        if (dx === 1) { // Moving East
-            currentDirection = 1; // East
-            targetDirection = 3;  // West
-        } else if (dx === -1) { // Moving West
-            currentDirection = 3; // West
-            targetDirection = 1;  // East
-        } else if (dy === 1) { // Moving South
-            currentDirection = 2; // South
-            targetDirection = 0;  // North
-        } else if (dy === -1) { // Moving North
-            currentDirection = 0; // North
-            targetDirection = 2;  // South
-        } else {
-            return false;
-        }
-        
-        return currentTile.isConnectedTo(targetTile, currentDirection);
+
+        let dirIndex = -1;
+        if (dx === 1 && dy === 0) dirIndex = 1; // East
+        else if (dx === -1 && dy === 0) dirIndex = 3; // West
+        else if (dx === 0 && dy === 1) dirIndex = 2; // South
+        else if (dx === 0 && dy === -1) dirIndex = 0; // North
+        else return false;
+
+        return currentTile.roadType[dirIndex] === '1';
     }
     
     getPositionAhead() {
@@ -83,8 +99,19 @@ class Car extends Entity {
     }
     
     moveForward(world) {
+        if (!world) {
+            throw new Error('CRITICAL: moveForward called with null/undefined world');
+        }
+        
         const newPos = this.getPositionAhead();
+        if (!newPos || typeof newPos.x !== 'number' || typeof newPos.y !== 'number') {
+            throw new Error('CRITICAL: getPositionAhead returned invalid position: ' + JSON.stringify(newPos));
+        }
+        
         const currentPos = this.getPosition();
+        if (!currentPos || typeof currentPos.x !== 'number' || typeof currentPos.y !== 'number') {
+            throw new Error('CRITICAL: getPosition returned invalid position: ' + JSON.stringify(currentPos));
+        }
         
         // Check if movement is valid
         if (this.canMoveTo(world, newPos.x, newPos.y)) {
@@ -92,12 +119,26 @@ class Car extends Entity {
             this.setPosition(newPos.x, newPos.y);
             return true;
         }
+
+        world.moveEntity(this, currentPos.x, currentPos.y, newPos.x, newPos.y);
+        this.setPosition(newPos.x, newPos.y);
         return false;
     }
     
     moveBackward(world) {
+        if (!world) {
+            throw new Error('CRITICAL: moveBackward called with null/undefined world');
+        }
+        
         const newPos = this.getPositionBehind();
+        if (!newPos || typeof newPos.x !== 'number' || typeof newPos.y !== 'number') {
+            throw new Error('CRITICAL: getPositionBehind returned invalid position: ' + JSON.stringify(newPos));
+        }
+        
         const currentPos = this.getPosition();
+        if (!currentPos || typeof currentPos.x !== 'number' || typeof currentPos.y !== 'number') {
+            throw new Error('CRITICAL: getPosition returned invalid position: ' + JSON.stringify(currentPos));
+        }
         
         // Check if movement is valid
         if (this.canMoveTo(world, newPos.x, newPos.y)) {
@@ -105,6 +146,10 @@ class Car extends Entity {
             this.setPosition(newPos.x, newPos.y);
             return true;
         }
+
+        world.moveEntity(this, currentPos.x, currentPos.y, newPos.x, newPos.y);
+        this.setPosition(newPos.x, newPos.y);
+
         return false;
     }
     
@@ -121,6 +166,7 @@ class Car extends Entity {
     canMoveTo(world, x, y) {
         // Check if roads are connected
         if (!this.isRoadConnected(world, x, y)) {
+            console.log(`[canMoveTo] CRASH: Roads not connected to (${x}, ${y})`);
             this.crash(); // Car crashes when trying to move to unconnected road
             return false;
         }
@@ -128,6 +174,7 @@ class Car extends Entity {
         // Check for cow collision
         const entities = world.getEntitiesAt(x, y);
         if (entities.some(entity => entity.type === 'cow')) {
+            console.log(`[canMoveTo] CRASH: Cow at position (${x}, ${y})`);
             this.crash(); // Car crashes when hitting cow
             return false;
         }
@@ -150,7 +197,18 @@ class Car extends Entity {
     }
     
     crash() {
+        console.log(`[crash] Car ${this.carType} is crashing!`);
         this.crashed = true;
+        console.log(`[crash] Car crashed property is now: ${this.crashed}`);
+        
+        // Force a render to show the wreck image immediately
+        const gameDiv = document.getElementById('game');
+        if (gameDiv) {
+            console.log(`[crash] Forcing render after crash`);
+            this.render(gameDiv);
+        } else {
+            console.log(`[crash] gameDiv not found!`);
+        }
     }
     
     isSafeToMove(world) {
@@ -179,16 +237,21 @@ class Car extends Entity {
             carDiv.className = `car car-${this.carType}`;
             carDiv.style.width = tileSize + 'px';
             carDiv.style.height = tileSize + 'px';
+            carDiv.style.position = 'absolute';
+            carDiv.style.transition = 'left 1s linear, top 1s linear, transform 1s linear';
             gameDiv.appendChild(carDiv);
         }
         
+        // Update position and rotation (preserves smooth transitions)
         carDiv.style.left = (this.x * tileSize) + 'px';
         carDiv.style.top = (this.y * tileSize) + 'px';
+        carDiv.style.transform = `rotate(${this.visualRotation}deg)`;
         
         // Set texture based on car type
         let texturePath = 'Assets/Textures/Car.png'; // default
         if (this.crashed) {
             texturePath = 'Assets/Textures/Wreck.png';
+            console.log(`[render] Car ${this.carType} is crashed, using wreck texture: ${texturePath}`);
         } else {
             switch (this.carType) {
                 case 'red':
@@ -206,10 +269,12 @@ class Car extends Entity {
                 default:
                     texturePath = 'Assets/Textures/Car.png';
             }
+            console.log(`[render] Car ${this.carType} is not crashed, using texture: ${texturePath}`);
         }
         
+        console.log(`[render] Setting background image to: ${texturePath}`);
         carDiv.style.backgroundImage = `url('${texturePath}')`;
-        carDiv.style.transform = `rotate(${this.visualRotation}deg)`;
+        carDiv.style.backgroundSize = 'contain';
     }
 }
 

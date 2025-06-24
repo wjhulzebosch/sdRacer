@@ -1,10 +1,21 @@
 class WinCondition {
     constructor(type, config = {}) {
+        if (typeof type !== 'string') {
+            throw new Error('CRITICAL: WinCondition constructor: type must be string, got: ' + typeof type);
+        }
+        if (typeof config !== 'object') {
+            throw new Error('CRITICAL: WinCondition constructor: config must be object, got: ' + typeof config);
+        }
+        
         this.type = type; // 'single-car', 'multi-car', 'all-cars'
         this.config = config;
     }
     
     check(world) {
+        if (!world) {
+            throw new Error('CRITICAL: WinCondition.check called with null/undefined world');
+        }
+        
         switch (this.type) {
             case 'single-car':
                 return this.checkSingleCarWin(world);
@@ -13,7 +24,7 @@ class WinCondition {
             case 'all-cars':
                 return this.checkAllCarsWin(world);
             default:
-                return false;
+                throw new Error('CRITICAL: Unknown win condition type: ' + this.type);
         }
     }
     
