@@ -1,4 +1,5 @@
 import { debug } from './commonFunctions.js';
+import { generateMaze } from './mazeCreator.js';
 
 // NESW order: N=8, E=4, S=2, W=1
 function emptyGrid(rows, cols) {
@@ -625,6 +626,10 @@ document.getElementById('loadJsonBtn').onclick = () => {
     }
 };
 
+document.getElementById('generateMazeBtn').onclick = () => {
+    generateMazeForLevel();
+};
+
 // Load levels from file
 async function loadLevelsFromFile() {
     try {
@@ -707,6 +712,27 @@ function addPlayLevelButton() {
             window.location.href = 'index.html?loadTemp=1';
         };
         document.body.appendChild(btn);
+    }
+}
+
+// Maze generation function
+function generateMazeForLevel() {
+    debug('generateMazeForLevel: Starting maze generation');
+    
+    debug('generateMazeForLevel: Generating maze for', cols, 'x', rows, 'grid');
+    
+    try {
+        const mazeResult = generateMaze(cols, rows);
+        grid = mazeResult.maze;
+        
+        debug('generateMazeForLevel: Maze generated successfully', mazeResult);
+        
+        // Update the grid display
+        renderGrid();
+        
+    } catch (error) {
+        debug('generateMazeForLevel: Error generating maze', error, 'error');
+        alert('Error generating maze: ' + error.message);
     }
 }
 

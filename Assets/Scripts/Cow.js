@@ -1,21 +1,28 @@
-// Cow class for sdRacer
-// Cows have two positions and move when honked at
+import Entity from './Entity.js';
 
-class Cow {
-    constructor(defaultX, defaultY, secondaryX, secondaryY) {
+class Cow extends Entity {
+    constructor(id, defaultX, defaultY, secondaryX, secondaryY) {
+        if (typeof id !== 'string') {
+            throw new Error('CRITICAL: Cow constructor: id must be string, got: ' + typeof id);
+        }
+        if (typeof defaultX !== 'number') {
+            throw new Error('CRITICAL: Cow constructor: defaultX must be number, got: ' + typeof defaultX);
+        }
+        if (typeof defaultY !== 'number') {
+            throw new Error('CRITICAL: Cow constructor: defaultY must be number, got: ' + typeof defaultY);
+        }
+        if (typeof secondaryX !== 'number') {
+            throw new Error('CRITICAL: Cow constructor: secondaryX must be number, got: ' + typeof secondaryX);
+        }
+        if (typeof secondaryY !== 'number') {
+            throw new Error('CRITICAL: Cow constructor: secondaryY must be number, got: ' + typeof secondaryY);
+        }
+        
+        super(id, 'cow', defaultX, defaultY);
         this.defaultX = defaultX;
         this.defaultY = defaultY;
         this.secondaryX = secondaryX;
         this.secondaryY = secondaryY;
-        
-        // Current position (starts at default)
-        this.currentX = defaultX;
-        this.currentY = defaultY;
-
-        this.defaultDirection = 0;
-        this.secondaryDirection = 0;
-        
-        // State tracking
         this.isMoving = false;
         this.moveAnimation = null;
         
@@ -78,11 +85,6 @@ class Cow {
         this.currentY = tempY;
     }
     
-    // Get current position
-    getPosition() {
-        return { x: this.currentX, y: this.currentY };
-    }
-    
     // Get default position
     getDefaultPosition() {
         return { x: this.defaultX, y: this.defaultY };
@@ -95,12 +97,7 @@ class Cow {
     
     // Check if cow is at default position
     isAtDefaultPosition() {
-        return this.currentX === this.defaultX && this.currentY === this.defaultY;
-    }
-    
-    // Check if a position is occupied by this cow
-    isAtPosition(x, y) {
-        return this.currentX === x && this.currentY === y;
+        return this.x === this.defaultX && this.y === this.defaultY;
     }
     
     // Check if cow blocks movement at given position
@@ -116,15 +113,15 @@ class Cow {
         } else {
             shouldRotateTo = this.defaultDirection;
         }   
-        this.element.style.transform = `translate(${this.currentX * 64}px, ${this.currentY * 64}px) rotate(${shouldRotateTo}deg)`;
+        this.element.style.transform = `translate(${this.x * 64}px, ${this.y * 64}px) rotate(${shouldRotateTo}deg)`;
     }
     
     // Move cow to secondary position (when honked)
-    GetHonked() {
+    getHonked(world) {
         if (this.isMoving) {
             return; // Prevent multiple simultaneous moves
         }
-        
+
         this.isMoving = true;
         
         // Play cow sound if available
@@ -132,29 +129,24 @@ class Cow {
             soundController.playCow();
         }
 
-        // Animate movement over 1 second (with correct rotation)
-        if (this.element) {
-            // Determine which direction to face based on target
-            let targetDirection;
-            if (this.targetX === this.defaultX && this.targetY === this.defaultY) {
-                // Moving to default position
-                targetDirection = this.defaultDirection;
-            } else {
-                // Moving to secondary position
-                targetDirection = this.secondaryDirection;
-            }
-            
-            this.element.style.transition = 'transform 1s ease-in-out';
-            this.element.style.transform = `translate(${this.targetX * 64}px, ${this.targetY * 64}px) rotate(${targetDirection}deg)`;
-        }
-        
         // Update position immediately for collision detection
-        this.switchTarget();
+        const currentPos = this.getPosition();
+        const targetPos = this.isAtDefaultPosition() 
+            ? { x: this.secondaryX, y: this.secondaryY }
+            : { x: this.defaultX, y: this.defaultY };
+            
+        world.moveEntity(this, currentPos.x, currentPos.y, targetPos.x, targetPos.y);
+        this.setPosition(targetPos.x, targetPos.y);
 
-        // Movement is complete after 1 second
+        // Force immediate render to show movement
+        window.world.render(document.getElementById('game'));
+
+        // Movement is complete after a short delay
         setTimeout(() => {
             this.isMoving = false;
         }, 1000);
+        
+        // Fix rotation after movement completes
         setTimeout(() => {
             this.fixVisualRotationAfterMovement();
         }, 1000);
@@ -164,8 +156,8 @@ class Cow {
     updateVisualPosition() {
         if (this.element && this.element.parentElement) {
             const tileSize = 64; // Use the same tile size as the game
-            const x = this.currentX * tileSize;
-            const y = this.currentY * tileSize;
+            const x = this.x * tileSize;
+            const y = this.y * tileSize;
             
             // Determine which direction to face based on current target
             let targetDirection;
@@ -190,6 +182,39 @@ class Cow {
         }
     }
     
+    // Render method for compatibility
+    render(gameDiv, tileSize = 64) {
+        // Find or create the cow div
+        let cowDiv = gameDiv.querySelector(`.cow-${this.id}`);
+        if (!cowDiv) {
+            cowDiv = document.createElement('div');
+            cowDiv.className = `cow cow-${this.id}`;
+            cowDiv.style.width = tileSize + 'px';
+            cowDiv.style.height = tileSize + 'px';
+            cowDiv.style.backgroundImage = 'url("Assets/Textures/Cow.png")';
+            cowDiv.style.backgroundSize = 'contain';
+            cowDiv.style.position = 'absolute';
+            cowDiv.style.transition = 'left 1s ease, top 1s ease, transform 1s ease';
+            cowDiv.style.zIndex = '2';
+            gameDiv.appendChild(cowDiv);
+        }
+        
+        // Update position and rotation (preserves smooth transitions)
+        cowDiv.style.left = (this.x * tileSize) + 'px';
+        cowDiv.style.top = (this.y * tileSize) + 'px';
+        
+        // Only update rotation if not moving (keep current rotation during movement)
+        if (!this.isMoving) {
+            let rotation = 0;
+            if (this.isAtDefaultPosition()) {
+                rotation = this.secondaryDirection;
+            } else {
+                rotation = this.defaultDirection;
+            }
+            cowDiv.style.transform = `rotate(${rotation}deg)`;
+        }
+    }
+    
     // Remove cow from the game grid
     removeFromGrid() {
         if (this.element && this.element.parentElement) {
@@ -199,17 +224,15 @@ class Cow {
     
     // Check if a car is close enough to honk at the cow
     isCarClose(carX, carY, honkDistance = 2) {
-        const distance = Math.abs(carX - this.currentX) + Math.abs(carY - this.currentY);
+        const distance = Math.abs(carX - this.x) + Math.abs(carY - this.y);
         return distance <= honkDistance;
     }
     
     // Reset cow to default state
     reset() {
-        this.currentX = this.defaultX;
-        this.currentY = this.defaultY;
+        this.setPosition(this.defaultX, this.defaultY);
         this.targetX = this.secondaryX;
         this.targetY = this.secondaryY;
-        this.isAtDefault = true;
         this.isMoving = false;
         this.updateVisualPosition();
     }
@@ -221,19 +244,38 @@ class Cow {
             defaultY: this.defaultY,
             secondaryX: this.secondaryX,
             secondaryY: this.secondaryY,
-            currentX: this.currentX,
-            currentY: this.currentY,
-            isAtDefault: this.isAtDefault
+            currentX: this.x,
+            currentY: this.y,
+            isAtDefault: this.isAtDefaultPosition()
         };
     }
     
     // Create cow from data
     static fromData(data) {
         const cow = new Cow(data.defaultX, data.defaultY, data.secondaryX, data.secondaryY);
-        cow.currentX = data.currentX;
-        cow.currentY = data.currentY;
-        cow.isAtDefault = data.isAtDefault;
+        cow.setPosition(data.currentX, data.currentY);
         return cow;
+    }
+    
+    // Legacy compatibility methods
+    get currentX() {
+        return this.x;
+    }
+    
+    set currentX(x) {
+        this.x = x;
+    }
+    
+    get currentY() {
+        return this.y;
+    }
+    
+    set currentY(y) {
+        this.y = y;
+    }
+    
+    GetHonked(world) {
+        this.getHonked(world);
     }
 }
 

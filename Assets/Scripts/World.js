@@ -1,17 +1,25 @@
 import Tile from './Tile.js';
-import Car from './NewCar.js';
-import Cow from './NewCow.js';
+import Car from './Car.js';
+import Cow from './Cow.js';
 import Finish from './Finish.js';
 import WinCondition from './WinCondition.js';
 
 class World {
     constructor(width, height) {
+        if (typeof width !== 'number' || width <= 0) {
+            throw new Error('CRITICAL: World constructor: width must be positive number, got: ' + typeof width + ' - ' + width);
+        }
+        if (typeof height !== 'number' || height <= 0) {
+            throw new Error('CRITICAL: World constructor: height must be positive number, got: ' + typeof height + ' - ' + height);
+        }
+        
         this.width = width;
         this.height = height;
         this.grid = this.createGrid(width, height);
         this.entities = new Map(); // All entities (cars, cows, finish)
         this.winCondition = null;
         this.entityIdCounter = 0;
+        this.mode = null; // Store the game mode
     }
     
     createGrid(width, height) {
@@ -104,29 +112,57 @@ class World {
     }
     
     getEntitiesOfType(type) {
-        return Array.from(this.entities.values())
+        if (typeof type !== 'string') {
+            throw new Error('CRITICAL: getEntitiesOfType called with non-string type: ' + typeof type);
+        }
+        
+        const result = Array.from(this.entities.values())
             .filter(({ entity }) => entity.type === type)
             .map(({ entity }) => entity);
+            
+        if (!Array.isArray(result)) {
+            throw new Error('CRITICAL: getEntitiesOfType returned non-array: ' + typeof result);
+        }
+        
+        return result;
     }
     
     getEntityById(id) {
+        if (typeof id !== 'string') {
+            throw new Error('CRITICAL: getEntityById called with non-string id: ' + typeof id);
+        }
+        
         const entityInfo = this.entities.get(id);
         return entityInfo ? entityInfo.entity : null;
     }
     
     checkWinCondition() {
-        if (this.winCondition) {
-            return this.winCondition.check(this);
+        if (!this.winCondition) {
+            throw new Error('CRITICAL: checkWinCondition called but winCondition is null/undefined');
         }
-        return false;
+        
+        const result = this.winCondition.check(this);
+        if (typeof result !== 'boolean') {
+            throw new Error('CRITICAL: winCondition.check() returned non-boolean: ' + typeof result);
+        }
+        
+        return result;
     }
     
     setWinCondition(winCondition) {
+        if (!winCondition) {
+            throw new Error('CRITICAL: setWinCondition called with null/undefined winCondition');
+        }
+        
         this.winCondition = winCondition;
     }
     
     // Load level data into the world
     loadLevelData(levelData) {
+        if (!levelData || typeof levelData !== 'object') {
+            throw new Error('CRITICAL: loadLevelData called with invalid levelData: ' + typeof levelData);
+        }
+        
         // Clear existing entities
         this.entities.clear();
         
@@ -149,14 +185,27 @@ class World {
         
         // Add finish entity
         if (levelData.end && Array.isArray(levelData.end)) {
+            if (levelData.end.length !== 2) {
+                throw new Error('CRITICAL: Invalid end position array length: ' + levelData.end.length);
+            }
             const finishId = this.generateEntityId();
             const finish = new Finish(finishId, levelData.end[1] + 1, levelData.end[0] + 1);
+            if (!finish) {
+                throw new Error('CRITICAL: Failed to create Finish entity');
+            }
             this.addEntity(finish, finish.x, finish.y);
         }
         
         // Add cars
         if (levelData.cars && Array.isArray(levelData.cars)) {
             levelData.cars.forEach((carConfig, index) => {
+                if (!carConfig || typeof carConfig !== 'object') {
+                    throw new Error('CRITICAL: Invalid car config at index ' + index + ': ' + typeof carConfig);
+                }
+                if (!carConfig.position || !Array.isArray(carConfig.position) || carConfig.position.length !== 2) {
+                    throw new Error('CRITICAL: Car config missing valid position at index ' + index);
+                }
+                
                 const carId = this.generateEntityId();
                 const carX = carConfig.position[1] + 1;
                 const carY = carConfig.position[0] + 1;
@@ -167,10 +216,16 @@ class World {
                     carConfig.direction || 'N',
                     carConfig.type || 'default'
                 );
+                if (!car) {
+                    throw new Error('CRITICAL: Failed to create Car entity for index ' + index);
+                }
                 this.addEntity(car, carX, carY);
             });
         } else if (levelData.start && Array.isArray(levelData.start)) {
             // Single car level
+            if (levelData.start.length !== 2) {
+                throw new Error('CRITICAL: Invalid start position array length: ' + levelData.start.length);
+            }
             const carId = this.generateEntityId();
             const carX = levelData.start[1] + 1;
             const carY = levelData.start[0] + 1;
@@ -181,12 +236,23 @@ class World {
                 'N',
                 'default'
             );
+            if (!car) {
+                throw new Error('CRITICAL: Failed to create single Car entity');
+            }
             this.addEntity(car, carX, carY);
         }
         
         // Add cows
         if (levelData.cows && Array.isArray(levelData.cows)) {
             levelData.cows.forEach((cowConfig, index) => {
+                if (!cowConfig || typeof cowConfig !== 'object') {
+                    throw new Error('CRITICAL: Invalid cow config at index ' + index + ': ' + typeof cowConfig);
+                }
+                if (typeof cowConfig.defaultX !== 'number' || typeof cowConfig.defaultY !== 'number' ||
+                    typeof cowConfig.secondaryX !== 'number' || typeof cowConfig.secondaryY !== 'number') {
+                    throw new Error('CRITICAL: Cow config missing valid coordinates at index ' + index);
+                }
+                
                 const cowId = this.generateEntityId();
                 const cowX = cowConfig.defaultX + 1;
                 const cowY = cowConfig.defaultY + 1;
@@ -197,6 +263,9 @@ class World {
                     cowConfig.secondaryX + 1,
                     cowConfig.secondaryY + 1
                 );
+                if (!cow) {
+                    throw new Error('CRITICAL: Failed to create Cow entity for index ' + index);
+                }
                 this.addEntity(cow, cowX, cowY);
             });
         }
@@ -205,8 +274,18 @@ class World {
         const carCount = this.getEntitiesOfType('car').length;
         if (carCount > 1) {
             this.setWinCondition(new WinCondition('multi-car', { requiredCars: carCount }));
+            this.mode = 'oop';
         } else {
             this.setWinCondition(new WinCondition('single-car'));
+            this.mode = 'single';
+        }
+        
+        if (!this.winCondition) {
+            throw new Error('CRITICAL: Failed to set win condition');
+        }
+        
+        if (!this.mode) {
+            throw new Error('CRITICAL: Failed to set game mode');
         }
     }
     
@@ -221,52 +300,80 @@ class World {
     }
     
     // Render world to game div
-    render(gameDiv) {
+    render(gameDiv, instant = false) {
         if (!gameDiv) return;
         
-        // Clear existing content
-        gameDiv.innerHTML = '';
-        
-        // Render grid tiles
         const tileSize = 64;
-        for (let y = 0; y < this.height; y++) {
-            for (let x = 0; x < this.width; x++) {
-                const tile = this.getTile(x, y);
-                if (tile) {
-                    const tileDiv = document.createElement('div');
-                    tileDiv.className = 'tile';
-                    tileDiv.style.position = 'absolute';
-                    tileDiv.style.left = (x * tileSize) + 'px';
-                    tileDiv.style.top = (y * tileSize) + 'px';
-                    tileDiv.style.width = tileSize + 'px';
-                    tileDiv.style.height = tileSize + 'px';
-                    
-                    // Set tile texture based on road type
-                    const roadType = tile.getRoadType();
-                    tileDiv.style.backgroundImage = `url('Assets/Textures/tiles/Road-${roadType}.png')`;
-                    tileDiv.style.backgroundSize = 'contain';
-                    
-                    gameDiv.appendChild(tileDiv);
+        
+        // Only clear and recreate tiles if this is the first render
+        if (!gameDiv.querySelector('.tile')) {
+            // Clear existing content only on first render
+            gameDiv.innerHTML = '';
+            
+            // Render grid tiles (only once)
+            for (let y = 0; y < this.height; y++) {
+                for (let x = 0; x < this.width; x++) {
+                    const tile = this.getTile(x, y);
+                    if (tile) {
+                        const tileDiv = document.createElement('div');
+                        tileDiv.className = 'tile';
+                        tileDiv.style.position = 'absolute';
+                        tileDiv.style.left = (x * tileSize) + 'px';
+                        tileDiv.style.top = (y * tileSize) + 'px';
+                        tileDiv.style.width = tileSize + 'px';
+                        tileDiv.style.height = tileSize + 'px';
+                        tileDiv.style.zIndex = '1';
+                        
+                        // Set tile texture based on road type
+                        const roadType = tile.getRoadType();
+                        tileDiv.style.backgroundImage = `url('Assets/Textures/tiles/Road-${roadType}.png')`;
+                        tileDiv.style.backgroundSize = 'contain';
+                        
+                        gameDiv.appendChild(tileDiv);
+                    }
                 }
             }
         }
         
-        // Render all entities
+        // Update all entities (preserve existing DOM elements)
         this.entities.forEach(({ entity, x, y }) => {
             if (entity.render) {
-                entity.render(gameDiv);
+                entity.render(gameDiv, tileSize, instant);
             }
         });
     }
     
     // Canonical state query methods
     getMode() {
-        const cars = this.getEntitiesOfType('car');
-        return cars.length > 1 ? 'oop' : 'single';
+        if (!this.mode) {
+            throw new Error('CRITICAL: getMode called but mode is null/undefined - level may not be loaded');
+        }
+        
+        if (typeof this.mode !== 'string') {
+            throw new Error('CRITICAL: getMode: stored mode is not a string: ' + typeof this.mode);
+        }
+        
+        return this.mode;
     }
     
     getCarNames() {
-        return this.getEntitiesOfType('car').map(car => car.carType);
+        const cars = this.getEntitiesOfType('car');
+        if (!Array.isArray(cars)) {
+            throw new Error('CRITICAL: getCarNames: getEntitiesOfType("car") returned non-array: ' + typeof cars);
+        }
+        
+        const result = cars.map(car => {
+            if (!car || !car.carType) {
+                throw new Error('CRITICAL: Car missing carType in getCarNames: ' + JSON.stringify(car));
+            }
+            return car.carType;
+        });
+        
+        if (!Array.isArray(result)) {
+            throw new Error('CRITICAL: getCarNames returned non-array: ' + typeof result);
+        }
+        
+        return result;
     }
 }
 

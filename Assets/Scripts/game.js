@@ -1,23 +1,33 @@
+import Car from './Car.js';
+import Cow from './Cow.js';
+import Level from './level.js';
 import World from './World.js';
-import NewCar from './NewCar.js';
-import NewCow from './NewCow.js';
-import Finish from './Finish.js';
-import WinCondition from './WinCondition.js';
 import CarLangParser from './CarLang-parser.js';
-import NewCarLangEngine from './NewCarLangEngine.js';
+import CarLangEngine from './carlang-engine.js';
 import { soundController } from './soundController.js';
 import { ONLY_USE_THIS_TO_VALIDATE } from './code-validator.js';
 import { validateCodeForUI } from './ui-code-validator.js';
+import { debug } from './commonFunctions.js';
 
+// For now, hardcode a level id and default code
 const DEFAULT_CODE = `// Write your CarLang code here!`;
 
 let saveBtn, loadBtn, playBtn, resetBtn;
+// Car registry system
+let carRegistry = {};
+let defaultCar = null; // For backward compatibility
+let level = null;
+let world = null; // New World instance
 let currentLevelId = null;
+let finishPos = null;
 let allLevels = [];
-let currentLevelData = null;
+let cows = []; // Array to store cow instances - will be replaced by World
+let currentLevelData = null; // Track current level configuration
 let currentCustomLevelData = null;
-let isGameRunning = false;
-let world = null;
+let isGameRunning = false; // Track if game is currently running
+
+// Make cows globally accessible for CarLang engine
+window.cows = cows;
 
 function getSaveBtn() {
     return document.getElementById('saveBtn');
@@ -81,16 +91,16 @@ function loadCode() {
     const saved = localStorage.getItem('sdRacer_code_' + currentLevelId);
     if (saved !== null) {
         window.setCodeValue(saved);
-    } else if (world && world.defaultCode) {
-        window.setCodeValue(world.defaultCode);
+    } else if (level && level.defaultCode) {
+        window.setCodeValue(level.defaultCode);
     } else {
         window.setCodeValue(DEFAULT_CODE);
     }
 }
 
 function loadDefaultCode() {
-    if (world && world.defaultCode) {
-        window.setCodeValue(world.defaultCode);
+    if (level && level.defaultCode) {
+        window.setCodeValue(level.defaultCode);
     } else {
         window.setCodeValue(DEFAULT_CODE);
     }
@@ -168,15 +178,38 @@ function hideInfoOverlay() {
 }
 
 function isAtFinish() {
-    return world ? world.checkWinCondition() : false;
+    if (!world) {
+        throw new Error('CRITICAL: isAtFinish called but world is null/undefined');
+    }
+    
+    // Use world's win condition system
+    const result = world.checkWinCondition();
+    if (typeof result !== 'boolean') {
+        throw new Error('CRITICAL: world.checkWinCondition() returned non-boolean: ' + typeof result + ' - ' + JSON.stringify(result));
+    }
+    return result;
 }
 
 function isPositionBlockedByCow(x, y) {
-    if (world) {
-        const entities = world.getEntitiesAt(x, y);
-        return entities.some(entity => entity.type === 'cow');
+    if (!world) {
+        throw new Error('CRITICAL: isPositionBlockedByCow called but world is null/undefined');
     }
-    return false;
+    
+    if (typeof x !== 'number' || typeof y !== 'number') {
+        throw new Error('CRITICAL: isPositionBlockedByCow called with invalid coordinates: x=' + typeof x + ', y=' + typeof y);
+    }
+    
+    const entities = world.getEntitiesAt(x, y);
+    if (!Array.isArray(entities)) {
+        throw new Error('CRITICAL: world.getEntitiesAt() returned non-array: ' + typeof entities + ' - ' + JSON.stringify(entities));
+    }
+    
+    return entities.some(entity => {
+        if (!entity || !entity.type) {
+            throw new Error('CRITICAL: Entity missing type: ' + JSON.stringify(entity));
+        }
+        return entity.type === 'cow';
+    });
 }
 
 function setupWinButtons() {
@@ -361,9 +394,6 @@ function showCustomLevelLoader(overlay) {
 }
 
 function loadCustomLevel(levelData) {
-    debug('loadCustomLevel: loading levelData', levelData);
-    
-    // Helper to unescape line breaks
     function unescapeLineBreaks(str) {
         return typeof str === 'string' ? str.replace(/\\n/g, '\n') : str;
     }
@@ -371,22 +401,37 @@ function loadCustomLevel(levelData) {
     // Set current level ID to custom
     currentLevelId = 'custom';
     
-    // NEW: Create World instance
-    const height = levelData.rows.length + 2;
-    const width = levelData.rows[0] ? levelData.rows[0].length + 2 : 2;
-    world = new World(width, height);
-    window.world = world;
+    // Create new World instance
+    const levelWidth = (levelData.rows && levelData.rows[0]) ? levelData.rows[0].length + 2 : 10; // +2 for grass border
+    const levelHeight = (levelData.rows && levelData.rows.length) ? levelData.rows.length + 2 : 10; // +2 for grass border
+    world = new World(levelWidth, levelHeight);
+    window.world = world; // Make world globally accessible
+    
+    // Load level data into world
     world.loadLevelData(levelData);
     
+    // Keep old level for backward compatibility
+    level = new Level({
+        instruction: levelData.Instructions || '',
+        defaultCode: unescapeLineBreaks(levelData.defaultCode || ''),
+        tiles: levelData.rows,
+        cars: levelData.cars || null
+    });
+    window.level = level;
+    
     const gameDiv = document.getElementById('game');
-    // Set finish position
-    const finishPos = Array.isArray(levelData.end) ? [levelData.end[1] + 1, levelData.end[0] + 1] : undefined;
-    world.render(gameDiv, finishPos);
+    
+    // Render world
+    world.render(gameDiv);
+    
+    // Initialize car registry from world
+    initializeCarRegistryFromWorld();
     
     updateModeIndicator();
     
-    // NEW: Render entities from World
-    renderWorldEntities(gameDiv);
+    // Update global cows array from world
+    cows = world.getEntitiesOfType('cow');
+    window.cows = cows;
     
     loadDefaultCode();
     // Auto-indent the loaded code
@@ -414,82 +459,82 @@ function loadCustomLevel(levelData) {
 }
 
 function resetGame() {
-    // Hide car status indicator
-    hideCarStatus();
+    if (isGameRunning) {
+        stopGame();
+    }
     
-    // NEW: Reset World if available
+    // Reset world if it exists
     if (world) {
         world.reset();
-        const gameDiv = document.getElementById('game');
-        if (gameDiv) {
-            renderWorldEntities(gameDiv);
-        }
+        world.render(document.getElementById('game'));
     }
     
-    // Clear any existing highlighting
+    // Reset car registry from world
+    initializeCarRegistryFromWorld();
+    
+    // Update global cows array
+    if (world) {
+        cows = world.getEntitiesOfType('cow');
+        window.cows = cows;
+    }
+    
+    // Reset UI
+    hideWinMessage();
+    hideCarStatus();
     clearLineHighlighting();
     
-    // Reset button text
-    if (resetBtn) {
-        resetBtn.textContent = 'Reset code';
-    }
+    // Reset buttons
+    if (playBtn) playBtn.textContent = 'Play';
+    if (resetBtn) resetBtn.textContent = 'Reset';
     
-    // Hide win message
-    hideWinMessage();
-    
-    // Reset interpreter if it exists
-    if (window.currentInterpreter) {
-        window.currentInterpreter.reset();
-    }
-    
-    // Reset play button state
-    playBtn.textContent = 'Play';
     isGameRunning = false;
 }
 
 function resetLevel() {
-    // Hide car status indicator
-    hideCarStatus();
+    if (isGameRunning) {
+        stopGame();
+    }
     
-    // NEW: Reset World if available
+    // Reset world if it exists
     if (world) {
         world.reset();
-        const gameDiv = document.getElementById('game');
-        if (gameDiv) {
-            renderWorldEntities(gameDiv);
-        }
+        world.render(document.getElementById('game'));
     }
     
-    // Clear any existing highlighting
+    // Reset car registry from world
+    initializeCarRegistryFromWorld();
+    
+    // Update global cows array
+    if (world) {
+        cows = world.getEntitiesOfType('cow');
+        window.cows = cows;
+    }
+    
+    // Reset UI
+    hideWinMessage();
+    hideCarStatus();
     clearLineHighlighting();
     
-    // Reset button text
-    if (resetBtn) {
-        resetBtn.textContent = 'Reset code';
-    }
+    // Reset buttons
+    if (playBtn) playBtn.textContent = 'Play';
+    if (resetBtn) resetBtn.textContent = 'Reset';
     
-    // Hide win message
-    hideWinMessage();
-    
-    // Reset interpreter if it exists
-    if (window.currentInterpreter) {
-        window.currentInterpreter.reset();
-    }
-    
-    // Auto-indent the loaded code
-    autoIndent();
+    isGameRunning = false;
 }
 
 function resetLevelState() {
     // Hide car status indicator
     hideCarStatus();
     
-    // NEW: Reset World if available
+    // Reset world if it exists
     if (world) {
         world.reset();
-        const gameDiv = document.getElementById('game');
-        if (gameDiv) {
-            renderWorldEntities(gameDiv);
+        world.render(document.getElementById('game'));
+        initializeCarRegistryFromWorld();
+    } else {
+        // Fallback to old system
+        if (currentLevelData) {
+            initializeCarRegistry(currentLevelData);
         }
     }
     
@@ -512,27 +557,33 @@ function resetLevelState() {
 
 async function loadLevel(levelId) {
     try {
+        if (!levelId) {
+            throw new Error('CRITICAL: loadLevel called with null/undefined levelId');
+        }
+        
         const levelData = await fetch('https://wjhulzebosch.nl/json_ape/api.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: new URLSearchParams({ action: 'get', category: 'sd_racer', id: levelId })
         }).then(r => r.json());
+        
         if (!levelData) {
-            debug('Level not found!', null, 'error');
-            return;
+            throw new Error('CRITICAL: Level not found for id: ' + levelId);
         }
+        
         // Store current level data for win condition checking
         currentLevelData = levelData;
         currentCustomLevelData = null;
+        
         // Validate level data
         const validation = validateLevelData(levelData);
         if (validation.errors.length > 0) {
-            debug('Level validation errors:', validation.errors, 'error');
-            return;
+            throw new Error('CRITICAL: Level validation errors: ' + validation.errors.join(', '));
         }
         if (validation.warnings.length > 0) {
             console.warn('Level validation warnings:', validation.warnings);
         }
+        
         // Log level information
         const mode = getLevelMode(levelData);
         const difficulty = getLevelDifficulty(levelData);
@@ -547,22 +598,53 @@ async function loadLevel(levelId) {
             return typeof str === 'string' ? str.replace(/\\n/g, '\n') : str;
         }
         
-        // NEW: Create World instance
-        const height = levelData.rows.length + 2;
-        const width = levelData.rows[0] ? levelData.rows[0].length + 2 : 2;
-        world = new World(width, height);
-        window.world = world;
+        // Create new World instance
+        const levelWidth = (levelData.rows && levelData.rows[0]) ? levelData.rows[0].length + 2 : 10; // +2 for grass border
+        const levelHeight = (levelData.rows && levelData.rows.length) ? levelData.rows.length + 2 : 10; // +2 for grass border
+        
+        if (levelWidth <= 0 || levelHeight <= 0) {
+            throw new Error('CRITICAL: Invalid level dimensions: ' + levelWidth + 'x' + levelHeight);
+        }
+        
+        world = new World(levelWidth, levelHeight);
+        window.world = world; // Make world globally accessible
+        
+        if (!world) {
+            throw new Error('CRITICAL: Failed to create World instance');
+        }
+        
+        // Load level data into world
         world.loadLevelData(levelData);
         
-        const gameDiv = document.getElementById('game');
-        // Swap x and y for finish position and add +1 for grass border
-        const finishPos = Array.isArray(levelData.end) ? [levelData.end[1] + 1, levelData.end[0] + 1] : undefined;
-        world.render(gameDiv, finishPos);
+        // Keep old level for backward compatibility
+        level = new Level({
+            instruction: levelData.Instructions || '',
+            defaultCode: unescapeLineBreaks(levelData.defaultCode || ''),
+            tiles: levelData.rows,
+            cars: levelData.cars || null
+        });
+        window.level = level;
         
+        const gameDiv = document.getElementById('game');
+        if (!gameDiv) {
+            throw new Error('CRITICAL: Game div not found in DOM');
+        }
+        
+        // Render world
+        world.render(gameDiv);
+        
+        // Initialize car registry from world
+        initializeCarRegistryFromWorld();
+        
+        // Update UI elements
         updateModeIndicator();
         
-        // NEW: Render entities from World
-        renderWorldEntities(gameDiv);
+        // Update global cows array from world
+        cows = world.getEntitiesOfType('cow');
+        if (!Array.isArray(cows)) {
+            throw new Error('CRITICAL: world.getEntitiesOfType("cow") returned non-array: ' + typeof cows);
+        }
+        window.cows = cows;
         
         loadDefaultCode();
         // Auto-indent the loaded code
@@ -588,18 +670,9 @@ async function loadLevel(levelId) {
         // Reset game state when loading new level
         resetGame();
     } catch (err) {
-        debug('Failed to load level: ' + err, null, 'error');
+        console.error('CRITICAL ERROR in loadLevel:', err);
+        throw err; // Re-throw to make it visible
     }
-}
-
-function renderWorldEntities(gameDiv) {
-    if (!world || !gameDiv) return;
-    // Clear old cow elements only (keep cars for transitions)
-    gameDiv.querySelectorAll('.cow').forEach(el => el.remove());
-    // Render cars (they will reuse existing divs if available)
-    world.getEntitiesOfType('car').forEach(car => car.render(gameDiv));
-    // Render cows
-    world.getEntitiesOfType('cow').forEach(cow => cow.render(gameDiv));
 }
 
 async function playCode() {
@@ -620,13 +693,54 @@ async function playCode() {
         isGameRunning = true;
         hideWinMessage();
 
-        // Use canonical world methods for parser mode and available cars
-        let mode = world.getMode();
-        let carNames = world.getCarNames();
+        // Use world system for mode detection and car mapping
+        let mode = 'single';
+        let carNames = [];
+        
+        if (world) {
+            mode = world.getMode();
+            carNames = world.getCarNames();
+            
+            if (typeof mode !== 'string') {
+                throw new Error('CRITICAL: world.getMode() returned non-string: ' + typeof mode + ' - ' + JSON.stringify(mode));
+            }
+            
+            if (!Array.isArray(carNames)) {
+                throw new Error('CRITICAL: world.getCarNames() returned non-array: ' + typeof carNames + ' - ' + JSON.stringify(carNames));
+            }
+        } else {
+            // Fallback to old system
+            if (level && typeof level.isSingleMode === 'function' && !level.isSingleMode()) {
+                mode = 'oop';
+                if (Array.isArray(level.cars)) {
+                    carNames = level.cars.map(car => car.name);
+                }
+            }
+        }
+        
         const code = window.getCodeValue();
+        if (typeof code !== 'string') {
+            throw new Error('CRITICAL: window.getCodeValue() returned non-string: ' + typeof code);
+        }
+        
         const gameDiv = document.getElementById('game');
-        const parser = new CarLangParser(mode, carNames);
-        const ast = parser.parse(code, { mode, availableCars: carNames });
+        if (!gameDiv) {
+            throw new Error('CRITICAL: Game div not found in DOM during playCode');
+        }
+        
+        // Use long names with "Car" suffix for cleaner syntax
+        const availableCars = carNames.map(carName => carName + 'Car');
+        
+        const parser = new CarLangParser(world, availableCars);
+        if (!parser) {
+            throw new Error('CRITICAL: Failed to create CarLangParser instance');
+        }
+        
+        const ast = parser.parse(code);
+        if (!ast) {
+            throw new Error('CRITICAL: parser.parse() returned null/undefined');
+        }
+        
         const parseErrors = ast.errors || [];
         let validation = { valid: true, errors: [], warnings: [] };
         if (parseErrors.length > 0) {
@@ -635,22 +749,65 @@ async function playCode() {
             playBtn.textContent = 'Play';
             return;
         }
-        // Build a car map for execution using game helpers
+        
+        // Build a car map for execution using world entities
         let carMap = {};
-        if (mode === 'oop') {
+        if (world) {
             const cars = world.getEntitiesOfType('car');
-            cars.forEach(car => { carMap[car.carType] = car; });
+            if (!Array.isArray(cars)) {
+                throw new Error('CRITICAL: world.getEntitiesOfType("car") returned non-array: ' + typeof cars);
+            }
+            
+            debug(`[playCode] Building car map from world. Found ${cars.length} cars:`, cars.map(c => ({ id: c.id, carType: c.carType })));
+            
+            if (mode === 'oop') {
+                cars.forEach(car => {
+                    if (!car || !car.carType) {
+                        throw new Error('CRITICAL: Car missing carType: ' + JSON.stringify(car));
+                    }
+                    const carName = car.carType || 'default';
+                    // Use long name with "Car" suffix for execution
+                    const carNameWithSuffix = carName + 'Car';
+                    carMap[carNameWithSuffix] = car;
+                });
+            } else {
+                // Single car mode
+                if (cars.length > 0) {
+                    const defaultCar = cars[0];
+                    carMap.mainCar = defaultCar;
+                    carMap.default = defaultCar;
+                }
+            }
+            
+            debug(`[playCode] Final car map keys: ${Object.keys(carMap).join(', ')}`);
+            debug(`[playCode] Final car map values:`, Object.values(carMap).map(c => ({ id: c.id, carType: c.carType })));
         } else {
-            const cars = world.getEntitiesOfType('car');
-            if (cars.length > 0) {
-                carMap.mainCar = cars[0];
-                carMap.default = cars[0];
+            // Fallback to old system
+            if (mode === 'oop' && Array.isArray(level.cars)) {
+                const registry = getCarRegistry();
+                for (const car of level.cars) {
+                    if (registry && registry[car.name]) {
+                        carMap[car.name] = registry[car.name];
+                    }
+                }
+            } else if (mode === 'single') {
+                const defaultCar = getDefaultCar();
+                if (defaultCar) {
+                    carMap.mainCar = defaultCar;
+                    carMap.default = defaultCar;
+                }
             }
         }
+        
         // Store interpreter globally for reset functionality
-        const interpreter = new NewCarLangEngine(carMap, world, gameDiv);
+        const interpreter = new CarLangEngine(carMap, world || level, gameDiv);
+        if (!interpreter) {
+            throw new Error('CRITICAL: Failed to create CarLangEngine instance');
+        }
+        
         window.currentInterpreter = interpreter;
         interpreter.initializeExecution(ast);
+        
         // Enhanced game loop for step-by-step execution
         const gameLoop = () => {
             // Check if game was stopped
@@ -659,6 +816,9 @@ async function playCode() {
             }
             
             const result = interpreter.executeNext();
+            if (!result || typeof result !== 'object') {
+                throw new Error('CRITICAL: interpreter.executeNext() returned invalid result: ' + typeof result + ' - ' + JSON.stringify(result));
+            }
             
             // Update car status indicator for multi-car levels
             updateCarStatus();
@@ -675,19 +835,34 @@ async function playCode() {
                         soundController.playCarHorn();
                     }
                     
-                    // Check win condition after any command that might affect car position
+                    // Re-render world after movement commands to update visual display
                     if (result.functionName && ['moveForward', 'moveBackward', 'turnLeft', 'turnRight'].includes(result.functionName)) {
                         if (world) {
-                            const gameDiv = document.getElementById('game');
-                            renderWorldEntities(gameDiv);
+                            world.render(document.getElementById('game'));
+                        }
+                        
+                        // Check win condition after any command that might affect car position
+                        if (isAtFinish()) {
+                            hideCarStatus(); // Hide status when game ends
+                            showWinMessage();
+                            clearLineHighlighting();
+                            playBtn.textContent = 'Finished';
+                            isGameRunning = false;
+                            return; // Stop execution on win
                         }
                     }
                     
                     // Continue immediately for non-visual commands
-                    setTimeout(gameLoop, 100);
+                    requestAnimationFrame(gameLoop);
                     break;
                     
-                case 'PAUSED':
+                case 'PAUSED':                       
+                    // Re-render world after movement commands to update visual display
+                    if (result.functionName && ['moveForward', 'moveBackward', 'turnLeft', 'turnRight'].includes(result.functionName)) {
+                        if (world) {
+                            world.render(document.getElementById('game'));
+                        }
+                    }
                     // Wait for delay then continue
                     setTimeout(() => {
                         // Check if game was stopped during the delay
@@ -697,14 +872,18 @@ async function playCode() {
                         
                         // Check win condition after movement commands
                         if (result.functionName && ['moveForward', 'moveBackward'].includes(result.functionName)) {
-                            if (world) {
-                                const gameDiv = document.getElementById('game');
-                                renderWorldEntities(gameDiv);
+                            if (isAtFinish()) {
+                                hideCarStatus(); // Hide status when game ends
+                                showWinMessage();
+                                clearLineHighlighting();
+                                playBtn.textContent = 'Finished';
+                                isGameRunning = false;
+                                return; // Stop execution on win
                             }
                         }
                         
                         // Continue with next command
-                        setTimeout(gameLoop, 100);
+                        requestAnimationFrame(gameLoop);
                     }, 1000); // 1 second delay for visual commands
                     break;
                     
@@ -715,8 +894,13 @@ async function playCode() {
                     playBtn.textContent = 'Finished';
                     isGameRunning = false;
                     
+                    // Final render to show crashed cars
+                    if (window.world) {
+                        window.world.render(document.getElementById('game'));
+                    }
+                    
                     // Final win condition check
-                    if (world) {
+                    if (isAtFinish()) {
                         showWinMessage();
                     }
                     break;
@@ -728,6 +912,9 @@ async function playCode() {
                     playBtn.textContent = 'Play';
                     isGameRunning = false;
                     throw new Error(result.error);
+                    
+                default:
+                    throw new Error('CRITICAL: Unknown execution status: ' + result.status);
             }
         };
         
@@ -735,10 +922,12 @@ async function playCode() {
         gameLoop();
         
     } catch (e) {
+        console.error('CRITICAL ERROR in playCode:', e);
         debug('Error in code: ' + e.message, null, 'error');
         debug('Error: ' + e.message, null, 'error');
         playBtn.textContent = 'Play';
         isGameRunning = false;
+        throw e; // Re-throw to make it visible
     }
 }
 
@@ -862,6 +1051,152 @@ function clearLineHighlighting() {
     }
 }
 
+// Car registry management functions
+function initializeCarRegistry(levelConfig) {
+    // Clear existing registry
+    carRegistry = {};
+    defaultCar = null;
+    
+    // Remove existing car elements from DOM
+    const gameDiv = document.getElementById('game');
+    const existingCars = gameDiv.querySelectorAll('.car');
+    existingCars.forEach(car => car.remove());
+    
+    if (!levelConfig) {
+        console.warn('No level configuration provided to initializeCarRegistry');
+        return;
+    }
+    
+    // Check if this is a multi-car level
+    if (levelConfig.cars && Array.isArray(levelConfig.cars) && levelConfig.cars.length > 0) {
+        // Multi-car level
+        debug(`Initializing ${levelConfig.cars.length} cars for level ${levelConfig.apiId}`);
+        
+        levelConfig.cars.forEach((carConfig, index) => {
+            // Validate car configuration
+            if (!carConfig.name) {
+                debug(`Car ${index} missing name in level ${levelConfig.apiId}`, null, 'error');
+                return;
+            }
+            
+            const carName = carConfig.name;
+            const carType = carConfig.type || 'default';
+            const position = carConfig.position;
+            const direction = carConfig.direction || 'N';
+            
+            // Validate position
+            if (!position || !Array.isArray(position) || position.length !== 2) {
+                debug(`Car ${carName} has invalid position in level ${levelConfig.apiId}`, null, 'error');
+                return;
+            }
+            
+            // Validate car type
+            const validCarTypes = ['default', 'red', 'blue', 'green', 'yellow'];
+            if (!validCarTypes.includes(carType)) {
+                debug(`Car ${carName} has invalid type '${carType}', using 'default'`, null, 'warn');
+                carConfig.type = 'default';
+            }
+            
+            // Validate direction
+            const validDirections = ['N', 'E', 'S', 'W'];
+            if (!validDirections.includes(direction)) {
+                debug(`Car ${carName} has invalid direction '${direction}', using 'N'`, null, 'warn');
+                carConfig.direction = 'N';
+            }
+            
+            const car = new Car({
+                position: { x: position[1] + 1, y: position[0] + 1 },
+                direction: carConfig.direction,
+                carType: carConfig.type
+            });
+            
+            carRegistry[carName] = car;
+            
+            // Also register with "Car" suffix for better syntax (e.g., blueCar, redCar)
+            const carNameWithSuffix = carName + 'Car';
+            carRegistry[carNameWithSuffix] = car;
+            
+            // Set first car as default for backward compatibility
+            if (index === 0) {
+                defaultCar = car;
+            }
+            
+            car.render(gameDiv);
+            debug(`Created car: ${carName} (${carType}) at position [${position[0]}, ${position[1]}] facing ${carConfig.direction}`);
+        });
+        
+        // Validate that we have at least one car
+        if (Object.keys(carRegistry).length === 0) {
+            debug(`No valid cars created for level ${levelConfig.apiId}`, null, 'error');
+            return;
+        }
+        
+    } else {
+        // Single car level (backward compatibility)
+        debug(`Initializing single car for level ${levelConfig.apiId}`);
+        
+        if (levelConfig.start && Array.isArray(levelConfig.start) && levelConfig.start.length === 2) {
+            defaultCar = new Car({ 
+                position: { x: levelConfig.start[1] + 1, y: levelConfig.start[0] + 1 }, 
+                direction: 'N',
+                carType: 'default'
+            });
+            carRegistry.mainCar = defaultCar;
+            defaultCar.render(gameDiv);
+            debug(`Created single car at position [${levelConfig.start[0]}, ${levelConfig.start[1]}]`);
+        } else {
+            debug(`Invalid start position for level ${levelConfig.apiId}`, null, 'error');
+        }
+    }
+    
+    // Log final car registry state
+    debug(`Car registry initialized with ${Object.keys(carRegistry).length} cars:`, Object.keys(carRegistry));
+}
+
+function getCarRegistry() {
+    return carRegistry;
+}
+
+function getDefaultCar() {
+    return defaultCar;
+}
+
+function getCarByName(carName) {
+    return carRegistry[carName];
+}
+
+function getAllCars() {
+    return Object.values(carRegistry);
+}
+
+function clearCarRegistry() {
+    carRegistry = {};
+    defaultCar = null;
+    
+    // Remove car elements from DOM
+    const gameDiv = document.getElementById('game');
+    const existingCars = gameDiv.querySelectorAll('.car');
+    existingCars.forEach(car => car.remove());
+}
+
+// Helper function to get parser configuration based on current level
+function getParserConfig() {
+    if (!world) {
+        throw new Error('CRITICAL: getParserConfig called but world is null/undefined');
+    }
+    
+    const mode = world.getMode();
+    const carNames = world.getCarNames();
+    
+    // Only use long names with "Car" suffix
+    const availableCars = carNames.map(carName => carName + 'Car');
+    
+    return {
+        mode: mode,
+        availableCars: availableCars
+    };
+}
+
 // Level data validation and management functions
 function validateLevelData(levelData) {
     const errors = [];
@@ -978,15 +1313,34 @@ function getLevelCategory(levelData) {
  * Enhanced win condition checking with detailed feedback
  */
 function checkWinCondition() {
-    return world && world.winCondition ? world.winCondition.getWinDetails(world) : { won: false, details: null };
+    if (!world) {
+        throw new Error('CRITICAL: checkWinCondition called but world is null/undefined');
+    }
+    
+    if (!world.winCondition) {
+        throw new Error('CRITICAL: world.winCondition is null/undefined');
+    }
+    
+    // Use world's win condition system
+    const won = world.checkWinCondition();
+    if (typeof won !== 'boolean') {
+        throw new Error('CRITICAL: world.checkWinCondition() returned non-boolean: ' + typeof won + ' - ' + JSON.stringify(won));
+    }
+    
+    const details = world.winCondition.getWinDetails(world);
+    if (!details || typeof details !== 'object') {
+        throw new Error('CRITICAL: world.winCondition.getWinDetails() returned invalid result: ' + typeof details + ' - ' + JSON.stringify(details));
+    }
+    
+    return { won, details };
 }
 
 /**
  * Show car status indicator during execution
  */
 function showCarStatus() {
-    const cars = world ? world.getEntitiesOfType('car') : [];
-    if (cars.length <= 1) return; // Only show for multi-car levels
+    const allCars = Object.values(carRegistry);
+    if (allCars.length <= 1) return; // Only show for multi-car levels
     
     let statusIndicator = document.getElementById('car-status-indicator');
     if (!statusIndicator) {
@@ -1009,16 +1363,25 @@ function showCarStatus() {
     
     let statusHTML = '<div style="color: #10b981; font-weight: bold; margin-bottom: 8px;">Car Status:</div>';
     
-    cars.forEach(car => {
+    allCars.forEach(car => {
+        const carName = Object.keys(carRegistry).find(key => carRegistry[key] === car) || 'unknown';
         const carType = car.carType || 'default';
-        const isAtFinish = world && world.checkWinCondition();
+        
+        // Check if car is at finish using world system
+        let isAtFinish = false;
+        if (world) {
+            const finishEntities = world.getEntitiesOfType('finish');
+            isAtFinish = finishEntities.some(finish => 
+                finish.x === car.x && finish.y === car.y
+            );
+        }
         
         const statusClass = isAtFinish ? 'validation-success' : 'validation-info';
         const statusText = isAtFinish ? '✓ Finished' : '🔄 Active';
         
         statusHTML += `
             <div class="${statusClass}" style="margin: 4px 0; padding: 4px 8px; border-radius: 4px;">
-                <span style="font-weight: bold;">${carType}</span> (${carType}): ${statusText}
+                <span style="font-weight: bold;">${carName}</span> (${carType}): ${statusText}
             </div>
         `;
     });
@@ -1040,8 +1403,7 @@ function hideCarStatus() {
  * Update car status during execution
  */
 function updateCarStatus() {
-    const cars = world ? world.getEntitiesOfType('car') : [];
-    if (cars.length > 1) {
+    if (Object.keys(carRegistry).length > 1) {
         showCarStatus();
     } else {
         hideCarStatus();
@@ -1058,11 +1420,20 @@ function updateModeIndicator() {
     
     if (!modeIndicator || !modeText || !carCount) return;
     
-    const cars = world ? world.getEntitiesOfType('car') : [];
-    const carCountNum = cars.length;
-    const parserConfig = getParserConfig();
+    let carCountNum = 0;
+    let mode = 'single';
     
-    if (parserConfig.mode === 'oop') {
+    if (world) {
+        const cars = world.getEntitiesOfType('car');
+        carCountNum = cars.length;
+        mode = world.getMode();
+    } else {
+        carCountNum = Object.keys(carRegistry).length;
+        const parserConfig = getParserConfig();
+        mode = parserConfig.mode;
+    }
+    
+    if (mode === 'oop') {
         modeText.textContent = 'Multi-Car Mode';
         carCount.textContent = `${carCountNum} cars`;
         modeIndicator.style.display = 'flex';
@@ -1110,9 +1481,9 @@ function addEditLevelButton() {
         btn.style.right = '10px';
         btn.onclick = () => {
             debug('Edit Level: currentLevelData', currentLevelData);
-            debug('Edit Level: world', world);
+            debug('Edit Level: level', level);
             // Export current level as JSON
-            const levelJson = JSON.stringify(currentCustomLevelData || currentLevelData || world);
+            const levelJson = JSON.stringify(currentCustomLevelData || currentLevelData || level);
             // Store in localStorage for transfer
             localStorage.setItem('sdRacer_tempLevel', levelJson);
             // Open levelCreator with a flag to load from temp
@@ -1151,18 +1522,120 @@ window.addEventListener('DOMContentLoaded', () => {
     startGame();
 });
 
-function getParserConfig() {
+// Initialize car registry from world entities
+function initializeCarRegistryFromWorld() {
     if (!world) {
-        return { mode: 'single', carNames: [] };
+        throw new Error('CRITICAL: initializeCarRegistryFromWorld called but world is null/undefined');
     }
     
+    // Clear existing registry
+    carRegistry = {};
+    
+    // Get all cars from world
     const cars = world.getEntitiesOfType('car');
-    if (cars.length > 1) {
-        return { 
-            mode: 'oop', 
-            carNames: cars.map(car => car.carType) 
-        };
-    } else {
-        return { mode: 'single', carNames: [] };
+    
+    if (cars.length === 0) {
+        throw new Error('CRITICAL: No cars found in world - this should never happen');
     }
+    
+    // Register each car
+    cars.forEach(car => {
+        if (!car || !car.id) {
+            throw new Error('CRITICAL: Car entity is missing id: ' + JSON.stringify(car));
+        }
+        
+        const carName = car.carType || 'default';
+        
+        // Only register with "Car" suffix for cleaner syntax (e.g., blueCar, redCar)
+        const carNameWithSuffix = carName + 'Car';
+        carRegistry[carNameWithSuffix] = car;
+        
+        // For backward compatibility, set default car
+        if (!defaultCar || carName === 'default') {
+            defaultCar = car;
+        }
+    });
+    
+    // Also register with 'mainCar' key for single car mode
+    if (cars.length === 1) {
+        carRegistry.mainCar = cars[0];
+        carRegistry.default = cars[0];
+    }
+    
+    debug(`Initialized car registry with ${cars.length} cars: ${Object.keys(carRegistry).join(', ')}`);
 }
+
+// Global error handler to catch any unhandled errors
+window.addEventListener('error', function(event) {
+    console.error('CRITICAL UNHANDLED ERROR:', event.error);
+    console.error('Error details:', {
+        message: event.error.message,
+        stack: event.error.stack,
+        filename: event.filename,
+        lineno: event.lineno,
+        colno: event.colno
+    });
+    
+    // Show error in UI
+    const errorDiv = document.createElement('div');
+    errorDiv.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: #dc2626;
+        color: white;
+        padding: 20px;
+        border-radius: 8px;
+        z-index: 10000;
+        max-width: 80%;
+        max-height: 80%;
+        overflow: auto;
+        font-family: monospace;
+        white-space: pre-wrap;
+    `;
+    errorDiv.innerHTML = `
+        <h3>CRITICAL ERROR DETECTED</h3>
+        <p><strong>Message:</strong> ${event.error.message}</p>
+        <p><strong>File:</strong> ${event.filename}:${event.lineno}:${event.colno}</p>
+        <p><strong>Stack:</strong></p>
+        <pre>${event.error.stack}</pre>
+        <button onclick="this.parentElement.remove()" style="margin-top: 10px; padding: 5px 10px;">Close</button>
+    `;
+    document.body.appendChild(errorDiv);
+    
+    // Prevent default error handling
+    event.preventDefault();
+});
+
+// Also catch unhandled promise rejections
+window.addEventListener('unhandledrejection', function(event) {
+    console.error('CRITICAL UNHANDLED PROMISE REJECTION:', event.reason);
+    
+    const errorDiv = document.createElement('div');
+    errorDiv.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: #dc2626;
+        color: white;
+        padding: 20px;
+        border-radius: 8px;
+        z-index: 10000;
+        max-width: 80%;
+        max-height: 80%;
+        overflow: auto;
+        font-family: monospace;
+        white-space: pre-wrap;
+    `;
+    errorDiv.innerHTML = `
+        <h3>CRITICAL UNHANDLED PROMISE REJECTION</h3>
+        <p><strong>Reason:</strong> ${event.reason}</p>
+        <button onclick="this.parentElement.remove()" style="margin-top: 10px; padding: 5px 10px;">Close</button>
+    `;
+    document.body.appendChild(errorDiv);
+    
+    // Prevent default error handling
+    event.preventDefault();
+});
