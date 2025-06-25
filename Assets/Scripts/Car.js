@@ -287,7 +287,11 @@ class Car extends Entity {
     }
     
     // Get direction to finish using GPS
-    getDirectionToFinish(world) {
+    getDirectionToFinish() {
+        console.log("IN CAR.JS getDirectionToFinish, window.world is:", window.world);
+        const world = window.world;
+
+        console.log("IN CAR.JS getDirectionToFinish");
         if (!world || !world.gps) {
             console.log('[Car] GPS not available for direction to finish');
             return null;
@@ -319,4 +323,5 @@ class Car extends Entity {
     }
 }
 
+console.log("Car.js loaded, window.world is:", window.world);
 export default Car; 
