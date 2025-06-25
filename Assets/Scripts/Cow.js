@@ -55,11 +55,11 @@ class Cow extends Entity {
         if(defaultDx === 0) {
             // Moving vertically to default
             if(defaultDy < 0) {
-                // Moving up to default
-                this.defaultDirection = 180;
+                // Moving up to default (north)
+                this.defaultDirection = 0; // Face north (up)
             } else if(defaultDy > 0) {
-                // Moving down to default
-                this.defaultDirection = 0;
+                // Moving down to default (south)
+                this.defaultDirection = 180; // Face south (down)
             }
         } else if(defaultDy === 0) {
             // Moving horizontally to default

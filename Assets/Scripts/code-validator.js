@@ -5,6 +5,7 @@
 
 import CarLangParser from './CarLang-parser.js';
 import CarLangEngine from './carlang-engine.js';
+import CommandableObject from './CommandableObject.js';
 
 export function ONLY_USE_THIS_TO_VALIDATE() {
     // Get the code from the textarea
@@ -40,14 +41,16 @@ export function masterValidateCode(code, world, gameDiv) {
     const parseErrors = ast.errors || [];
     let validation = { valid: true, errors: [], warnings: [] };
     if (parseErrors.length === 0) {
-        // Build a car map for validation (name -> dummy object)
-        let carMap = {};
+        // Build a commandable object map for validation (name -> dummy commandable object)
+        let commandableObjectMap = {};
         if (mode === 'oop') {
             availableCars.forEach(carName => {
-                carMap[carName] = {}; // dummy object for validation
+                // Create a dummy commandable object for validation
+                const dummyEntity = { carType: carName.replace('Car', '') };
+                commandableObjectMap[carName] = new CommandableObject(dummyEntity);
             });
         }
-        const engine = new CarLangEngine(carMap, world, gameDiv);
+        const engine = new CarLangEngine(commandableObjectMap, world, gameDiv);
         validation = engine.validate(ast);
     }
     return {

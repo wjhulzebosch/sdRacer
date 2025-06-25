@@ -5,38 +5,40 @@
  */
 
 class CarLangEngine {
-    constructor(carRegistry, world, gameDiv) {
-        // If carRegistry is missing or empty, try to get from game helpers
-        let registryToUse = carRegistry;
+    constructor(commandableObjectRegistry, world, gameDiv) {
+        // If commandableObjectRegistry is missing or empty, try to get from game helpers
+        let registryToUse = commandableObjectRegistry;
         if (!registryToUse || (typeof registryToUse === 'object' && Object.keys(registryToUse).length === 0)) {
-            if (typeof getCarRegistry === 'function') {
-                registryToUse = getCarRegistry();
+            if (typeof getCommandableObjectRegistry === 'function') {
+                registryToUse = getCommandableObjectRegistry();
             }
         }
-        this.carRegistry = registryToUse || {};
-        this.defaultCar = null; // For backward compatibility
+        this.commandableObjectRegistry = registryToUse || {};
+        this.carRegistry = {}; // Keep for backward compatibility
+        this.defaultCommandableObject = null; // For backward compatibility
         this.world = world; // Store world reference
         this.gameDiv = gameDiv;
         this.variables = {};
         this.functions = {};
         this.customMethods = {}; // Store custom methods defined in Class Car
 
-        // Set default car for backward compatibility
-        if (this.carRegistry && typeof this.carRegistry === 'object') {
-            if (Array.isArray(this.carRegistry)) {
-                // If passed as array, use first car
-                this.defaultCar = this.carRegistry[0] || null;
+        // Set default commandable object for backward compatibility
+        if (this.commandableObjectRegistry && typeof this.commandableObjectRegistry === 'object') {
+            if (Array.isArray(this.commandableObjectRegistry)) {
+                // If passed as array, use first commandable object
+                this.defaultCommandableObject = this.commandableObjectRegistry[0] || null;
             } else {
-                // If passed as object, use first car or mainCar or default
-                this.defaultCar = this.carRegistry.mainCar || this.carRegistry.default || this.carRegistry[Object.keys(this.carRegistry)[0]] || null;
+                // If passed as object, use first commandable object or mainCar or default
+                this.defaultCommandableObject = this.commandableObjectRegistry.mainCar || this.commandableObjectRegistry.default || this.commandableObjectRegistry[Object.keys(this.commandableObjectRegistry)[0]] || null;
             }
         } else {
-            // Legacy support: if passed single car
-            this.defaultCar = this.carRegistry;
+            // Legacy support: if passed single commandable object
+            this.defaultCommandableObject = this.commandableObjectRegistry;
         }
         
-        if (!this.defaultCar && typeof getDefaultCar === 'function') {
-            this.defaultCar = getDefaultCar();
+        if (!this.defaultCommandableObject && typeof getCommandableObjectRegistry === 'function') {
+            const registry = getCommandableObjectRegistry();
+            this.defaultCommandableObject = registry.mainCar || registry[Object.keys(registry)[0]] || null;
         }
         
         // Execution state
@@ -55,17 +57,19 @@ class CarLangEngine {
             // Add more visual commands here as needed
         ];
         
-        // Map CarLang function names to Car.js methods (for single-car mode)
+        // Map CarLang function names to CommandableObject methods (for single-car mode)
         this.functionMap = {
-            'moveForward': () => this.defaultCar.moveForward(this.world, this.gameDiv),
-            'moveBackward': () => this.defaultCar.moveBackward(this.world, this.gameDiv),
-            'turnRight': () => this.defaultCar.turnRight(this.gameDiv),
-            'turnLeft': () => this.defaultCar.turnLeft(this.gameDiv),
-            'explode': () => this.defaultCar.crash(this.gameDiv),
-            'isRoadAhead': () => this.defaultCar.isRoadAhead(this.world),
-            'isCowAhead': () => this.defaultCar.isCowAhead(this.world),
+            'moveForward': () => this.defaultCommandableObject.moveForward(),
+            'moveBackward': () => this.defaultCommandableObject.moveBackward(),
+            'turnRight': () => this.defaultCommandableObject.turnRight(),
+            'turnLeft': () => this.defaultCommandableObject.turnLeft(),
+            'explode': () => this.defaultCommandableObject.crash(),
+            'isRoadAhead': () => this.defaultCommandableObject.isRoadAhead(),
+            'isCowAhead': () => this.defaultCommandableObject.isCowAhead(),
             'honk': () => this.honk(),
-            'not': (value) => !value
+            'not': (value) => !value,
+            'GetDirectionToFinish': () => this.defaultCommandableObject.getDirectionToFinish(),
+            'GetCurrentDirection': () => this.defaultCommandableObject.getCurrentDirection()
         };
         
         // Function validation rules
@@ -77,7 +81,9 @@ class CarLangEngine {
             'explode': { args: 0, description: 'Make car crash' },
             'isRoadAhead': { args: 0, description: 'Check if there is a road ahead (ignores cows)' },
             'isCowAhead': { args: 0, description: 'Check if there is a cow ahead (ignores roads)' },
-            'honk': { args: 0, description: 'Honk the car horn' }
+            'honk': { args: 0, description: 'Honk the car horn' },
+            'GetDirectionToFinish': { args: 0, description: 'Get direction to finish line (North, East, South, West, or null if no path)' },
+            'GetCurrentDirection': { args: 0, description: 'Get current car direction (North, East, South, West)' }
         };
     }
 
@@ -462,17 +468,14 @@ class CarLangEngine {
      * Check if all cars are crashed
      */
     areAllCarsCrashed() {
-        debug(`[areAllCarsCrashed] carRegistry keys: ${Object.keys(this.carRegistry).join(', ')}`);
-        debug(`[areAllCarsCrashed] carRegistry values:`, Object.values(this.carRegistry));
+        debug(`[areAllCarsCrashed] commandableObjectRegistry keys: ${Object.keys(this.commandableObjectRegistry).join(', ')}`);
+        debug(`[areAllCarsCrashed] commandableObjectRegistry values:`, Object.values(this.commandableObjectRegistry));
         
-        const cars = Object.values(this.carRegistry);
-        const crashedCars = cars.filter(car => car.crashed);
-        const allCrashed = cars.length > 0 && cars.every(car => car.crashed);
+        const commandableObjects = Object.values(this.commandableObjectRegistry);
+        const crashedCars = commandableObjects.filter(commandableObject => commandableObject.entity.crashed);
+        const allCrashed = commandableObjects.length > 0 && commandableObjects.every(commandableObject => commandableObject.entity.crashed);
         
-        debug(`[areAllCarsCrashed] Total cars: ${cars.length}, Crashed cars: ${crashedCars.length}, All crashed: ${allCrashed}`);
-        cars.forEach((car, index) => {
-            debug(`[areAllCarsCrashed] Car ${index}: ${car.carType || 'default'}, crashed: ${car.crashed}, id: ${car.id}`);
-        });
+        debug(`[areAllCarsCrashed] Total cars: ${commandableObjects.length}, Crashed cars: ${crashedCars.length}, All crashed: ${allCrashed}`);
         
         return allCrashed;
     }
@@ -483,10 +486,10 @@ class CarLangEngine {
     executeFunctionCall(statement) {
         const args = statement.arguments.map(arg => this.evaluateExpression(arg));
         
-        // Get the target car - if we're in a method context, use that car, otherwise use default
-        let targetCar = this.defaultCar;
-        if (this.currentContext && this.currentContext.type === 'method' && this.currentContext.car) {
-            targetCar = this.currentContext.car;
+        // Get the target commandable object - if we're in a method context, use that commandable object, otherwise use default
+        let targetCommandableObject = this.defaultCommandableObject;
+        if (this.currentContext && this.currentContext.type === 'method' && this.currentContext.commandableObject) {
+            targetCommandableObject = this.currentContext.commandableObject;
         }
         
         // Check if all cars are crashed - if so, end execution
@@ -495,7 +498,7 @@ class CarLangEngine {
         }
         
         // For single-car mode, check if the target car is crashed
-        if (targetCar && targetCar.crashed) {
+        if (targetCommandableObject && targetCommandableObject.entity.crashed) {
             // Skip the command but continue execution
             // Check if all cars are now crashed
             if (this.areAllCarsCrashed()) {
@@ -507,17 +510,17 @@ class CarLangEngine {
         // Check if it's a built-in function
         let result = null;
         if (this.functionMap[statement.name]) {
-            // For method context, we need to create a custom function map that uses the target car
+            // For method context, we need to create a custom function map that uses the target commandable object
             if (this.currentContext && this.currentContext.type === 'method') {
                 const methodFunctionMap = {
-                    'moveForward': () => targetCar.moveForward(this.world, this.gameDiv),
-                    'moveBackward': () => targetCar.moveBackward(this.world, this.gameDiv),
-                    'turnRight': () => targetCar.turnRight(this.gameDiv),
-                    'turnLeft': () => targetCar.turnLeft(this.gameDiv),
-                    'explode': () => targetCar.crash(this.gameDiv),
-                    'isRoadAhead': () => targetCar.isRoadAhead(this.world),
-                    'isCowAhead': () => targetCar.isCowAhead(this.world),
-                    'honk': () => this.honkForCar(targetCar),
+                    'moveForward': () => targetCommandableObject.moveForward(),
+                    'moveBackward': () => targetCommandableObject.moveBackward(),
+                    'turnRight': () => targetCommandableObject.turnRight(),
+                    'turnLeft': () => targetCommandableObject.turnLeft(),
+                    'explode': () => targetCommandableObject.crash(),
+                    'isRoadAhead': () => targetCommandableObject.isRoadAhead(),
+                    'isCowAhead': () => targetCommandableObject.isCowAhead(),
+                    'honk': () => this.honkForCar(targetCommandableObject),
                     'not': (value) => !value
                 };
                 result = methodFunctionMap[statement.name](...args);
@@ -585,13 +588,14 @@ class CarLangEngine {
         if (typeof soundController !== 'undefined') {
             soundController.playCarHorn();
         }
-        const carX = this.defaultCar.x;
-        const carY = this.defaultCar.y;
+        const car = this.defaultCommandableObject.entity;
+        const carX = car.x;
+        const carY = car.y;
         debug('HONK: Car position:', { x: carX, y: carY });
         // Only check the tile in front of the car
         let frontX = carX;
         let frontY = carY;
-        switch (this.defaultCar.direction) {
+        switch (car.direction) {
             case 'N': frontY -= 1; break;
             case 'E': frontX += 1; break;
             case 'S': frontY += 1; break;
@@ -1139,35 +1143,37 @@ class CarLangEngine {
     executeMethodCall(statement) {
         const args = statement.arguments.map(arg => this.evaluateExpression(arg));
         
-        // Get the target car
-        let car;
+        // Get the target commandable object
+        let commandableObject;
         if (statement.object === 'self') {
-            // "self" refers to the current car instance in method context
-            // Search for car reference in current context and parent contexts
+            // "self" refers to the current commandable object instance in method context
+            // Search for commandable object reference in current context and parent contexts
             let context = this.currentContext;
             while (context) {
-                if (context.car) {
-                    car = context.car;
-                    debug(`[executeMethodCall] Using self in context: ${context.type}, car: ${car.carType}`);
+                if (context.commandableObject) {
+                    commandableObject = context.commandableObject;
+                    debug(`[executeMethodCall] Using self in context: ${context.type}, commandableObject: ${commandableObject.entity.carType}`);
                     break;
                 }
                 context = context.parent;
             }
             
-            if (!car) {
+            if (!commandableObject) {
                 debug(`[executeMethodCall] ERROR: Cannot use 'self' outside of method context. Current context:`, this.currentContext);
                 throw new Error(`Cannot use 'self' outside of a method context`);
             }
         } else {
-            // Regular car instance method call
+            // Regular commandable object instance method call
             const carName = statement.object;
-            car = this.carRegistry[carName];
+            commandableObject = this.commandableObjectRegistry[carName];
             
-            if (!car) {
+            if (!commandableObject) {
                 throw new Error(`Unknown car: ${carName}`);
             }
         }
         
+        // Get the underlying car for crash checking
+        const car = commandableObject.entity;
         debug(`[executeMethodCall] Executing ${statement.object}.${statement.method}() - Car crashed: ${car.crashed}`);
         
         // Check if the car is crashed - if so, skip the command
@@ -1181,16 +1187,18 @@ class CarLangEngine {
             return null;
         }
         
-        // Map method names to car methods
+        // Map method names to commandable object methods
         const methodMap = {
-            'moveForward': () => car.moveForward(this.world, this.gameDiv),
-            'moveBackward': () => car.moveBackward(this.world, this.gameDiv),
-            'turnRight': () => car.turnRight(this.gameDiv),
-            'turnLeft': () => car.turnLeft(this.gameDiv),
-            'explode': () => car.crash(this.gameDiv),
-            'isRoadAhead': () => car.isRoadAhead(this.world),
-            'isCowAhead': () => car.isCowAhead(this.world),
-            'honk': () => this.honkForCar(car)
+            'moveForward': () => commandableObject.moveForward(),
+            'moveBackward': () => commandableObject.moveBackward(),
+            'turnRight': () => commandableObject.turnRight(),
+            'turnLeft': () => commandableObject.turnLeft(),
+            'explode': () => commandableObject.crash(),
+            'isRoadAhead': () => commandableObject.isRoadAhead(),
+            'isCowAhead': () => commandableObject.isCowAhead(),
+            'honk': () => this.honkForCar(commandableObject),
+            'GetDirectionToFinish': () => commandableObject.getDirectionToFinish(),
+            'GetCurrentDirection': () => commandableObject.getCurrentDirection()
         };
         
         // Execute the method
@@ -1201,7 +1209,7 @@ class CarLangEngine {
             debug(`[executeMethodCall] Method executed, car crashed: ${car.crashed}`);
         } else if (this.customMethods[statement.method]) {
             debug(`[executeMethodCall] Executing custom method: ${statement.method}`);
-            result = this.executeCustomMethod(statement.method, car, args);
+            result = this.executeCustomMethod(statement.method, commandableObject, args);
             debug(`[executeMethodCall] Custom method executed, car crashed: ${car.crashed}`);
         } else {
             console.warn(`Unknown method: ${statement.method}`);
@@ -1217,17 +1225,18 @@ class CarLangEngine {
     }
 
     /**
-     * Honk the car horn for a specific car
+     * Honk the car horn for a specific commandable object
      */
-    honkForCar(car) {
-        debug('HONK: Starting honk method for specific car');
+    honkForCar(commandableObject) {
+        debug('HONK: Starting honk method for specific commandable object');
         
         // Play honk sound immediately
         if (typeof soundController !== 'undefined') {
             soundController.playCarHorn();
         }
         
-        // Get car's current position
+        // Get car's current position from the underlying entity
+        const car = commandableObject.entity;
         const carX = car.x;
         const carY = car.y;
         debug('HONK: Car position:', { x: carX, y: carY });
@@ -1269,7 +1278,7 @@ class CarLangEngine {
         const objectName = methodCall.object;
         
         // Check if the object (car) exists in the registry or is "self"
-        if (objectName !== 'self' && !this.carRegistry[objectName]) {
+        if (objectName !== 'self' && !this.commandableObjectRegistry[objectName]) {
             const lineNumber = this.getLineNumber(line);
             errors.push(`Line ${lineNumber}: Unknown car '${objectName}'`);
             return;
@@ -1310,7 +1319,7 @@ class CarLangEngine {
     /**
      * Execute a custom method defined in Class Car
      */
-    executeCustomMethod(methodName, car, args) {
+    executeCustomMethod(methodName, commandableObject, args) {
         const methodDef = this.customMethods[methodName];
         
         // Validate argument count
@@ -1328,7 +1337,7 @@ class CarLangEngine {
             blockStartLine: methodDef.line,
             returnValue: null,
             hasReturned: false,
-            car: car // Store the car instance for method execution
+            commandableObject: commandableObject // Store the commandable object instance for method execution
         };
         
         // Set up parameter variables in the method scope

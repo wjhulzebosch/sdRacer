@@ -3,6 +3,7 @@ import Car from './Car.js';
 import Cow from './Cow.js';
 import Finish from './Finish.js';
 import WinCondition from './WinCondition.js';
+import GPS from './GPS.js';
 
 class World {
     constructor(width, height) {
@@ -20,6 +21,9 @@ class World {
         this.winCondition = null;
         this.entityIdCounter = 0;
         this.mode = null; // Store the game mode
+        
+        // Initialize GPS system
+        this.gps = new GPS(this);
     }
     
     createGrid(width, height) {
@@ -287,6 +291,18 @@ class World {
         if (!this.mode) {
             throw new Error('CRITICAL: Failed to set game mode');
         }
+        
+        // Reinitialize GPS system after level data is loaded
+        debug('[World] Reinitializing GPS system after level load...');
+        this.gps = new GPS(this);
+        
+        // Set game div min-width based on world dimensions
+        const gameDiv = document.getElementById('game');
+        if (gameDiv) {
+            const tileSize = 64;
+            const minWidth = this.width * tileSize;
+            gameDiv.style.minWidth = minWidth + 'px';
+        }
     }
     
     // Reset world to initial state
@@ -381,6 +397,21 @@ class World {
         }
         
         return result;
+    }
+    
+    // GPS system access
+    getGPS() {
+        return this.gps;
+    }
+    
+    // Debug GPS system
+    debugGPS() {
+        if (this.gps) {
+            debug('[World] Triggering GPS debug output...');
+            this.gps.printDebugInfo();
+        } else {
+            debug('[World] GPS system not available');
+        }
     }
 }
 

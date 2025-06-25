@@ -4,6 +4,7 @@ import Level from './level.js';
 import World from './World.js';
 import CarLangParser from './CarLang-parser.js';
 import CarLangEngine from './carlang-engine.js';
+import CommandableObject from './CommandableObject.js';
 import { soundController } from './soundController.js';
 import { ONLY_USE_THIS_TO_VALIDATE } from './code-validator.js';
 import { validateCodeForUI } from './ui-code-validator.js';
@@ -15,6 +16,7 @@ const DEFAULT_CODE = `// Write your CarLang code here!`;
 let saveBtn, loadBtn, playBtn, resetBtn;
 // Car registry system
 let carRegistry = {};
+let commandableObjectRegistry = {}; // New registry for CommandableObjects
 let defaultCar = null; // For backward compatibility
 let level = null;
 let world = null; // New World instance
@@ -790,33 +792,33 @@ async function playCode() {
                     const carName = car.carType || 'default';
                     // Use long name with "Car" suffix for execution
                     const carNameWithSuffix = carName + 'Car';
-                    carMap[carNameWithSuffix] = car;
+                    carMap[carNameWithSuffix] = new CommandableObject(car);
                 });
             } else {
                 // Single car mode
                 if (cars.length > 0) {
                     const defaultCar = cars[0];
-                    carMap.mainCar = defaultCar;
-                    carMap.default = defaultCar;
+                    carMap.mainCar = new CommandableObject(defaultCar);
+                    carMap.default = new CommandableObject(defaultCar);
                 }
             }
             
             debug(`[playCode] Final car map keys: ${Object.keys(carMap).join(', ')}`);
-            debug(`[playCode] Final car map values:`, Object.values(carMap).map(c => ({ id: c.id, carType: c.carType })));
+            debug(`[playCode] Final car map values:`, Object.values(carMap).map(c => ({ id: c.entity.id, carType: c.entity.carType })));
         } else {
             // Fallback to old system
             if (mode === 'oop' && Array.isArray(level.cars)) {
                 const registry = getCarRegistry();
                 for (const car of level.cars) {
                     if (registry && registry[car.name]) {
-                        carMap[car.name] = registry[car.name];
+                        carMap[car.name] = new CommandableObject(registry[car.name]);
                     }
                 }
             } else if (mode === 'single') {
                 const defaultCar = getDefaultCar();
                 if (defaultCar) {
-                    carMap.mainCar = defaultCar;
-                    carMap.default = defaultCar;
+                    carMap.mainCar = new CommandableObject(defaultCar);
+                    carMap.default = new CommandableObject(defaultCar);
                 }
             }
         }
@@ -1077,6 +1079,7 @@ function clearLineHighlighting() {
 function initializeCarRegistry(levelConfig) {
     // Clear existing registry
     carRegistry = {};
+    commandableObjectRegistry = {}; // Clear CommandableObject registry too
     defaultCar = null;
     
     // Remove existing car elements from DOM
@@ -1134,9 +1137,14 @@ function initializeCarRegistry(levelConfig) {
             
             carRegistry[carName] = car;
             
+            // Create CommandableObject for this car
+            const commandableObject = new CommandableObject(car);
+            commandableObjectRegistry[carName] = commandableObject;
+            
             // Also register with "Car" suffix for better syntax (e.g., blueCar, redCar)
             const carNameWithSuffix = carName + 'Car';
             carRegistry[carNameWithSuffix] = car;
+            commandableObjectRegistry[carNameWithSuffix] = commandableObject;
             
             // Set first car as default for backward compatibility
             if (index === 0) {
@@ -1164,6 +1172,11 @@ function initializeCarRegistry(levelConfig) {
                 carType: 'default'
             });
             carRegistry.mainCar = defaultCar;
+            
+            // Create CommandableObject for single car
+            const commandableObject = new CommandableObject(defaultCar);
+            commandableObjectRegistry.mainCar = commandableObject;
+            
             defaultCar.render(gameDiv);
             debug(`Created single car at position [${levelConfig.start[0]}, ${levelConfig.start[1]}]`);
         } else {
@@ -1173,10 +1186,15 @@ function initializeCarRegistry(levelConfig) {
     
     // Log final car registry state
     debug(`Car registry initialized with ${Object.keys(carRegistry).length} cars:`, Object.keys(carRegistry));
+    debug(`CommandableObject registry initialized with ${Object.keys(commandableObjectRegistry).length} objects:`, Object.keys(commandableObjectRegistry));
 }
 
 function getCarRegistry() {
     return carRegistry;
+}
+
+function getCommandableObjectRegistry() {
+    return commandableObjectRegistry;
 }
 
 function getDefaultCar() {
@@ -1187,12 +1205,21 @@ function getCarByName(carName) {
     return carRegistry[carName];
 }
 
+function getCommandableObjectByName(carName) {
+    return commandableObjectRegistry[carName];
+}
+
 function getAllCars() {
     return Object.values(carRegistry);
 }
 
+function getAllCommandableObjects() {
+    return Object.values(commandableObjectRegistry);
+}
+
 function clearCarRegistry() {
     carRegistry = {};
+    commandableObjectRegistry = {}; // Clear CommandableObject registry too
     defaultCar = null;
     
     // Remove car elements from DOM

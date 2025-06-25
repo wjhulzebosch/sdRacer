@@ -57,7 +57,7 @@ class Tile {
     
     isConnectedTo(otherTile, direction) {
         if (!otherTile || !this.isRoad() || !otherTile.isRoad()) {
-            console.log(`[isConnectedTo] FAIL: Invalid tiles or not roads`);
+            debug(`[isConnectedTo] FAIL: Invalid tiles or not roads`);
             return false;
         }
         
@@ -66,10 +66,10 @@ class Tile {
         const thisHasConnection = this.roadType[direction] === '1';
         const otherHasConnection = otherTile.roadType[oppositeDirection] === '1';
         
-        console.log(`[isConnectedTo] Checking connection:`);
-        console.log(`  This tile: ${this.roadType}, direction: ${direction}, has connection: ${thisHasConnection}`);
-        console.log(`  Other tile: ${otherTile.roadType}, opposite direction: ${oppositeDirection}, has connection: ${otherHasConnection}`);
-        console.log(`  Result: ${thisHasConnection && otherHasConnection}`);
+        debug(`[isConnectedTo] Checking connection:`);
+        debug(`  This tile: ${this.roadType}, direction: ${direction}, has connection: ${thisHasConnection}`);
+        debug(`  Other tile: ${otherTile.roadType}, opposite direction: ${oppositeDirection}, has connection: ${otherHasConnection}`);
+        debug(`  Result: ${thisHasConnection && otherHasConnection}`);
         
         return thisHasConnection && otherHasConnection;
     }
@@ -82,7 +82,7 @@ class Tile {
             3: 1  // West -> East
         };
         const result = opposites[direction] || direction;
-        console.log(`[getOppositeDirection] Input: ${direction}, Output: ${result}`);
+        debug(`[getOppositeDirection] Input: ${direction}, Output: ${result}`);
         return result;
     }
     
