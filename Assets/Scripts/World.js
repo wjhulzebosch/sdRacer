@@ -293,7 +293,7 @@ class World {
         }
         
         // Reinitialize GPS system after level data is loaded
-        console.log('[World] Reinitializing GPS system after level load...');
+        debug('[World] Reinitializing GPS system after level load...');
         this.gps = new GPS(this);
         
         // Set game div min-width based on world dimensions
@@ -407,10 +407,10 @@ class World {
     // Debug GPS system
     debugGPS() {
         if (this.gps) {
-            console.log('[World] Triggering GPS debug output...');
+            debug('[World] Triggering GPS debug output...');
             this.gps.printDebugInfo();
         } else {
-            console.log('[World] GPS system not available');
+            debug('[World] GPS system not available');
         }
     }
 }

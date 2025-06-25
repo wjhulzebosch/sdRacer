@@ -4,7 +4,6 @@ class CommandableObject {
     }
 
     moveForward() {
-        console.log("MOVING, MOVING, MOVING");
         return this.entity.moveForward(window.world);
     }
 
@@ -13,7 +12,6 @@ class CommandableObject {
     }
     
     turnRight() {
-        console.log("TURNING RIGHT");
         return this.entity.turnRight();
     }
 
@@ -39,13 +37,13 @@ class CommandableObject {
 
     getDirectionToFinish() {
         let r = this.entity.getDirectionToFinish(); 
-        console.log("getDirectionToFinish", r);
+        debug("getDirectionToFinish", r);
         return r;
     }
 
     getCurrentDirection() {
         let r = this.entity.getCurrentDirection();
-        console.log("getCurrentDirection", r);
+        debug("getCurrentDirection", r);
         return r;
     }
 

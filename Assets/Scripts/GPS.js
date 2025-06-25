@@ -4,13 +4,13 @@ class GPS {
         this.world = world;
         this.nodes = [];
 
-        console.log('[GPS] Initializing GPS system for world:', world.width, 'x', world.height);
+        debug('[GPS] Initializing GPS system for world:', [world.width, 'x', world.height]);
         this.createNodeGrid(world);
         this.printDebugInfo();
     }
 
     createNodeGrid(world) {
-        console.log('[GPS] Creating node grid...');
+        debug('[GPS] Creating node grid...');
         
         // Create 2D array of nodes
         this.nodes = Array(world.height).fill(null).map(() => 
@@ -24,7 +24,7 @@ class GPS {
             }
         }
 
-        console.log('[GPS] Created', world.width * world.height, 'nodes');
+        debug('[GPS] Created', [world.width * world.height, 'nodes']);
 
         // Loop through all the world's tiles, get the tile's getRoadType. 
         // This is string with 4 0's and 1's. 0 is no road, 1 is road (N/E/S/W)
@@ -73,13 +73,13 @@ class GPS {
             }
         }
         
-        console.log(`[GPS] Created ${connectionCount} total connections`);
+        debug(`[GPS] Created ${connectionCount} total connections`);
     }
     
     printDebugInfo() {
-        console.log('[GPS] === GPS Debug Info ===');
-        console.log(`[GPS] World size: ${this.world.width} x ${this.world.height}`);
-        console.log(`[GPS] Total nodes: ${this.world.width * this.world.height}`);
+        debug('[GPS] === GPS Debug Info ===');
+        debug(`[GPS] World size: ${this.world.width} x ${this.world.height}`);
+        debug(`[GPS] Total nodes: ${this.world.width * this.world.height}`);
         
         let roadNodes = 0;
         let totalConnections = 0;
@@ -93,14 +93,14 @@ class GPS {
                     roadNodes++;
                     const connections = node.connections.length;
                     totalConnections += connections;
-                    console.log(`[GPS] Node (${x}, ${y}) - Road type: ${tile.getRoadType()}, Connections: ${connections}`);
+                    debug(`[GPS] Node (${x}, ${y}) - Road type: ${tile.getRoadType()}, Connections: ${connections}`);
                 }
             }
         }
         
-        console.log(`[GPS] Road nodes: ${roadNodes}`);
-        console.log(`[GPS] Average connections per road node: ${roadNodes > 0 ? (totalConnections / roadNodes).toFixed(2) : 0}`);
-        console.log('[GPS] === End GPS Debug Info ===');
+        debug(`[GPS] Road nodes: ${roadNodes}`);
+        debug(`[GPS] Average connections per road node: ${roadNodes > 0 ? (totalConnections / roadNodes).toFixed(2) : 0}`);
+        debug('[GPS] === End GPS Debug Info ===');
     }
 
     getDirection(from, to) {
@@ -114,7 +114,7 @@ class GPS {
         const toNode = this.nodes[to.y][to.x];
         
         if (!fromNode || !toNode) {
-            console.log(`[GPS] Invalid positions: from (${from.x}, ${from.y}) to (${to.x}, ${to.y})`);
+            debug(`[GPS] Invalid positions: from (${from.x}, ${from.y}) to (${to.x}, ${to.y})`);
             return null;
         }
         
@@ -127,7 +127,7 @@ class GPS {
         const path = this.findPath(fromNode, toNode);
         
         if (!path || path.length < 2) {
-            console.log(`[GPS] No path found from (${from.x}, ${from.y}) to (${to.x}, ${to.y})`);
+            debug(`[GPS] No path found from (${from.x}, ${from.y}) to (${to.x}, ${to.y})`);
             return null;
         }
         
@@ -135,8 +135,8 @@ class GPS {
         const firstStep = path[1]; // path[0] is current position, path[1] is next step
         const direction = this.getDirectionBetween(from, firstStep.position);
         
-        console.log(`[GPS] Path from (${from.x}, ${from.y}) to (${to.x}, ${to.y}): ${path.map(n => `(${n.position.x}, ${n.position.y})`).join(' -> ')}`);
-        console.log(`[GPS] First step direction: ${direction}`);
+        debug(`[GPS] Path from (${from.x}, ${from.y}) to (${to.x}, ${to.y}): ${path.map(n => `(${n.position.x}, ${n.position.y})`).join(' -> ')}`);
+        debug(`[GPS] First step direction: ${direction}`);
         
         return direction;
     }

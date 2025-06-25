@@ -174,7 +174,7 @@ class Car extends Entity {
     canMoveTo(world, x, y) {
         // Check if roads are connected
         if (!this.isRoadConnected(world, x, y)) {
-            console.log(`[canMoveTo] CRASH: Roads not connected to (${x}, ${y})`);
+            debug(`[canMoveTo] CRASH: Roads not connected to (${x}, ${y})`);
             this.crash(); // Car crashes when trying to move to unconnected road
             return false;
         }
@@ -182,7 +182,7 @@ class Car extends Entity {
         // Check for cow collision
         const entities = world.getEntitiesAt(x, y);
         if (entities.some(entity => entity.type === 'cow')) {
-            console.log(`[canMoveTo] CRASH: Cow at position (${x}, ${y})`);
+            debug(`[canMoveTo] CRASH: Cow at position (${x}, ${y})`);
             this.crash(); // Car crashes when hitting cow
             return false;
         }
@@ -205,17 +205,17 @@ class Car extends Entity {
     }
     
     crash() {
-        console.log(`[crash] Car ${this.carType} is crashing!`);
+        debug(`[crash] Car ${this.carType} is crashing!`);
         this.crashed = true;
-        console.log(`[crash] Car crashed property is now: ${this.crashed}`);
+        debug(`[crash] Car crashed property is now: ${this.crashed}`);
         
         // Force a render to show the wreck image immediately
         const gameDiv = document.getElementById('game');
         if (gameDiv) {
-            console.log(`[crash] Forcing render after crash`);
+            debug(`[crash] Forcing render after crash`);
             this.render(gameDiv);
         } else {
-            console.log(`[crash] gameDiv not found!`);
+            debug(`[crash] gameDiv not found!`);
         }
     }
     
@@ -260,7 +260,7 @@ class Car extends Entity {
         let texturePath = 'Assets/Textures/Car.png'; // default
         if (this.crashed) {
             texturePath = 'Assets/Textures/Wreck.png';
-            console.log(`[render] Car ${this.carType} is crashed, using wreck texture: ${texturePath}`);
+            debug(`[render] Car ${this.carType} is crashed, using wreck texture: ${texturePath}`);
         } else {
             switch (this.carType) {
                 case 'red':
@@ -278,29 +278,29 @@ class Car extends Entity {
                 default:
                     texturePath = 'Assets/Textures/Car.png';
             }
-            console.log(`[render] Car ${this.carType} is not crashed, using texture: ${texturePath}`);
+            debug(`[render] Car ${this.carType} is not crashed, using texture: ${texturePath}`);
         }
         
-        console.log(`[render] Setting background image to: ${texturePath}`);
+        debug(`[render] Setting background image to: ${texturePath}`);
         carDiv.style.backgroundImage = `url('${texturePath}')`;
         carDiv.style.backgroundSize = 'contain';
     }
     
     // Get direction to finish using GPS
     getDirectionToFinish() {
-        console.log("IN CAR.JS getDirectionToFinish, window.world is:", window.world);
+        debug("IN CAR.JS getDirectionToFinish, window.world is:", window.world);
         const world = window.world;
 
-        console.log("IN CAR.JS getDirectionToFinish");
+        debug("IN CAR.JS getDirectionToFinish");
         if (!world || !world.gps) {
-            console.log('[Car] GPS not available for direction to finish');
+            debug('[Car] GPS not available for direction to finish');
             return null;
         }
         
         // Find finish entity
         const finishes = world.getEntitiesOfType('finish');
         if (finishes.length === 0) {
-            console.log('[Car] No finish found in world');
+            debug('[Car] No finish found in world');
             return null;
         }
         
@@ -323,5 +323,5 @@ class Car extends Entity {
     }
 }
 
-console.log("Car.js loaded, window.world is:", window.world);
+debug("Car.js loaded, window.world is:", window.world);
 export default Car; 
