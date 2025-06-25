@@ -286,7 +286,7 @@ class Car extends Entity {
         carDiv.style.backgroundSize = 'contain';
     }
     
-    // Get direction to finish using GPS
+    // Get direction to finish using GPS - returns degrees
     getDirectionToFinish() {
         debug("IN CAR.JS getDirectionToFinish, window.world is:", window.world);
         const world = window.world;
@@ -308,18 +308,41 @@ class Car extends Entity {
         const currentPos = { x: this.x, y: this.y };
         const finishPos = { x: finish.x, y: finish.y };
         
-        return world.gps.getDirection(currentPos, finishPos);
+        // Get direction string from GPS
+        const directionString = world.gps.getDirection(currentPos, finishPos);
+        
+        if (!directionString) {
+            debug('[Car] No path to finish found');
+            return null;
+        }
+        
+        // Convert direction string to degrees
+        const directionToDegrees = {
+            'North': 0,
+            'East': 90,
+            'South': 180,
+            'West': 270
+        };
+        
+        const degrees = directionToDegrees[directionString];
+        debug(`[Car] Direction to finish: ${directionString} (${degrees}°)`);
+        
+        return degrees;
     }
     
-    // Get current direction as string
+    // Get current direction as degrees
     getCurrentDirection() {
-        const directionMap = {
-            'N': 'North',
-            'E': 'East', 
-            'S': 'South',
-            'W': 'West'
+        const directionToDegrees = {
+            'N': 0,    // North
+            'E': 90,   // East
+            'S': 180,  // South
+            'W': 270   // West
         };
-        return directionMap[this.direction] || null;
+        
+        const degrees = directionToDegrees[this.direction];
+        debug(`[Car] Current direction: ${this.direction} (${degrees}°)`);
+        
+        return degrees;
     }
 }
 
