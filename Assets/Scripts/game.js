@@ -1,5 +1,3 @@
-import Car from './Car.js';
-import Cow from './Cow.js';
 import Level from './level.js';
 import World from './World.js';
 import CarLangParser from './CarLang-parser.js';
