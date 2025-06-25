@@ -1088,3 +1088,44 @@ h1 {
 .cm-highlighted-line {
     background: #ffe066 !important;
 }
+
+/* Traffic Light Styles */
+.traffic-light {
+    position: absolute;
+    width: 64px;
+    height: 64px;
+    pointer-events: none;
+    z-index: 5;
+}
+
+.traffic-light-indicator {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid #333;
+    z-index: 10;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.traffic-light-indicator.green {
+    background-color: #00ff00;
+    box-shadow: 0 0 8px #00ff00;
+}
+
+.traffic-light-indicator.yellow {
+    background-color: #ffff00;
+    box-shadow: 0 0 8px #ffff00;
+}
+
+.traffic-light-indicator.red {
+    background-color: #ff0000;
+    box-shadow: 0 0 8px #ff0000;
+}
+
+.car {
+    position: absolute;
+    background-size: cover;
+    pointer-events: none;
+    transition: left 1s linear, top 1s linear, transform 1s linear;
+}

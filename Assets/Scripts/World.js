@@ -4,6 +4,7 @@ import Cow from './Cow.js';
 import Finish from './Finish.js';
 import WinCondition from './WinCondition.js';
 import GPS from './GPS.js';
+import TrafficLight from './TrafficLight.js';
 
 class World {
     constructor(width, height) {
@@ -274,6 +275,31 @@ class World {
             });
         }
         
+        // Add traffic lights
+        if (levelData.trafficLights && Array.isArray(levelData.trafficLights)) {
+            levelData.trafficLights.forEach((trafficLightConfig, index) => {
+                if (!trafficLightConfig || typeof trafficLightConfig !== 'object') {
+                    throw new Error('CRITICAL: Invalid traffic light config at index ' + index + ': ' + typeof trafficLightConfig);
+                }
+                if (!trafficLightConfig.position || !Array.isArray(trafficLightConfig.position) || trafficLightConfig.position.length !== 2) {
+                    throw new Error('CRITICAL: Traffic light config missing valid position at index ' + index);
+                }
+                
+                const trafficLightId = this.generateEntityId();
+                const trafficLightX = trafficLightConfig.position[1] + 1;
+                const trafficLightY = trafficLightConfig.position[0] + 1;
+                const trafficLight = new TrafficLight(
+                    trafficLightId,
+                    trafficLightX,
+                    trafficLightY
+                );
+                if (!trafficLight) {
+                    throw new Error('CRITICAL: Failed to create TrafficLight entity for index ' + index);
+                }
+                this.addEntity(trafficLight, trafficLightX, trafficLightY);
+            });
+        }
+        
         // Set win condition
         const carCount = this.getEntitiesOfType('car').length;
         if (carCount > 1) {
@@ -360,6 +386,11 @@ class World {
         
         // Update all entities (preserve existing DOM elements)
         this.entities.forEach(({ entity, x, y }) => {
+            // Update traffic light connections if needed
+            if (entity.type === 'trafficlight' && entity.updateConnectionsFromWorld) {
+                entity.updateConnectionsFromWorld();
+            }
+            
             if (entity.render) {
                 entity.render(gameDiv, tileSize, instant);
             }

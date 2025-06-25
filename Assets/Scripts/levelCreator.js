@@ -12,7 +12,8 @@ let rows = 4, cols = 4;
 let cars = []; // Array of car objects: {name, type, x, y, direction, id}
 let finishPos = null;
 let cows = []; // Array to store cow data: [{defaultX, defaultY, secondaryX, secondaryY, currentX, currentY}]
-let placeMode = null; // 'redCar', 'blueCar', 'greenCar', 'yellowCar', 'finish', 'cow', or null
+let trafficLights = []; // Array to store traffic light data: [{x, y, id}]
+let placeMode = null; // 'redCar', 'blueCar', 'greenCar', 'yellowCar', 'finish', 'cow', 'trafficLight', or null
 let cowPlacementStep = 'default';
 let tempSecondaryPos = null;
 let editingCarId = null; // For car configuration modal
@@ -34,6 +35,7 @@ const greenCarIcon = document.getElementById('greenCarIcon');
 const yellowCarIcon = document.getElementById('yellowCarIcon');
 const finishIcon = document.getElementById('finishIcon');
 const cowIcon = document.getElementById('cowIcon');
+const trafficLightIcon = document.getElementById('trafficLightIcon');
 
 // Car management buttons
 const addCarBtn = document.getElementById('addCarBtn');
@@ -55,6 +57,7 @@ greenCarIcon.onclick = () => setPlaceMode('greenCar');
 yellowCarIcon.onclick = () => setPlaceMode('yellowCar');
 finishIcon.onclick = () => setPlaceMode('finish');
 cowIcon.onclick = () => setPlaceMode('cow');
+trafficLightIcon.onclick = () => setPlaceMode('trafficLight');
 
 // Car management
 addCarBtn.onclick = () => openCarModal();
@@ -80,7 +83,7 @@ function setPlaceMode(mode) {
 
 function updatePlaceModeUI() {
     // Reset all icons
-    [redCarIcon, blueCarIcon, greenCarIcon, yellowCarIcon, finishIcon, cowIcon].forEach(icon => {
+    [redCarIcon, blueCarIcon, greenCarIcon, yellowCarIcon, finishIcon, cowIcon, trafficLightIcon].forEach(icon => {
         icon.classList.remove('place-mode');
     });
     
@@ -91,6 +94,7 @@ function updatePlaceModeUI() {
     else if (placeMode === 'yellowCar') yellowCarIcon.classList.add('place-mode');
     else if (placeMode === 'finish') finishIcon.classList.add('place-mode');
     else if (placeMode === 'cow') cowIcon.classList.add('place-mode');
+    else if (placeMode === 'trafficLight') trafficLightIcon.classList.add('place-mode');
 }
 
 function updatePlacementStatus() {
@@ -105,7 +109,8 @@ function updatePlacementStatus() {
         'greenCar': 'Click on grid to place Green Car',
         'yellowCar': 'Click on grid to place Yellow Car',
         'finish': 'Click on grid to place Finish Line',
-        'cow': 'Click on grid to place Cow (first position)'
+        'cow': 'Click on grid to place Cow (first position)',
+        'trafficLight': 'Click on grid to place Traffic Light'
     };
     
     placementStatus.textContent = statusMessages[placeMode] || 'Click on grid to place object';
@@ -118,6 +123,7 @@ function updateGridSize() {
     cars = [];
     finishPos = null;
     cows = [];
+    trafficLights = [];
     updateGridInfo();
     renderGrid();
     renderCarList();
@@ -166,6 +172,12 @@ function renderGrid() {
                 cell.classList.add('cow-here');
             }
             
+            // Check for traffic lights
+            const trafficLightAtPosition = trafficLights.find(tl => tl.x === x && tl.y === y);
+            if (trafficLightAtPosition) {
+                cell.classList.add('traffic-light-here');
+            }
+            
             // Show secondary cow positions
             if (placeMode === 'cow' && cowPlacementStep === 'secondary' && tempSecondaryPos) {
                 if (x === tempSecondaryPos.x && y === tempSecondaryPos.y) {
@@ -211,6 +223,8 @@ function handleCellClick(y, x) {
         renderGrid();
     } else if (placeMode === 'cow') {
         handleCowPlacement(y, x);
+    } else if (placeMode === 'trafficLight') {
+        handleTrafficLightPlacement(y, x);
     } else if (placeMode && placeMode.endsWith('Car')) {
         handleCarPlacement(y, x);
     }
@@ -291,6 +305,47 @@ function handleCowPlacement(y, x) {
         updatePlacementStatus();
         renderGrid();
     }
+}
+
+function handleTrafficLightPlacement(y, x) {
+    // Check if position is already occupied by another traffic light
+    if (trafficLights.find(tl => tl.x === x && tl.y === y)) {
+        debug('A traffic light is already placed at this position!', null, 'error');
+        return;
+    }
+    
+    // Check if position is occupied by a car
+    if (cars.find(car => car.x === x && car.y === y)) {
+        debug('Cannot place traffic light on a car!', null, 'error');
+        return;
+    }
+    
+    // Check if position is occupied by finish line
+    if (finishPos && finishPos[0] === y && finishPos[1] === x) {
+        debug('Cannot place traffic light on finish line!', null, 'error');
+        return;
+    }
+    
+    // Check if position is occupied by a cow
+    if (cows.find(cow => cow.currentX === x && cow.currentY === y)) {
+        debug('Cannot place traffic light on a cow!', null, 'error');
+        return;
+    }
+    
+    // Create new traffic light
+    const trafficLightId = Date.now() + Math.random();
+    const newTrafficLight = {
+        id: trafficLightId,
+        x: x,
+        y: y
+    };
+    
+    trafficLights.push(newTrafficLight);
+    placeMode = null;
+    updatePlaceModeUI();
+    updatePlacementStatus();
+    updateGridInfo();
+    renderGrid();
 }
 
 function drawBorders() {
@@ -501,6 +556,9 @@ function getLevelDetails() {
             defaultY: cow.defaultY,
             secondaryX: cow.secondaryX,
             secondaryY: cow.secondaryY
+        })),
+        trafficLights: trafficLights.map(tl => ({
+            position: [tl.y, tl.x]
         }))
     };
     
@@ -579,6 +637,17 @@ function setLevelDetails(level) {
             currentX: cow.defaultX,
             currentY: cow.defaultY
         }));
+    }
+    
+    // Handle traffic lights data
+    if (level.trafficLights) {
+        trafficLights = level.trafficLights.map((tl, index) => ({
+            id: Date.now() + index + Math.random(),
+            x: tl.position[1],
+            y: tl.position[0]
+        }));
+    } else {
+        trafficLights = [];
     }
     
     updateGridInfo();

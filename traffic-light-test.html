@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Traffic Light Test</title>
+    <link rel="stylesheet" href="Assets/Styles/style.css">
+    <style>
+        body {
+            background: #181c20;
+            color: #f0f0f0;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            padding: 20px;
+        }
+        
+        .test-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        #test-game {
+            border: 3px solid #222;
+            background: #111;
+            box-shadow: 0 4px 24px #000a;
+            border-radius: 12px;
+            position: relative;
+        }
+        
+        .test-info {
+            background: #23272b;
+            border: 2px solid #333;
+            border-radius: 8px;
+            padding: 20px;
+            max-width: 600px;
+        }
+        
+        .test-info h2 {
+            color: #10b981;
+            margin-top: 0;
+        }
+        
+        .test-info p {
+            margin: 10px 0;
+            line-height: 1.5;
+        }
+        
+        .test-info code {
+            background: rgba(96, 165, 250, 0.1);
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Fira Mono', 'Consolas', monospace;
+        }
+        
+        .test-controls {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        
+        .btn-primary, .btn-secondary {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+            transform: translateY(-1px);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
+            transform: translateY(-1px);
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>Traffic Light Test</h1>
+        
+        <div class="test-info">
+            <h2>Test Description</h2>
+            <p>This test demonstrates the traffic light functionality with a simple intersection.</p>
+            <p>The traffic light is placed at position (2, 2) on a cross-shaped road intersection.</p>
+            <p>You should see green and red dots in the corners of the tile indicating the traffic light state for each connection:</p>
+            <ul>
+                <li><strong>North (top):</strong> Top-left corner</li>
+                <li><strong>East (right):</strong> Top-right corner</li>
+                <li><strong>South (bottom):</strong> Bottom-right corner</li>
+                <li><strong>West (left):</strong> Bottom-left corner</li>
+            </ul>
+            <p>The traffic light cycles through each connection, giving each 1 second of green light before moving to the next.</p>
+            <p><strong>Click the "Start Traffic Light" button below to see the traffic light cycling in action!</strong></p>
+        </div>
+        
+        <div id="test-game"></div>
+        
+        <div class="test-controls">
+            <button id="startTrafficLightBtn" class="btn-primary">🚦 Start Traffic Light</button>
+            <button id="stopTrafficLightBtn" class="btn-secondary">⏹️ Stop Traffic Light</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import World from './Assets/Scripts/World.js';
+        import TrafficLight from './Assets/Scripts/TrafficLight.js';
+        
+        // Create a simple test world with a cross intersection
+        const world = new World(5, 5);
+        window.world = world;
+        
+        // Set up a cross intersection
+        // Center tile (2,2) has connections in all directions
+        const centerTile = world.getTile(2, 2);
+        centerTile.setRoadType('1111'); // All directions connected
+        
+        // North tile
+        const northTile = world.getTile(2, 1);
+        northTile.setRoadType('0010'); // Connected to south
+        
+        // South tile
+        const southTile = world.getTile(2, 3);
+        southTile.setRoadType('1000'); // Connected to north
+        
+        // East tile
+        const eastTile = world.getTile(3, 2);
+        eastTile.setRoadType('0001'); // Connected to west
+        
+        // West tile
+        const westTile = world.getTile(1, 2);
+        westTile.setRoadType('0100'); // Connected to east
+        
+        // Add a traffic light at the center
+        const trafficLightId = world.generateEntityId();
+        const trafficLight = new TrafficLight(trafficLightId, 2, 2);
+        world.addEntity(trafficLight, 2, 2);
+        
+        // Render the world
+        const gameDiv = document.getElementById('test-game');
+        world.render(gameDiv);
+        
+        console.log('Traffic light test initialized');
+        console.log('Traffic light connections:', trafficLight.connections);
+        console.log('Current green direction:', trafficLight.getCurrentGreenDirection());
+        
+        // Log traffic light state every second
+        setInterval(() => {
+            console.log('Traffic light state:', {
+                connections: trafficLight.connections,
+                currentGreen: trafficLight.getCurrentGreenDirection(),
+                isGreenForNorth: trafficLight.isGreenForDirection(0),
+                isGreenForEast: trafficLight.isGreenForDirection(1),
+                isGreenForSouth: trafficLight.isGreenForDirection(2),
+                isGreenForWest: trafficLight.isGreenForDirection(3)
+            });
+        }, 1000);
+        
+        // Button functionality
+        document.getElementById('startTrafficLightBtn').onclick = () => {
+            trafficLight.startCycle();
+            console.log('Traffic light cycle started');
+        };
+        
+        document.getElementById('stopTrafficLightBtn').onclick = () => {
+            trafficLight.stopCycle();
+            console.log('Traffic light cycle stopped');
+        };
+    </script>
+</body>
+</html> 

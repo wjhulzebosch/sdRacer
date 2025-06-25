@@ -1,3 +1,4 @@
+import { debug } from './commonFunctions.js';
 import Entity from './Entity.js';
 
 class Car extends Entity {

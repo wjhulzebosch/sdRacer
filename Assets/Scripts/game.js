@@ -766,6 +766,16 @@ async function playCode() {
         window.currentInterpreter = interpreter;
         interpreter.initializeExecution(ast);
         
+        // Start traffic light cycles when game starts
+        if (world) {
+            const trafficLights = world.getEntitiesOfType('trafficlight');
+            trafficLights.forEach(trafficLight => {
+                if (trafficLight.startCycle) {
+                    trafficLight.startCycle();
+                }
+            });
+        }
+        
         // Enhanced game loop for step-by-step execution
         const gameLoop = () => {
             // Check if game was stopped
@@ -892,6 +902,16 @@ async function playCode() {
 function stopGame() {
     if (window.currentInterpreter) {
         window.currentInterpreter.stop();
+    }
+    
+    // Stop traffic light intervals when game stops
+    if (world) {
+        const trafficLights = world.getEntitiesOfType('trafficlight');
+        trafficLights.forEach(trafficLight => {
+            if (trafficLight.stopCycle) {
+                trafficLight.stopCycle();
+            }
+        });
     }
     
     hideCarStatus();

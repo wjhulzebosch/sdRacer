@@ -200,7 +200,7 @@ button:hover {
     min-width: 80px;
 }
 
-.car-icon, .finish-icon, .cow-icon {
+.car-icon, .finish-icon, .cow-icon, .traffic-light-icon {
     width: 40px;
     height: 40px;
     display: inline-block;
@@ -214,13 +214,13 @@ button:hover {
     position: relative;
 }
 
-.car-icon:hover, .finish-icon:hover, .cow-icon:hover {
+.car-icon:hover, .finish-icon:hover, .cow-icon:hover, .traffic-light-icon:hover {
     border-color: #3b82f6;
     transform: scale(1.05);
     box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
-.car-icon.place-mode, .finish-icon.place-mode, .cow-icon.place-mode {
+.car-icon.place-mode, .finish-icon.place-mode, .cow-icon.place-mode, .traffic-light-icon.place-mode {
     border: 2px solid #10b981;
     box-shadow: 0 0 12px #10b98188;
     transform: scale(1.1);
@@ -249,6 +249,37 @@ button:hover {
 
 .cow-icon {
     background-image: url('../Textures/Cow.png') !important;
+}
+
+.traffic-light-icon {
+    background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%) !important;
+    position: relative;
+}
+
+.traffic-light-icon::before {
+    content: '';
+    position: absolute;
+    top: 6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 8px;
+    height: 8px;
+    background: #ff0000;
+    border-radius: 50%;
+    box-shadow: 0 0 4px #ff0000;
+}
+
+.traffic-light-icon::after {
+    content: '';
+    position: absolute;
+    bottom: 6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 8px;
+    height: 8px;
+    background: #00ff00;
+    border-radius: 50%;
+    box-shadow: 0 0 4px #00ff00;
 }
 
 .placement-status {
@@ -554,6 +585,37 @@ button:hover {
     pointer-events: none;
     z-index: 10;
     opacity: 0.5;
+}
+
+.level-creator-cell.traffic-light-here::after {
+    content: '';
+    position: absolute;
+    left: 4px; top: 4px; right: 4px; bottom: 4px;
+    background: 
+        radial-gradient(circle at 50% 25%, #ff0000 0%, #ff0000 30%, transparent 30%),
+        radial-gradient(circle at 50% 75%, #00ff00 0%, #00ff00 30%, transparent 30%),
+        linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
+    border-radius: 4px;
+    pointer-events: none;
+    z-index: 10;
+    box-shadow: 
+        0 0 3px #ff0000,
+        0 0 3px #00ff00;
+}
+
+.level-creator-cell.traffic-light-here::before {
+    content: '';
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 6px;
+    height: 6px;
+    background: #ff0000;
+    border-radius: 50%;
+    box-shadow: 0 0 3px #ff0000;
+    pointer-events: none;
+    z-index: 11;
 }
 
 /* Responsive Design */
