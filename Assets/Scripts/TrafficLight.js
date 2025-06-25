@@ -82,28 +82,28 @@ class TrafficLight extends Entity {
         lightElement.style.border = '2px solid #333';
         lightElement.style.zIndex = '10';
         
-        // Position the light based on direction
+        // Position the light based on direction - moved slightly outward
         // 0=N (top), 1=E (right), 2=S (bottom), 3=W (left)
         const tileSize = 64;
         const lightSize = 12;
-        const margin = 4;
+        const margin = 4; // Increased from 4 to 8 for more outward positioning
         
         switch (direction) {
             case 0: // North - top left
-                lightElement.style.left = margin + 'px';
-                lightElement.style.top = margin + 'px';
+                lightElement.style.left = (margin + 4) + 'px';
+                lightElement.style.top = (margin - 4) + 'px'; // Move up
                 break;
             case 1: // East - top right
-                lightElement.style.right = margin + 'px';
-                lightElement.style.top = margin + 'px';
+                lightElement.style.right = (margin - 4) + 'px'; // Move right
+                lightElement.style.top = (margin + 4) + 'px';
                 break;
             case 2: // South - bottom right
-                lightElement.style.right = margin + 'px';
-                lightElement.style.bottom = margin + 'px';
+                lightElement.style.right = (margin + 4) + 'px';
+                lightElement.style.bottom = (margin - 4) + 'px'; // Move down
                 break;
             case 3: // West - bottom left
-                lightElement.style.left = margin + 'px';
-                lightElement.style.bottom = margin + 'px';
+                lightElement.style.left = (margin - 4) + 'px'; // Move left
+                lightElement.style.bottom = (margin + 4) + 'px';
                 break;
         }
         
