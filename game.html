@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>sdRacer - Programming Game</title>
+    <link rel="stylesheet" href="Assets/Styles/style.css">
+    <link rel="stylesheet" href="Assets/External/CodeMirror/codemirror.min.css">
+</head>
+<body>
+    <h1>sdRacer</h1>
+    <div class="container">
+        <div id="game"></div>
+        <div class="right-panel">
+            <div class="code-container">
+                <!-- Mode Indicator -->
+                <div id="mode-indicator" class="mode-indicator">
+                    <div class="mode-badge">
+                        <span id="mode-text">Single Car Mode</span>
+                        <span id="car-count"></span>
+                    </div>
+                </div>
+                
+                <!-- Control Buttons -->
+                <div class="button-row">
+                    <button id="homeBtn" class="btn-primary">🏠 Home</button>
+                    <button id="infoBtn" class="btn-secondary">ℹ️ Info</button>
+                    <button id="saveBtn" class="btn-secondary">💾 Save</button>
+                    <button id="loadBtn" class="btn-secondary">📂 Load</button>
+                    <button id="checkCodeBtn" class="btn-secondary">🔍 Check Code</button>
+                    <button id="fixIndentationBtn" class="btn-secondary">📝 Fix Indentation</button>
+                    <button id="playBtn" class="btn-play">▶️ Play</button>
+                    <button id="resetLvlBtn" class="btn-warning">🔄 Reset Level</button>
+                    <button id="resetBtn" class="btn-warning">↺ Reset Code</button>
+                </div>
+                
+                <!-- Instructions Panel -->
+                <div id="instructions" class="instructions-panel"></div>
+                
+                <!-- Code Editor -->
+                <div id="code-editor-container" class="code-editor-container">
+                    <div class="editor-header">
+                        <span class="editor-title">CarLang Code Editor</span>
+                        <div class="editor-controls">
+                            <span id="line-count" class="line-count">0 lines</span>
+                        </div>
+                    </div>
+                    <div class="editor-body">
+                        <div id="code-editor" style="height: 300px;"></div>
+                    </div>
+                </div>
+                
+                <!-- Parser Display -->
+                <div id="parser-display" class="parser-display">
+                    <div class="parser-header">
+                        <span class="parser-title">Code Analysis</span>
+                        <span id="validation-status" class="validation-status">Ready</span>
+                    </div>
+                    <div class="parser-content">
+                        <span class="unparsed">Click "Check Code" to analyze your CarLang code</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Win Message Modal -->
+    <div id="win-message">
+        <div class="win-message-content">
+            <div class="win-message-modal">
+                <h2>🎉 Level Complete! 🎉</h2>
+                <div id="win-details" class="win-details">
+                    <p>Congratulations! You completed the level!</p>
+                </div>
+                <div class="win-message-buttons">
+                    <button id="retryBtn" class="btn-secondary">🔄 Try Again</button>
+                    <button id="nextLevelBtn" class="btn-primary">➡️ Next Level</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Info Overlay -->
+    <div id="info-overlay" class="info-overlay">
+        <div class="info-content">
+            <div class="info-header">
+                <h2>sdRacer - Programming Guide</h2>
+                <button id="closeInfoBtn" class="close-btn">×</button>
+            </div>
+            <div class="info-body">
+                <p>sdRacer is a programming game where you write code to control cars and navigate them to the finish line.</p>
+                
+                <h3>🎮 Game Modes</h3>
+                <ul>
+                    <li><strong>Single Car Mode:</strong> Control one car using simple function calls</li>
+                    <li><strong>Multi-Car Mode:</strong> Control multiple cars using object-oriented syntax</li>
+                </ul>
+                
+                <h3>🚗 Available Commands</h3>
+                <div class="command-section">
+                    <h4>Movement Commands:</h4>
+                    <ul>
+                        <li><code>moveForward()</code> - Move car forward one tile</li>
+                        <li><code>moveBackward()</code> - Move car backward one tile</li>
+                        <li><code>turnRight()</code> - Turn car right by 90 degrees</li>
+                        <li><code>turnLeft()</code> - Turn car left by 90 degrees</li>
+                    </ul>
+                </div>
+                
+                <div class="command-section">
+                    <h4>Sensor Commands:</h4>
+                    <ul>
+                        <li><code>isRoadAhead()</code> - Check if there's a road ahead</li>
+                        <li><code>isCowAhead()</code> - Check if there's a cow ahead</li>
+                        <li><code>isAtFinish()</code> - Check if car is at finish line</li>
+                    </ul>
+                </div>
+                
+                <div class="command-section">
+                    <h4>Action Commands:</h4>
+                    <ul>
+                        <li><code>honk()</code> - Honk the car horn (scares cows)</li>
+                    </ul>
+                </div>
+                
+                <h3>🔧 Control Structures</h3>
+                <ul>
+                    <li><code>if (condition) { ... }</code> - Execute code if condition is true</li>
+                    <li><code>while (condition) { ... }</code> - Execute code while condition is true</li>
+                    <li><code>for (int i = 0; i < 10; i = i + 1) { ... }</code> - Execute code 10 times</li>
+                </ul>
+                
+                <h3>🏗️ OOP Syntax (Multi-Car Mode)</h3>
+                <p>In multi-car levels, use object-oriented syntax to control specific cars:</p>
+                <ul>
+                    <li><code>redCar.moveForward()</code> - Move the red car forward</li>
+                    <li><code>blueCar.turnRight()</code> - Turn the blue car right</li>
+                    <li><code>greenCar.honk()</code> - Honk the green car's horn</li>
+                </ul>
+                
+                <h3>🎯 Custom Car Methods</h3>
+                <p>You can define custom methods for cars using the Class Car syntax:</p>
+                <div class="code-example">
+                    <pre><code>Class Car {
+  void moveOrTurn() {
+    if(self.isRoadAhead()) {
+      self.moveForward();
+    } else {
+      self.turnLeft();
+    }
+  }
+}
+
+while(true) {
+  greenCar.moveOrTurn();
+  blueCar.moveOrTurn();
+}</code></pre>
+                </div>
+                <p>Inside custom methods, use <code>self.methodName()</code> to call methods on the current car instance. Available methods: <code>moveForward()</code>, <code>turnLeft()</code>, <code>turnRight()</code>, <code>isRoadAhead()</code>, <code>isCowAhead()</code>, <code>honk()</code>, etc.</p>
+                
+                <h3>💡 Tips</h3>
+                <ul>
+                    <li>Use "Check Code" to validate your syntax before running</li>
+                    <li>Save your code frequently with the "Save" button</li>
+                    <li>Use loops to avoid repetitive code</li>
+                    <li>In multi-car levels, coordinate your cars carefully</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Scripts -->
+    <script type="module" src="Assets/Scripts/commonFunctions.js"></script>
+    <script type="module" src="Assets/Scripts/soundController.js"></script>
+    <script type="module" src="Assets/Scripts/code-validator.js"></script>
+    <script type="module" src="Assets/Scripts/CarLang-parser.js"></script>
+    <script type="module" src="Assets/Scripts/game.js"></script>
+    <script type="module" src="Assets/Scripts/ui-code-validator.js"></script>
+    <script src="Assets/External/CodeMirror/codemirror.min.js"></script>
+    <script src="Assets/Scripts/CodeMirrorCustomMode.js"></script>
+    <script>
+    // Use the custom mode for CarLang
+    const carlangModeInstance = new CodeMirrorCustomMode();
+    
+    CodeMirror.defineMode('carlang', () => ({
+        startState: () => carlangModeInstance.startState(),
+        token: (stream, state) => carlangModeInstance.token(stream, state),
+        indent: (state, textAfter) => carlangModeInstance.indent(state, textAfter),
+        electricChars: "{}",
+        lineComment: '//',
+        fold: 'brace',
+        copyState: (state) => ({ depth: state.depth })
+    }));
+    </script>
+    <script type="module">
+    // Initialize CodeMirror
+    window.codeMirrorEditor = CodeMirror(document.getElementById('code-editor'), {
+        value: '',
+        lineNumbers: true,
+        mode: 'carlang',
+        theme: 'default',
+        indentUnit: 2,
+        tabSize: 2,
+        smartIndent: true,
+        indentWithTabs: false,
+        electricChars: true,
+        autofocus: true,
+    });
+    
+    // Make the CodeMirror instance available to the custom mode
+    carlangModeInstance.cm = window.codeMirrorEditor;
+    
+    // Helper to get/set code (replace all codeArea.value usage in JS with these)
+    window.getCodeValue = () => window.codeMirrorEditor.getValue();
+    window.setCodeValue = (val) => window.codeMirrorEditor.setValue(val);
+    </script>
+</body>
+</html>
