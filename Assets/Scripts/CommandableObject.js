@@ -3,6 +3,10 @@ class CommandableObject {
         this.entity = entity;
     }
 
+    output(string) {
+        console.log(string);
+    }
+
     moveForward() {
         return this.entity.moveForward(window.world);
     }

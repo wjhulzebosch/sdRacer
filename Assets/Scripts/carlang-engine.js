@@ -69,7 +69,8 @@ class CarLangEngine {
             'honk': () => this.honk(),
             'not': (value) => !value,
             'GetDirectionToFinish': () => this.defaultCommandableObject.getDirectionToFinish(),
-            'GetCurrentDirection': () => this.defaultCommandableObject.getCurrentDirection()
+            'GetCurrentDirection': () => this.defaultCommandableObject.getCurrentDirection(),
+            'output': (string) => this.defaultCommandableObject.output(string)
         };
         
         // Function validation rules
@@ -83,7 +84,8 @@ class CarLangEngine {
             'isCowAhead': { args: 0, description: 'Check if there is a cow ahead (ignores roads)' },
             'honk': { args: 0, description: 'Honk the car horn' },
             'GetDirectionToFinish': { args: 0, description: 'Get direction to finish line (North, East, South, West, or null if no path)' },
-            'GetCurrentDirection': { args: 0, description: 'Get current car direction (North, East, South, West)' }
+            'GetCurrentDirection': { args: 0, description: 'Get current car direction (North, East, South, West)' },
+            'output': { args: 1, description: 'Output a string to the console' }
         };
     }
 

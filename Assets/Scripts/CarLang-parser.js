@@ -934,7 +934,7 @@ class CarLangParser {
         // Validate function name in both modes
         const validFunctions = [
             'moveForward', 'moveBackward', 'turnLeft', 'turnRight', 
-            'honk', 'isRoadAhead', 'isCowAhead', 'isAtFinish'
+            'honk', 'isRoadAhead', 'isCowAhead', 'isAtFinish', 'output'
         ];
         
         // Allow user-defined functions
@@ -966,7 +966,7 @@ class CarLangParser {
         // Validate method name - allow both built-in and custom methods
         const validMethods = [
             'moveForward', 'moveBackward', 'turnLeft', 'turnRight', 
-            'honk', 'isRoadAhead', 'isCowAhead', 'isAtFinish'
+            'honk', 'isRoadAhead', 'isCowAhead', 'isAtFinish', 'output'
         ];
         
         if (!validMethods.includes(statement.method) && !this.customMethods.has(statement.method)) {
