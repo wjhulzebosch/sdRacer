@@ -778,7 +778,7 @@ function addPlayLevelButton() {
             // Store in localStorage for transfer
             localStorage.setItem('sdRacer_tempLevel', levelJson);
             // Open game with a flag to load from temp
-            window.location.href = 'index.html?loadTemp=1';
+            window.location.href = 'game.html?loadTemp=1';
         };
         document.body.appendChild(btn);
     }

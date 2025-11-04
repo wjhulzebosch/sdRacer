@@ -236,7 +236,7 @@ function setupWinButtons() {
     };
     nextLevelBtn.onclick = () => {
         hideWinMessage();
-        showLevelSelector();
+        goHome();
     };
 }
 
@@ -505,30 +505,43 @@ function resetLevelState() {
     }
 }
 
-async function loadLevel(levelId) {
+async function loadLevel(levelId, customLevelData = null) {
     try {
-        if (!levelId) {
-            throw new Error('CRITICAL: loadLevel called with null/undefined levelId');
-        }
+        let levelData;
         
-        const levelData = await fetch('https://wjhulzebosch.nl/json_ape/api.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams({ action: 'get', category: 'simple_sd_racer', id: levelId })
-        }).then(r => r.json());
-        
-        if (!levelData) {
-            throw new Error('CRITICAL: Level not found for id: ' + levelId);
+        if (customLevelData) {
+            // Use provided custom level data
+            levelData = customLevelData;
+            currentLevelId = levelData.id || 'custom';
+        } else {
+            // Fetch from API
+            if (!levelId) {
+                throw new Error('CRITICAL: loadLevel called with null/undefined levelId');
+            }
+            
+            levelData = await fetch('https://wjhulzebosch.nl/json_ape/api.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({ action: 'get', category: 'simple_sd_racer', id: levelId })
+            }).then(r => r.json());
+            
+            if (!levelData) {
+                throw new Error('CRITICAL: Level not found for id: ' + levelId);
+            }
+            currentLevelId = levelId;
         }
         
         // Store current level data for win condition checking
         currentLevelData = levelData;
-        currentCustomLevelData = null;
+        currentCustomLevelData = customLevelData;
         
         // Validate level data
         const validation = validateLevelData(levelData);
         if (validation.errors.length > 0) {
-            throw new Error('CRITICAL: Level validation errors: ' + validation.errors.join(', '));
+            // Show user-friendly error message
+            const errorMsg = validation.errors.join('\n');
+            alert('⚠️ Level Creation Error:\n\n' + errorMsg + '\n\nPlease fix these issues in the level creator before playing.');
+            throw new Error('Level validation failed: ' + validation.errors.join(', '));
         }
         if (validation.warnings.length > 0) {
             console.warn('Level validation warnings:', validation.warnings);
@@ -1454,7 +1467,8 @@ window.addEventListener('DOMContentLoaded', () => {
         const tempLevel = localStorage.getItem('sdRacer_tempLevel');
         if (tempLevel) {
             try {
-                loadCustomLevel(JSON.parse(tempLevel));
+                const levelData = JSON.parse(tempLevel);
+                loadLevel(null, levelData);
                 startGame();
                 return;
             } catch (e) {
