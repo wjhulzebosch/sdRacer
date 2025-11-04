@@ -1,5 +1,5 @@
 import { masterValidateCode, ONLY_USE_THIS_TO_VALIDATE } from './code-validator.js';
-import { autoIndent } from './game.js';
+import { autoIndent } from './script.js';
 
 function escapeHtml(text) {
     const div = document.createElement('div');

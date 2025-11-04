@@ -63,6 +63,7 @@ class CarLangEngine {
             'moveBackward': () => this.defaultCommandableObject.moveBackward(),
             'turnRight': () => this.defaultCommandableObject.turnRight(),
             'turnLeft': () => this.defaultCommandableObject.turnLeft(),
+            'makeUturn': () => this.makeUturn(),
             'explode': () => this.defaultCommandableObject.crash(),
             'isRoadAhead': () => this.defaultCommandableObject.isRoadAhead(),
             'isCowAhead': () => this.defaultCommandableObject.isCowAhead(),
@@ -79,6 +80,7 @@ class CarLangEngine {
             'moveBackward': { args: 0, description: 'Move car backward one tile' },
             'turnRight': { args: 0, description: 'Turn car right by 90 degrees' },
             'turnLeft': { args: 0, description: 'Turn car left by 90 degrees' },
+            'makeUturn': { args: 0, description: 'Turn car around 180 degrees (two right turns)' },
             'explode': { args: 0, description: 'Make car crash' },
             'isRoadAhead': { args: 0, description: 'Check if there is a road ahead (ignores cows)' },
             'isCowAhead': { args: 0, description: 'Check if there is a cow ahead (ignores roads)' },
@@ -1195,6 +1197,7 @@ class CarLangEngine {
             'moveBackward': () => commandableObject.moveBackward(),
             'turnRight': () => commandableObject.turnRight(),
             'turnLeft': () => commandableObject.turnLeft(),
+            'makeUturn': () => this.makeUturnForCar(commandableObject),
             'explode': () => commandableObject.crash(),
             'isRoadAhead': () => commandableObject.isRoadAhead(),
             'isCowAhead': () => commandableObject.isCowAhead(),
@@ -1252,7 +1255,7 @@ class CarLangEngine {
         ];
         debug('HONK: Checking adjacent positions:', adjacentPositions);
         
-        // Get cows from the global cows array (defined in game.js)
+        // Get cows from the global cows array (defined in script.js)
         const globalCows = window.cows || [];
         debug('HONK: Found cows:', globalCows.length, globalCows);
         
@@ -1355,6 +1358,28 @@ class CarLangEngine {
         this.currentContext = methodContext;
         
         return null; // Method execution will continue in executeNext()
+    }
+
+    /**
+     * Make a U-turn (turn 180 degrees)
+     */
+    makeUturn() {
+        debug('MAKEUTURN: Starting U-turn');
+        // Turn right twice to make a 180-degree turn
+        this.defaultCommandableObject.turnRight();
+        this.defaultCommandableObject.turnRight();
+        debug('MAKEUTURN: U-turn completed');
+    }
+
+    /**
+     * Make a U-turn for a specific commandable object (multi-car mode)
+     */
+    makeUturnForCar(commandableObject) {
+        debug('MAKEUTURN: Starting U-turn for specific car');
+        // Turn right twice to make a 180-degree turn
+        commandableObject.turnRight();
+        commandableObject.turnRight();
+        debug('MAKEUTURN: U-turn completed for car');
     }
 
     stop() {

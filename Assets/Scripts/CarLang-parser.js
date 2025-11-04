@@ -934,7 +934,8 @@ class CarLangParser {
         // Validate function name in both modes
         const validFunctions = [
             'moveForward', 'moveBackward', 'turnLeft', 'turnRight', 
-            'honk', 'isRoadAhead', 'isCowAhead', 'isAtFinish', 'output'
+            'honk', 'isRoadAhead', 'isCowAhead', 'isAtFinish', 'output',
+            'makeUturn'
         ];
         
         // Allow user-defined functions
