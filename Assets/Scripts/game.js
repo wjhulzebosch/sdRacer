@@ -514,7 +514,7 @@ async function loadLevel(levelId) {
         const levelData = await fetch('https://wjhulzebosch.nl/json_ape/api.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams({ action: 'get', category: 'sd_racer', id: levelId })
+            body: new URLSearchParams({ action: 'get', category: 'simple_sd_racer', id: levelId })
         }).then(r => r.json());
         
         if (!levelData) {
@@ -984,14 +984,14 @@ function startGame() {
                 const { ids } = await fetch('https://wjhulzebosch.nl/json_ape/api.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: new URLSearchParams({ action: 'list', category: 'sd_racer' })
+                    body: new URLSearchParams({ action: 'list', category: 'simple_sd_racer' })
                 }).then(r => r.json());
                 allLevels = await Promise.all(
                     ids.map(async id => {
                         const level = await fetch('https://wjhulzebosch.nl/json_ape/api.php', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                            body: new URLSearchParams({ action: 'get', category: 'sd_racer', id })
+                            body: new URLSearchParams({ action: 'get', category: 'simple_sd_racer', id })
                         }).then(r => r.json());
                         level.apiId = id;
                         return level;

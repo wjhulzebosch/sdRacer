@@ -706,7 +706,7 @@ async function loadLevelsFromFile() {
         const { ids } = await fetch('https://wjhulzebosch.nl/json_ape/api.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams({ action: 'list', category: 'sd_racer' })
+            body: new URLSearchParams({ action: 'list', category: 'simple_sd_racer' })
         }).then(r => r.json());
         // Fetch each level by ID
         const levels = await Promise.all(
@@ -714,7 +714,7 @@ async function loadLevelsFromFile() {
                 return await fetch('https://wjhulzebosch.nl/json_ape/api.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: new URLSearchParams({ action: 'get', category: 'sd_racer', id })
+                    body: new URLSearchParams({ action: 'get', category: 'simple_sd_racer', id })
                 }).then(r => r.json());
             })
         );
