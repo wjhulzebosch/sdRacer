@@ -789,7 +789,7 @@ async function playCode() {
             }
             
             // Update car status indicator for multi-car levels
-            updateCarStatus();
+            // updateCarStatus();
             
             // Highlight the current line and block
             if (result.currentLine) {
