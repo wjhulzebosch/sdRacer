@@ -699,6 +699,17 @@ document.getElementById('generateMazeBtn').onclick = () => {
     generateMazeForLevel();
 };
 
+// Load Level button - triggers the selector change
+document.getElementById('loadLevelBtn').onclick = () => {
+    const selector = document.getElementById('levelSelector');
+    if (selector.value) {
+        // Trigger the change event
+        selector.dispatchEvent(new Event('change'));
+    } else {
+        alert('Please select a level from the dropdown first.');
+    }
+};
+
 // Load levels from file
 async function loadLevelsFromFile() {
     try {
@@ -771,17 +782,18 @@ function addPlayLevelButton() {
         btn.style.position = 'absolute';
         btn.style.top = '10px';
         btn.style.right = '10px';
-        btn.onclick = () => {
-            // Export current level as JSON
-            const level = getLevelDetails();
-            const levelJson = JSON.stringify(level);
-            // Store in localStorage for transfer
-            localStorage.setItem('sdRacer_tempLevel', levelJson);
-            // Open game with a flag to load from temp
-            window.location.href = 'game.html?loadTemp=1';
-        };
         document.body.appendChild(btn);
     }
+    // Always set the click handler (in case button already exists in HTML)
+    btn.onclick = () => {
+        // Export current level as JSON
+        const level = getLevelDetails();
+        const levelJson = JSON.stringify(level);
+        // Store in localStorage for transfer
+        localStorage.setItem('sdRacer_tempLevel', levelJson);
+        // Open game with a flag to load from temp
+        window.location.href = 'game.html?loadTemp=1';
+    };
 }
 
 // Maze generation function

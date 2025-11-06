@@ -3,139 +3,120 @@
 <head>
     <meta charset="UTF-8">
     <title>Level Creator - sdRacer</title>
-    <link rel="stylesheet" href="Assets/Styles/levelCreator.css">
+    <link rel="stylesheet" href="Assets/Styles/newGameStyles.css">
 </head>
 <body>
-    <div class="container">
-        <h1>🎮 Level Creator</h1>
-        <p class="experimental-warning">⚠️ Experimental tool - Use at your own risk. Not all features are fully implemented.</p>
-        <p>With this tool you can create levels for the sdRacer game. You can't however save them. To play your level, press "Play level" or "Export JSON" and copy the JSON to the clipboard. Then start a 'Custom level'  and paste the JSON into the 'Level JSON' field.</p>
-        <p>Steps: Create a grid of the required size; place roads by clicking <i>between</i> two cells. To place a car, click on the car, then on the cell where you want to place it. To place a finish line, click on the finish line, then on the cell where you want to place it. To place a cow, click on the cow, then on the cell where you want to place it. To place a car, click on the car, then on the cell where you want to place it. To place a finish line, click on the finish line, then on the cell where you want to place it. IMPORTANT: If you want to place a cow, you'll need to click to orthogonally connect cells: the first click will be the cows starting cell, the second click will be the cell where the cow will move to when honked.</p>
-        <p>YOu can place max 1 car of each color. If you place more than one car, the game goes into "OOP-mode".</p>
-        <p>For now, only win condition possible is "IsAtFinish()".</p>
-        <p>To create a maze: Select the grids' dimenions, place the car, place the finish, the press 'Generate maze'. This will generate a maze from the car to the finish. NOTE: Multi car maze generation not supported.</p>
-        <p>You can load an existing level by selecting it from the dropdown. NOTE: You can't save a level, export to JSON or play right away</p>
-        <p>To export the level to JSON, press "Export JSON" and copy the JSON to the clipboard. Then start a 'Custom level'  and paste the JSON into the 'Level JSON' field.</p>
-        <p>To import a level from JSON, paste the JSON into the Import/Export text field and press "Import JSON".</p>
+    <div class="content">
+        <div class="title">
+            <h1>Level Creator - sdRacer</h1>
+        </div>
         
-        <div class="flex-row">
-            <div class="form-section">
-                <!-- Basic Level Information -->
-                <div class="form-group">
-                    <h3>📐 Grid Settings</h3>
-                    <label>Width (columns): <input type="number" id="width" min="1" value="4"></label>
-                    <label>Height (rows): <input type="number" id="height" min="1" value="4"></label>
-                </div>
-                
-                <div class="form-group">
-                    <h3>📝 Level Information</h3>
-                    <label>Level ID: <input type="text" id="id" value="" placeholder="e.g., 12"></label>
-                    <label>Category: <input type="text" id="category" value="" placeholder="e.g., OOP Introduction"></label>
-                    <label>Name: <input type="text" id="name" value="" placeholder="e.g., Multi-Car Challenge"></label>
-                    <label>Author: <input type="text" id="author" value="" placeholder="Your name"></label>
-                </div>
-                
-                <div class="form-group">
-                    <h3>🎯 Win Condition</h3>
-                    <label>Win Condition: 
-                        <select id="winCondition">
-                            <option value="IsAtFinish()">IsAtFinish() - Any car reaches finish</option>
-                            <option value="AllCarsAtFinish()">AllCarsAtFinish() - All cars must reach finish</option>
-                            <option value="SpecificCarAtFinish()">SpecificCarAtFinish() - Specific car must reach finish</option>
-                        </select>
-                    </label>
-                </div>
-                
-                <div class="form-group">
-                    <h3>📖 Instructions & Code</h3>
-                    <label>Instructions: <textarea id="instructions" placeholder="Explain the level objectives..."></textarea></label>
-                    <label>Default Code: <textarea id="defaultCode" placeholder="// Write default CarLang code here..."></textarea></label>
-                </div>
-                
-                <!-- Car Management Section -->
-                <div class="form-group">
-                    <h3>🚗 Car Management</h3>
-                    <div class="car-controls">
-                        <button id="addCarBtn" class="btn-secondary">➕ Add Car</button>
-                        <button id="clearCarsBtn" class="btn-warning">🗑️ Clear All Cars</button>
+        <div class="explanation">
+            <p><strong>Experimental tool</strong> - Create custom levels for sdRacer.</p>
+            <p><strong>Quick Start:</strong> Set grid size → Place roads (click between cells) → Place car & finish → Add level info → Export JSON or Play</p>
+            <p><strong>Tips:</strong> Roads connect by clicking between cells. Max 1 car per color. Multiple cars enables OOP mode. Cows require 2 clicks (start cell, move-to cell). Use Generate Maze for automatic maze creation.</p>
+        </div>
+        
+        <div class="creator-main">
+            <div class="left-column">
+                <!-- LEVEL MANAGEMENT PANEL -->
+                <div class="panel level-management">
+                    <h3>Level Management</h3>
+                    
+                    <div class="section grid-settings">
+                        <label>Width (columns): <input type="number" id="width" min="1" value="4"></label>
+                        <label>Height (rows): <input type="number" id="height" min="1" value="4"></label>
+                        <button id="generateMazeBtn">Generate Maze</button>
                     </div>
-                    <div id="carList" class="car-list">
-                        <!-- Cars will be listed here -->
+                    
+                    <div class="section import-export">
+                        <button id="showJsonBtn">Export JSON</button>
+                        <button id="loadJsonBtn">Import JSON</button>
+                        <textarea id="jsonArea" placeholder="Paste level JSON here..."></textarea>
                     </div>
-                </div>
-                
-                <!-- Maze Generator -->
-                <div class="form-group">
-                    <h3>🏗️ Maze Generator</h3>
-                    <p>Generate a maze using the current grid size and car/finish positions.</p>
-                    <div class="button-row">
-                        <button id="generateMazeBtn" class="btn-secondary">🎲 Generate Maze</button>
-                    </div>
-                </div>
-                
-                <!-- Level Loading -->
-                <div class="form-group">
-                    <h3>📂 Load Existing Level</h3>
-                    <div class="button-row">
-                        <button id="loadLevelBtn" class="btn-secondary">📂 Load Level</button>
-                    </div>
-                    <label>Start from existing level: 
+                    
+                    <div class="section load-existing">
+                        <label>Load Existing Level:</label>
                         <select id="levelSelector">
                             <option value="">Select a level...</option>
                         </select>
-                    </label>
+                        <button id="loadLevelBtn">Load Level</button>
+                    </div>
+                    
+                    <div class="section play-level">
+                        <button id="playLevelBtn">Play Level</button>
+                    </div>
                 </div>
                 
-                <!-- Import/Export -->
-                <div class="form-group">
-                    <h3>💾 Import/Export</h3>
-                    <div class="button-row">
-                        <button id="showJsonBtn" class="btn-primary">📤 Export JSON</button>
-                        <button id="loadJsonBtn" class="btn-secondary">📥 Import JSON</button>
+                <!-- LEVEL INFO PANEL -->
+                <div class="panel level-info">
+                    <h3>Level Information</h3>
+                    
+                    <div class="section basic-info">
+                        <label>Level ID: <input type="text" id="id" placeholder="e.g., 12"></label>
+                        <label>Category: <input type="text" id="category" placeholder="e.g., OOP Introduction"></label>
+                        <label>Name: <input type="text" id="name" placeholder="e.g., Multi-Car Challenge"></label>
+                        <label>Author: <input type="text" id="author" placeholder="Your name"></label>
                     </div>
-                    <label>Level JSON:</label>
-                    <textarea id="jsonArea" placeholder="Paste level JSON here..."></textarea>
+                    
+                    <div class="section win-condition">
+                        <label>Win Condition: 
+                            <select id="winCondition">
+                                <option value="IsAtFinish()">IsAtFinish() - Any car reaches finish</option>
+                                <option value="AllCarsAtFinish()">AllCarsAtFinish() - All cars must reach finish</option>
+                                <option value="SpecificCarAtFinish()">SpecificCarAtFinish() - Specific car must reach finish</option>
+                            </select>
+                        </label>
+                    </div>
+                    
+                    <div class="section instructions-section">
+                        <label>Instructions: <textarea id="instructions" placeholder="Explain the level objectives..."></textarea></label>
+                    </div>
+                    
+                    <div class="section default-code-section">
+                        <label>Default Code: <textarea id="defaultCode" placeholder="// Write default CarLang code here..."></textarea></label>
+                    </div>
+                    
+                    <div class="section car-management">
+                        <h4>Car Management</h4>
+                        <button id="addCarBtn">Add Car</button>
+                        <button id="clearCarsBtn">Clear All Cars</button>
+                        <div id="carList"></div>
+                    </div>
                 </div>
             </div>
             
-            <div class="grid-section">
-                <div class="placement-tools">
-                    <h3>🛠️ Placement Tools</h3>
-                    <div class="tool-buttons">
-                        <div class="tool-group">
-                            <span class="tool-label">Cars:</span>
-                            <span id="redCarIcon" class="car-icon red-car" title="Place Red Car"></span>
-                            <span id="blueCarIcon" class="car-icon blue-car" title="Place Blue Car"></span>
-                            <span id="greenCarIcon" class="car-icon green-car" title="Place Green Car"></span>
-                            <span id="yellowCarIcon" class="car-icon yellow-car" title="Place Yellow Car"></span>
-                        </div>
-                        <div class="tool-group">
-                            <span class="tool-label">Objects:</span>
-                            <span id="finishIcon" class="finish-icon" title="Place Finish Line"></span>
-                            <span id="cowIcon" class="cow-icon" title="Place Cow (optional)"></span>
-                            <span id="trafficLightIcon" class="traffic-light-icon" title="Place Traffic Light"></span>
-                        </div>
+            <div class="right-column">
+                <!-- PLACEMENT TOOLS PANEL -->
+                <div class="panel placement-tools">
+                    <h3>Placement Tools</h3>
+                    
+                    <div class="tool-group">
+                        <span class="tool-label">Cars:</span>
+                        <span id="redCarIcon" class="tool-icon red-car"></span>
+                        <span id="blueCarIcon" class="tool-icon blue-car"></span>
+                        <span id="greenCarIcon" class="tool-icon green-car"></span>
+                        <span id="yellowCarIcon" class="tool-icon yellow-car"></span>
                     </div>
-                    <div class="placement-status">
-                        <span id="placementStatus">Click an icon to start placing objects</span>
+                    
+                    <div class="tool-group">
+                        <span class="tool-label">Objects:</span>
+                        <span id="finishIcon" class="tool-icon finish-icon"></span>
+                        <span id="cowIcon" class="tool-icon cow-icon"></span>
+                        <span id="trafficLightIcon" class="tool-icon traffic-light-icon"></span>
                     </div>
+                    
+                    <div id="placementStatus" class="placement-status">Click an icon to start placing objects</div>
                 </div>
                 
-                <div id="levelGrid" class="level-grid"></div>
-                
-                <!-- Grid Information -->
-                <div class="grid-info">
-                    <div class="info-item">
-                        <span class="info-label">Grid Size:</span>
-                        <span id="gridSizeInfo">4x4</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="info-label">Cars Placed:</span>
-                        <span id="carsPlacedInfo">0</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="info-label">Finish:</span>
-                        <span id="finishInfo">Not placed</span>
+                <!-- GAME GRID PANEL -->
+                <div class="panel game-grid">
+                    <div id="levelGrid" class="level-grid"></div>
+                    
+                    <div class="grid-info">
+                        <span>Grid: <span id="gridSizeInfo">4x4</span></span>
+                        <span>Cars: <span id="carsPlacedInfo">0</span></span>
+                        <span>Finish: <span id="finishInfo">Not placed</span></span>
                     </div>
                 </div>
             </div>
@@ -146,7 +127,7 @@
     <div id="carModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>🚗 Configure Car</h3>
+                <h3>Configure Car</h3>
                 <button class="close-btn" id="closeCarModal">×</button>
             </div>
             <div class="modal-body">
@@ -169,8 +150,8 @@
                     </select>
                 </label>
                 <div class="modal-buttons">
-                    <button id="saveCarBtn" class="btn-primary">💾 Save Car</button>
-                    <button id="cancelCarBtn" class="btn-secondary">❌ Cancel</button>
+                    <button id="saveCarBtn">Save Car</button>
+                    <button id="cancelCarBtn">Cancel</button>
                 </div>
             </div>
         </div>
