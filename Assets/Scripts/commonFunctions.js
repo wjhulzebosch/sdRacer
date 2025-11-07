@@ -103,18 +103,18 @@ function loadCustomLevel(levelData) {
     autoIndent();
     // Display level instructions with mode information
     const instructionsDiv = document.getElementById('instructions');
-    if (instructionsDiv && levelData.Instructions) {
-        let instructionText = `<h3>Instructions:</h3><p>${levelData.Instructions}</p>`;
-        // FIX: define mode before using it
-        const mode = getLevelMode(levelData);
-        if (mode === 'multi-car') {
-            const carNames = levelData.cars.map(car => car.name).join(', ');
-            instructionText += `<p><strong>Mode:</strong> Multi-car (${carNames})</p>`;
-        } else if (mode === 'single-car-oop') {
-            instructionText += `<p><strong>Mode:</strong> Single car with OOP syntax</p>`;
+    if (instructionsDiv) {
+        let instructionText = '';
+        
+        if (levelData.Instructions) {
+            instructionText = `<h2>Instructions</h2><p>${levelData.Instructions}</p>`;
         } else {
-            instructionText += `<p><strong>Mode:</strong> Single car</p>`;
+            // Fallback instructions when level has no specific instructions
+            instructionText = `<h2>Instructions</h2><p>In this game, your goal is to drive the car to the finish line by programming it. Write your code in the code editor and press "Play" to see what your car does.</p><p>Click 'Help' to see which commands you can use.</p><p>Click 'Play' to start the simulation. With 'Reset', you can reset the level and your code at any time.</p>`;
         }
+        
+
+        
         instructionsDiv.innerHTML = instructionText;
     }
     resetGame();

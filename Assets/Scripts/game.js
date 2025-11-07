@@ -252,6 +252,13 @@ function updateURLAndLoadLevel(levelId) {
     loadLevel(levelId);
 }
 
+function showDefaultInstructions() {
+    const instructionsDiv = document.getElementById('instructions');
+    if (instructionsDiv) {
+        instructionsDiv.innerHTML = `<h2>Instructions</h2><p>Welcome to sdRacer! In this game, your goal is to drive the car to the finish line by programming it. Write your code in the code editor and press "Play" to see what your car does.</p><p>Select a level to get started. Each level starts with a small hint. Click 'Help' to see which commands you can use.</p>`;
+    }
+}
+
 function showLevelSelector() {
     const overlay = document.createElement('div');
     overlay.id = 'levelSelectorOverlay';
@@ -614,18 +621,17 @@ async function loadLevel(levelId, customLevelData = null) {
         autoIndent();
         // Display level instructions with mode information
         const instructionsDiv = document.getElementById('instructions');
-        if (instructionsDiv && levelData.Instructions) {
-            let instructionText = `<h3>Instructions:</h3><p>${levelData.Instructions}</p>`;
+        if (instructionsDiv) {
+            let instructionText = '';
             
-            // Add mode-specific information
-            if (mode === 'multi-car') {
-                const carNames = levelData.cars.map(car => car.name).join(', ');
-                instructionText += `<p><strong>Mode:</strong> Multi-car (${carNames})</p>`;
-            } else if (mode === 'single-car-oop') {
-                instructionText += `<p><strong>Mode:</strong> Single car with OOP syntax</p>`;
+            if (levelData.Instructions) {
+                instructionText = `<h2>Instructions</h2><p>${levelData.Instructions}</p>`;
             } else {
-                instructionText += `<p><strong>Mode:</strong> Single car</p>`;
+                // Fallback instructions when level has no specific instructions
+                instructionText = `<h2>Instructions</h2><p>In this game, your goal is to drive the car to the finish line by programming it. Write your code in the code editor and press "Play" to see what your car does.</p><p>Each level starts with a small hint. See what the code does by pressing 'Play'. Click 'Help' to see which commands you can use.</p>`;
             }
+            
+
             
             instructionsDiv.innerHTML = instructionText;
         }
@@ -1011,6 +1017,7 @@ function startGame() {
                     })
                 );
                 allLevels.forEach(level => debug(`[LEVEL LIST] apiId: ${level.apiId}, name: ${level.name}, Instructions: ${level.Instructions}`));
+                showDefaultInstructions();
                 showLevelSelector();
             } catch (err) {
                 debug('Failed to load levels: ' + err, null, 'error');
