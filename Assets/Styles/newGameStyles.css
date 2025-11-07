@@ -251,6 +251,21 @@ button {
     border: 1px solid;
 }
 
+.traffic-light-indicator.green {
+    background-color: #00ff00;
+    box-shadow: 0 0 8px #00ff00;
+}
+
+.traffic-light-indicator.yellow {
+    background-color: #ffff00;
+    box-shadow: 0 0 8px #ffff00;
+}
+
+.traffic-light-indicator.red {
+    background-color: #ff0000;
+    box-shadow: 0 0 8px #ff0000;
+}
+
 /* Level Selector Styles */
 .level-selector-container {
     max-width: 1200px;
