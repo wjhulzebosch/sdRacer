@@ -19,6 +19,11 @@ class CommandableObject {
         return this.entity.turnRight();
     }
 
+    makeUturn() {
+        this.entity.turnLeft();
+        return this.entity.turnLeft();
+    }
+
     turnLeft() {
         return this.entity.turnLeft();
     }
