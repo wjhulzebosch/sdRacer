@@ -711,3 +711,56 @@ button {
     margin: 20px;
     margin: 0 auto;
 }
+
+/* Level Creator Checklist */
+.checklist-panel {
+    border: 1px solid black;
+    padding: 10px;
+    margin-bottom: 10px;
+}
+
+.checklist {
+    display: flex;
+    flex-direction: column;
+}
+
+.checklist-item {
+    display: flex;
+    align-items: center;
+    padding: 5px;
+    border-left: 1px solid black;
+    margin-bottom: 5px;
+}
+
+.checklist-item.done {
+    color: green;
+}
+
+.check-icon {
+    margin-right: 10px;
+}
+
+.checklist-item.done .check-icon::before {
+    content: '✓';
+}
+
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.experimental-badge {
+    color: red;
+    border: 1px solid red;
+    padding: 2px 5px;
+}
+
+.car-controls {
+    display: flex;
+    margin-bottom: 10px;
+}
+
+.car-controls button {
+    margin-right: 5px;
+}
