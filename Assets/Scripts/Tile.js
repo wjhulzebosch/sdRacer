@@ -2,6 +2,7 @@ class Tile {
     constructor() {
         this.roadType = '0000'; // Default grass
         this.entities = new Set(); // Cars, cows, finish, etc.
+        this.plant = null; // Plant decoration (null, 'plant_1', or 'plant_2')
     }
     
     setRoadType(type) {
@@ -99,6 +100,16 @@ class Tile {
     // Clear all entities from this tile
     clearEntities() {
         this.entities.clear();
+    }
+    
+    // Set plant decoration
+    setPlant(plantType) {
+        this.plant = plantType;
+    }
+    
+    // Get plant decoration
+    getPlant() {
+        return this.plant;
     }
 }
 
