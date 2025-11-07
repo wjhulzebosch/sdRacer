@@ -124,6 +124,11 @@ button {
     height: 400px;
 }
 
+/* CodeMirror line highlighting for execution */
+.cm-highlighted-line {
+    background-color: rgba(255, 255, 0, 0.3) !important;
+}
+
 /* Parser display */
 .parser-display {
     border: 1px solid;
