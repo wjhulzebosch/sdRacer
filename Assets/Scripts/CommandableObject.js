@@ -30,6 +30,14 @@ class CommandableObject {
     isCowAhead() {
         return this.entity.isCowAhead(window.world);
     }
+    
+    isObstacleAhead() {
+        return this.entity.isObstacleAhead(window.world);
+    }
+    
+    isRoadClear() {
+        return this.entity.isRoadClear(window.world);
+    }
 
     isRoadAhead() {
         return this.entity.isRoadAhead(window.world);

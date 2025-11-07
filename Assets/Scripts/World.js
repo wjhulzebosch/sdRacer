@@ -1,6 +1,7 @@
 import Tile from './Tile.js';
 import Car from './Car.js';
 import Cow from './Cow.js';
+import Deer from './Deer.js';
 import Finish from './Finish.js';
 import WinCondition from './WinCondition.js';
 import GPS from './GPS.js';
@@ -188,6 +189,36 @@ class World {
             }
         }
         
+        // Add plants to grass tiles (fixed 1/10 of grass tiles)
+        // First, collect all grass tile positions
+        const grassTiles = [];
+        for (let y = 0; y < this.height; y++) {
+            for (let x = 0; x < this.width; x++) {
+                const tile = this.getTile(x, y);
+                if (tile && !tile.isRoad()) {
+                    grassTiles.push({ x, y, tile });
+                }
+            }
+        }
+        
+        // Calculate number of plants (1/10 of grass tiles, minimum 1 if there are grass tiles)
+        const plantCount = grassTiles.length > 0 ? Math.max(1, Math.floor(grassTiles.length / 10)) : 0;
+        
+        // Randomly select grass tiles to place plants
+        if (plantCount > 0) {
+            // Shuffle grass tiles array
+            for (let i = grassTiles.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [grassTiles[i], grassTiles[j]] = [grassTiles[j], grassTiles[i]];
+            }
+            
+            // Place plants on the first plantCount tiles
+            for (let i = 0; i < plantCount; i++) {
+                const plantType = Math.random() < 0.5 ? 'plant_1' : 'plant_2';
+                grassTiles[i].tile.setPlant(plantType);
+            }
+        }
+        
         // Add finish entity
         if (levelData.end && Array.isArray(levelData.end)) {
             if (levelData.end.length !== 2) {
@@ -300,6 +331,30 @@ class World {
             });
         }
         
+        // Add deer
+        if (levelData.deer && Array.isArray(levelData.deer)) {
+            levelData.deer.forEach((deerConfig, index) => {
+                if (!deerConfig || typeof deerConfig !== 'object') {
+                    throw new Error('CRITICAL: Invalid deer config at index ' + index + ': ' + typeof deerConfig);
+                }
+                if (!deerConfig.positions || !Array.isArray(deerConfig.positions) || deerConfig.positions.length < 2) {
+                    throw new Error('CRITICAL: Deer config missing valid positions array at index ' + index);
+                }
+                
+                const deerId = this.generateEntityId();
+                // Adjust positions for grass border (+1 offset)
+                const positions = deerConfig.positions.map(pos => ({
+                    x: pos[0] + 1,
+                    y: pos[1] + 1
+                }));
+                const deer = new Deer(deerId, positions);
+                if (!deer) {
+                    throw new Error('CRITICAL: Failed to create Deer entity for index ' + index);
+                }
+                this.addEntity(deer, positions[0].x, positions[0].y);
+            });
+        }
+        
         // Set win condition
         const carCount = this.getEntitiesOfType('car').length;
         if (carCount > 1) {
@@ -379,6 +434,25 @@ class World {
                         tileDiv.style.backgroundSize = 'contain';
                         
                         gameDiv.appendChild(tileDiv);
+                        
+                        // Add plant decoration if this is a grass tile with a plant
+                        const plant = tile.getPlant();
+                        if (plant) {
+                            const plantDiv = document.createElement('div');
+                            plantDiv.className = 'plant-decoration';
+                            plantDiv.style.position = 'absolute';
+                            plantDiv.style.left = (x * tileSize) + 'px';
+                            plantDiv.style.top = (y * tileSize) + 'px';
+                            plantDiv.style.width = tileSize + 'px';
+                            plantDiv.style.height = tileSize + 'px';
+                            plantDiv.style.zIndex = '2';
+                            plantDiv.style.backgroundImage = `url('Assets/Textures/${plant}.png')`;
+                            plantDiv.style.backgroundSize = 'contain';
+                            plantDiv.style.backgroundRepeat = 'no-repeat';
+                            plantDiv.style.pointerEvents = 'none';
+                            
+                            gameDiv.appendChild(plantDiv);
+                        }
                     }
                 }
             }

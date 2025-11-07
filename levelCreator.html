@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Level Creator - sdRacer</title>
-    <link rel="stylesheet" href="Assets/Styles/newGameStyles.css">
+    <link rel="stylesheet" href="Assets/Styles/style.css">
 </head>
 <body>
     <div class="content">
@@ -14,7 +14,7 @@
         <div class="explanation">
             <p><strong>Experimental tool</strong> - Create custom levels for sdRacer.</p>
             <p><strong>Quick Start:</strong> Set grid size → Place roads (click between cells) → Place car & finish → Add level info → Export JSON or Play</p>
-            <p><strong>Tips:</strong> Roads connect by clicking between cells. Max 1 car per color. Multiple cars enables OOP mode. Cows require 2 clicks (start cell, move-to cell). Use Generate Maze for automatic maze creation.</p>
+            <p><strong>Tips:</strong> Roads connect by clicking between cells. Max 1 car per color. Multiple cars enables OOP mode. Cows require 2 clicks (start cell, move-to cell). Deer requires 2+ waypoints (click cells, right-click or click outside grid to finish).</p>
         </div>
         
         <div class="creator-main">
@@ -136,6 +136,7 @@
                         <span class="tool-label">Objects:</span>
                         <span id="finishIcon" class="tool-icon finish-icon"></span>
                         <span id="cowIcon" class="tool-icon cow-icon"></span>
+                        <span id="deerIcon" class="tool-icon deer-icon"></span>
                         <span id="trafficLightIcon" class="tool-icon traffic-light-icon"></span>
                     </div>
                     

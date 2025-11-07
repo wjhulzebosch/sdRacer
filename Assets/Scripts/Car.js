@@ -70,6 +70,19 @@ class Car extends Entity {
         return entities.some(entity => entity.type === 'cow');
     }
     
+    isObstacleAhead(world) {
+        const aheadPos = this.getPositionAhead();
+        const entities = world.getEntitiesAt(aheadPos.x, aheadPos.y);
+        return entities.some(entity => 
+            entity.type === 'cow' || entity.type === 'deer'
+        );
+    }
+    
+    isRoadClear(world) {
+        // Inverted logic: road is clear if NO obstacles ahead
+        return !this.isObstacleAhead(world);
+    }
+    
     isRoadAhead(world) {
         const aheadPos = this.getPositionAhead();
         return this.isRoadConnected(world, aheadPos.x, aheadPos.y);
@@ -180,11 +193,21 @@ class Car extends Entity {
             return false;
         }
         
-        // Check for cow collision
+        // Check for cow or deer collision
         const entities = world.getEntitiesAt(x, y);
-        if (entities.some(entity => entity.type === 'cow')) {
-            debug(`[canMoveTo] CRASH: Cow at position (${x}, ${y})`);
-            this.crash(); // Car crashes when hitting cow
+        const obstacle = entities.find(entity => 
+            entity.type === 'cow' || entity.type === 'deer'
+        );
+        if (obstacle) {
+            debug(`[canMoveTo] CRASH: ${obstacle.type} at position (${x}, ${y})`);
+            this.crash();
+            
+            // Destroy the deer if hit
+            if (obstacle.type === 'deer') {
+                world.removeEntity(obstacle);
+                obstacle.destroy();
+            }
+            
             return false;
         }
         

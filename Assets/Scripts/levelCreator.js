@@ -12,9 +12,13 @@ let rows = 4, cols = 4;
 let cars = []; // Array of car objects: {name, type, x, y, direction, id}
 let finishPos = null;
 let cows = []; // Array to store cow data: [{defaultX, defaultY, secondaryX, secondaryY, currentX, currentY}]
+let deer = []; // Array to store deer data: [{positions: [[x, y], [x, y], ...], color}]
 let trafficLights = []; // Array to store traffic light data: [{x, y, id}]
-let placeMode = null; // 'redCar', 'blueCar', 'greenCar', 'yellowCar', 'finish', 'cow', 'trafficLight', or null
+let placeMode = null; // 'redCar', 'blueCar', 'greenCar', 'yellowCar', 'finish', 'cow', 'deer', 'trafficLight', or null
 let cowPlacementStep = 'default';
+let deerPlacementMode = false;
+let currentDeerPositions = []; // Temporary array while placing a deer
+let deerColors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8']; // Path colors
 let tempSecondaryPos = null;
 let editingCarId = null; // For car configuration modal
 let worldGenerated = false; // Track if world has been created
@@ -42,6 +46,7 @@ const greenCarIcon = document.getElementById('greenCarIcon');
 const yellowCarIcon = document.getElementById('yellowCarIcon');
 const finishIcon = document.getElementById('finishIcon');
 const cowIcon = document.getElementById('cowIcon');
+const deerIcon = document.getElementById('deerIcon');
 const trafficLightIcon = document.getElementById('trafficLightIcon');
 
 // Car management buttons
@@ -64,6 +69,14 @@ greenCarIcon.onclick = () => setPlaceMode('greenCar');
 yellowCarIcon.onclick = () => setPlaceMode('yellowCar');
 finishIcon.onclick = () => setPlaceMode('finish');
 cowIcon.onclick = () => setPlaceMode('cow');
+deerIcon.onclick = () => {
+    if (deerPlacementMode) {
+        // Clicking deer icon while placing finishes the path
+        finalizeDeerPlacement();
+    } else {
+        setPlaceMode('deer');
+    }
+};
 trafficLightIcon.onclick = () => setPlaceMode('trafficLight');
 
 // Car management
@@ -90,7 +103,7 @@ function setPlaceMode(mode) {
 
 function updatePlaceModeUI() {
     // Reset all icons
-    [redCarIcon, blueCarIcon, greenCarIcon, yellowCarIcon, finishIcon, cowIcon, trafficLightIcon].forEach(icon => {
+    [redCarIcon, blueCarIcon, greenCarIcon, yellowCarIcon, finishIcon, cowIcon, deerIcon, trafficLightIcon].forEach(icon => {
         icon.classList.remove('place-mode');
     });
     
@@ -101,6 +114,7 @@ function updatePlaceModeUI() {
     else if (placeMode === 'yellowCar') yellowCarIcon.classList.add('place-mode');
     else if (placeMode === 'finish') finishIcon.classList.add('place-mode');
     else if (placeMode === 'cow') cowIcon.classList.add('place-mode');
+    else if (placeMode === 'deer') deerIcon.classList.add('place-mode');
     else if (placeMode === 'trafficLight') trafficLightIcon.classList.add('place-mode');
 }
 
@@ -117,6 +131,7 @@ function updatePlacementStatus() {
         'yellowCar': 'Click on grid to place Yellow Car',
         'finish': 'Click on grid to place Finish Line',
         'cow': 'Click on grid to place Cow (first position)',
+        'deer': 'Click on grid to place Deer waypoints (min 2 waypoints)',
         'trafficLight': 'Click on grid to place Traffic Light'
     };
     
@@ -130,6 +145,7 @@ function updateGridSize() {
     cars = [];
     finishPos = null;
     cows = [];
+    deer = [];
     trafficLights = [];
     updateGridInfo();
     renderGrid();
@@ -277,13 +293,74 @@ function renderGrid() {
                 }
             });
             
+            // Check for deer waypoints (current deer being placed)
+            if (deerPlacementMode && currentDeerPositions.length > 0) {
+                const waypointIndex = currentDeerPositions.findIndex(pos => pos[0] === x && pos[1] === y);
+                if (waypointIndex !== -1) {
+                    cell.classList.add('deer-waypoint-preview');
+                    cell.style.setProperty('--deer-color', deerColors[deer.length % deerColors.length]);
+                    cell.setAttribute('data-waypoint-number', waypointIndex + 1);
+                }
+            }
+            
+            // Check for existing deer waypoints
+            deer.forEach((d, deerIndex) => {
+                const waypointIndex = d.positions.findIndex(pos => pos[0] === x && pos[1] === y);
+                if (waypointIndex !== -1) {
+                    cell.classList.add('deer-waypoint');
+                    cell.style.setProperty('--deer-color', d.color);
+                    cell.setAttribute('data-waypoint-number', waypointIndex + 1);
+                }
+            });
+            
             cell.onclick = () => handleCellClick(y, x);
             gridDiv.appendChild(cell);
         }
     }
     
+    // Draw path lines for deer
+    deer.forEach((d) => {
+        for (let i = 0; i < d.positions.length; i++) {
+            const start = d.positions[i];
+            const end = d.positions[(i + 1) % d.positions.length]; // Circular
+            drawPathLine(start[0], start[1], end[0], end[1], d.color);
+        }
+    });
+    
+    // Draw path lines for current deer being placed
+    if (deerPlacementMode && currentDeerPositions.length > 1) {
+        const color = deerColors[deer.length % deerColors.length];
+        for (let i = 0; i < currentDeerPositions.length - 1; i++) {
+            const start = currentDeerPositions[i];
+            const end = currentDeerPositions[i + 1];
+            drawPathLine(start[0], start[1], end[0], end[1], color);
+        }
+    }
+    
     // Draw borders
     drawBorders();
+}
+
+function drawPathLine(x1, y1, x2, y2, color) {
+    // Draw a line from center of (x1, y1) to center of (x2, y2)
+    const centerX1 = x1 * 48 + 24;
+    const centerY1 = y1 * 48 + 24;
+    const centerX2 = x2 * 48 + 24;
+    const centerY2 = y2 * 48 + 24;
+    
+    const length = Math.sqrt((centerX2 - centerX1) ** 2 + (centerY2 - centerY1) ** 2);
+    const angle = Math.atan2(centerY2 - centerY1, centerX2 - centerX1) * (180 / Math.PI);
+    
+    const line = document.createElement('div');
+    line.className = 'deer-path-line';
+    line.style.width = length + 'px';
+    line.style.left = centerX1 + 'px';
+    line.style.top = centerY1 + 'px';
+    line.style.transform = `rotate(${angle}deg)`;
+    line.style.transformOrigin = '0 0';
+    line.style.backgroundColor = color;
+    
+    gridDiv.appendChild(line);
 }
 
 function getCarTexture(carType) {
@@ -308,6 +385,8 @@ function handleCellClick(y, x) {
         renderGrid();
     } else if (placeMode === 'cow') {
         handleCowPlacement(y, x);
+    } else if (placeMode === 'deer') {
+        handleDeerPlacement(y, x);
     } else if (placeMode === 'trafficLight') {
         handleTrafficLightPlacement(y, x);
     } else if (placeMode && placeMode.endsWith('Car')) {
@@ -431,6 +510,55 @@ function handleTrafficLightPlacement(y, x) {
     updatePlaceModeUI();
     updatePlacementStatus();
     updateGridInfo();
+    renderGrid();
+}
+
+function handleDeerPlacement(y, x) {
+    // Check if this is the first click (starting deer placement)
+    if (!deerPlacementMode) {
+        deerPlacementMode = true;
+        currentDeerPositions = [[x, y]];
+        updatePlacementStatus();
+        placementStatus.textContent = 'Click grid to add waypoints. Click deer icon in menu to finish path (min 2 waypoints).';
+        renderGrid();
+        return;
+    }
+    
+    // Add waypoint to current deer
+    currentDeerPositions.push([x, y]);
+    renderGrid();
+}
+
+function finalizeDeerPlacement() {
+    if (currentDeerPositions.length < 2) {
+        debug('Deer must have at least 2 waypoints!', null, 'error');
+        cancelDeerPlacement();
+        return;
+    }
+    
+    // Assign color from palette (cycle through colors)
+    const colorIndex = deer.length % deerColors.length;
+    const newDeer = {
+        positions: [...currentDeerPositions],
+        color: deerColors[colorIndex]
+    };
+    
+    deer.push(newDeer);
+    currentDeerPositions = [];
+    deerPlacementMode = false;
+    placeMode = null;
+    updatePlaceModeUI();
+    updatePlacementStatus();
+    updateGridInfo();
+    renderGrid();
+}
+
+function cancelDeerPlacement() {
+    currentDeerPositions = [];
+    deerPlacementMode = false;
+    placeMode = null;
+    updatePlaceModeUI();
+    updatePlacementStatus();
     renderGrid();
 }
 
@@ -646,6 +774,9 @@ function getLevelDetails() {
             secondaryX: cow.secondaryX,
             secondaryY: cow.secondaryY
         })),
+        deer: deer.map(d => ({
+            positions: d.positions
+        })),
         trafficLights: trafficLights.map(tl => ({
             position: [tl.y, tl.x]
         }))
@@ -726,6 +857,16 @@ function setLevelDetails(level) {
             currentX: cow.defaultX,
             currentY: cow.defaultY
         }));
+    }
+    
+    // Handle deer data
+    if (level.deer) {
+        deer = level.deer.map((d, index) => ({
+            positions: d.positions,
+            color: deerColors[index % deerColors.length]
+        }));
+    } else {
+        deer = [];
     }
     
     // Handle traffic lights data

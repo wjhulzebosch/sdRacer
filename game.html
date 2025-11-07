@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>sdRacer - code your way out</title>
-    <link rel="stylesheet" href="Assets/Styles/newGameStyles.css">
+    <link rel="stylesheet" href="Assets/Styles/style.css">
     <link rel="stylesheet" href="Assets/External/CodeMirror/codemirror.min.css">
 </head>
 <body>
@@ -111,6 +111,8 @@
                     <ul>
                         <li><code>isRoadAhead()</code> - Check if there's a road ahead</li>
                         <li><code>isCowAhead()</code> - Check if there's a cow ahead</li>
+                        <li><code>isObstacleAhead()</code> - Check if there's a cow or deer ahead</li>
+                        <li><code>isRoadClear()</code> - Check if the road ahead is clear (no obstacles)</li>
                         <li><code>isAtFinish()</code> - Check if car is at finish line</li>
                     </ul>
                 </div>
@@ -118,8 +120,9 @@
                 <div class="command-section">
                     <h4>Action Commands:</h4>
                     <ul>
-                        <li><code>honk()</code> - Honk the car horn (scares cows)</li>
+                        <li><code>honk()</code> - Honk the car horn (scares cows away)</li>
                     </ul>
+                    <p><strong>Note:</strong> Deer cannot be scared away with honking. Use <code>isObstacleAhead()</code> to detect both cows and deer, then handle them differently.</p>
                 </div>
                 
                 <h3>Control Structures</h3>
