@@ -77,16 +77,7 @@ function displayLevels(levels) {
             levelName.className = 'level-name';
             levelName.textContent = levelData.name || `Level ${levelData.apiId}`;
             
-            const difficulty = document.createElement('span');
-            const difficultyLevel = getLevelDifficulty(levelData);
-            difficulty.className = `level-difficulty difficulty-${difficultyLevel}`;
-            
-            // Convert numeric difficulty to string representation
-            const difficultyText = ['Easy', 'Easy', 'Medium', 'Hard', 'Expert'][difficultyLevel - 1] || 'Easy';
-            difficulty.textContent = difficultyText;
-            
             levelItem.appendChild(levelName);
-            levelItem.appendChild(difficulty);
             levelList.appendChild(levelItem);
         });
         
