@@ -23,66 +23,149 @@ class Deer extends Entity {
         super(id, 'deer', positions[0].x, positions[0].y);
         
         this.positions = positions; // Waypoints
-        this.tilePath = []; // Pre-calculated complete tile path
-        this.currentTileIndex = 0;
-        this.initialTileIndex = 0;
-        this.moveSpeed = 1000; // 1 second per tile
+        this.pathActions = []; // Pre-calculated complete path with move and rotate actions
+        this.currentActionIndex = 0;
+        this.initialActionIndex = 0;
+        this.moveSpeed = 1000; // 1 second per action (move or rotate)
         this.lastMoveTime = Date.now();
         this.movementInterval = null;
         this.visualRotation = 0; // Track cumulative rotation like Car does
-        this.lastDirection = null; // Track last direction faced
+        this.currentDirection = null; // Track current direction: 'N', 'E', 'S', 'W'
+        this.directionMap = {
+            'N': 0,    // North = 0°
+            'E': 90,   // East = 90°
+            'S': 180,  // South = 180°
+            'W': 270   // West = 270°
+        };
         
-        // Pre-calculate the complete circular path
-        this.calculateTilePath();
-        
-        // Calculate initial rotation based on first movement direction
-        this.calculateInitialRotation();
+        // Pre-calculate the complete path with rotation actions
+        this.calculatePathActions();
         
         // Start continuous movement
         this.initialize();
     }
     
-    calculateInitialRotation() {
-        // Get the first two tiles to determine initial direction
-        if (this.tilePath.length >= 2) {
-            const firstTile = this.tilePath[0];
-            const secondTile = this.tilePath[1];
-            const dx = secondTile.x - firstTile.x;
-            const dy = secondTile.y - firstTile.y;
-            
-            // Determine initial direction and set visualRotation
-            // N = 0°, E = 90°, S = 180°, W = 270°
-            if (dx > 0) {
-                this.visualRotation = 90; // East
-                this.lastDirection = 'E';
-            } else if (dx < 0) {
-                this.visualRotation = 270; // West
-                this.lastDirection = 'W';
-            } else if (dy > 0) {
-                this.visualRotation = 180; // South
-                this.lastDirection = 'S';
-            } else if (dy < 0) {
-                this.visualRotation = 0; // North
-                this.lastDirection = 'N';
-            }
-        }
+    getDirectionToTile(fromTile, toTile) {
+        const dx = toTile.x - fromTile.x;
+        const dy = toTile.y - fromTile.y;
+        
+        if (dx > 0) return 'E';
+        if (dx < 0) return 'W';
+        if (dy > 0) return 'S';
+        if (dy < 0) return 'N';
+        
+        throw new Error(`[Deer ${this.id}] Cannot determine direction - tiles are the same or invalid`);
     }
     
-    calculateTilePath() {
-        const path = [];
+    getLastMoveAction(actions) {
+        // Find the last move action in the array
+        for (let i = actions.length - 1; i >= 0; i--) {
+            if (actions[i].type === 'move') {
+                return actions[i];
+            }
+        }
+        
+        // If no move action found, return first position
+        return {x: this.positions[0].x, y: this.positions[0].y};
+    }
+    
+    calculateRotationActions(fromDir, toDir) {
+        const actions = [];
+        const dirOrder = ['N', 'E', 'S', 'W'];
+        const fromIdx = dirOrder.indexOf(fromDir);
+        const toIdx = dirOrder.indexOf(toDir);
+        
+        // Calculate shortest rotation
+        let diff = toIdx - fromIdx;
+        
+        // Normalize to -2, -1, 0, 1, 2
+        if (diff > 2) diff -= 4;
+        if (diff < -2) diff += 4;
+        
+        if (diff === 0) {
+            // No rotation needed
+            return actions;
+        } else if (diff === 1 || diff === -3) {
+            // Turn right 90°
+            actions.push({type: 'rotate', direction: 'right', degrees: 90});
+        } else if (diff === -1 || diff === 3) {
+            // Turn left 90°
+            actions.push({type: 'rotate', direction: 'left', degrees: 90});
+        } else if (diff === 2 || diff === -2) {
+            // 180° turn - two rotations (choose right for consistency)
+            actions.push({type: 'rotate', direction: 'right', degrees: 90});
+            actions.push({type: 'rotate', direction: 'right', degrees: 90});
+        }
+        
+        debug(`[Deer ${this.id}] Rotation from ${fromDir} to ${toDir}: ${actions.length} rotation(s)`);
+        return actions;
+    }
+    
+    calculatePathActions() {
+        const actions = [];
+        
+        // Set initial direction based on first two positions
+        if (this.positions.length >= 2) {
+            const first = this.positions[0];
+            const second = this.positions[1];
+            this.currentDirection = this.getDirectionToTile(first, second);
+            this.visualRotation = this.directionMap[this.currentDirection];
+        } else {
+            // Default to North if only one position (shouldn't happen)
+            this.currentDirection = 'N';
+            this.visualRotation = 0;
+        }
+        
+        debug(`[Deer ${this.id}] Initial direction: ${this.currentDirection} (${this.visualRotation}°)`);
         
         // Build path from each waypoint to the next
         for (let i = 0; i < this.positions.length; i++) {
             const start = this.positions[i];
             const end = this.positions[(i + 1) % this.positions.length];
             
-            // Get all tiles between start and end (excluding start to avoid duplicates)
-            const segment = this.getManhattenPath(start, end, i > 0);
-            path.push(...segment);
+            // Get tiles between waypoints
+            // For the first segment (i=0), skip the first tile since deer is already there
+            const segment = this.getManhattenPath(start, end, true); // Always skip first tile to avoid duplicates
+            
+            // Convert tiles to move actions with rotation checks
+            segment.forEach((tile) => {
+                // Determine required direction to reach this tile
+                const lastAction = this.getLastMoveAction(actions);
+                const requiredDirection = this.getDirectionToTile(lastAction, tile);
+                
+                // Check if rotation is needed
+                if (this.currentDirection && this.currentDirection !== requiredDirection) {
+                    // Calculate rotation needed
+                    const rotationActions = this.calculateRotationActions(
+                        this.currentDirection, 
+                        requiredDirection
+                    );
+                    actions.push(...rotationActions);
+                }
+                
+                // Update current direction
+                this.currentDirection = requiredDirection;
+                
+                // Add move action
+                actions.push({type: 'move', x: tile.x, y: tile.y});
+            });
         }
         
-        this.tilePath = path;
-        debug(`[Deer ${this.id}] Calculated tile path with ${this.tilePath.length} tiles`);
+        // Check if rotation is needed at the end to face the initial direction again
+        // (for when the path loops back to the start)
+        const initialDirection = this.getDirectionToTile(this.positions[0], this.positions[1]);
+        if (this.currentDirection !== initialDirection) {
+            const finalRotationActions = this.calculateRotationActions(
+                this.currentDirection,
+                initialDirection
+            );
+            actions.push(...finalRotationActions);
+            this.currentDirection = initialDirection; // Update to match initial direction
+            debug(`[Deer ${this.id}] Added ${finalRotationActions.length} rotation(s) at end to face initial direction`);
+        }
+        
+        this.pathActions = actions;
+        debug(`[Deer ${this.id}] Calculated path with ${this.pathActions.length} actions (moves + rotations)`);
     }
     
     getManhattenPath(start, end, skipFirst = false) {
@@ -110,71 +193,72 @@ class Deer extends Entity {
     }
     
     initialize() {
-        // Simple: Just move one tile every moveSpeed interval
-        // CSS transition handles the smooth visual movement
+        // Execute actions at regular intervals
+        // Each action (move or rotate) takes moveSpeed time
         this.movementInterval = setInterval(() => {
-            this.moveToNextTile();
+            this.executeNextAction();
         }, this.moveSpeed);
         
-        debug(`[Deer ${this.id}] Movement initialized - moving every ${this.moveSpeed}ms`);
+        debug(`[Deer ${this.id}] Movement initialized with ${this.pathActions.length} actions - executing every ${this.moveSpeed}ms`);
     }
     
-    moveToNextTile() {
-        // Move to next tile in circular path
-        this.currentTileIndex = (this.currentTileIndex + 1) % this.tilePath.length;
-        const nextTile = this.tilePath[this.currentTileIndex];
+    executeNextAction() {
+        // Get current action
+        const action = this.pathActions[this.currentActionIndex];
         
-        // Calculate rotation change based on direction of movement
-        const dx = nextTile.x - this.x;
-        const dy = nextTile.y - this.y;
-        
-        // Calculate current and next directions
-        let currentDir = null;
-        let nextDir = null;
-        
-        // Determine next direction
-        if (dx > 0) nextDir = 'E';
-        else if (dx < 0) nextDir = 'W';
-        else if (dy > 0) nextDir = 'S';
-        else if (dy < 0) nextDir = 'N';
-        
-        // Determine current direction (from last position)
-        if (this.lastDirection) {
-            currentDir = this.lastDirection;
-        } else {
-            // First move, assume we're already facing the right direction
-            currentDir = nextDir;
+        if (!action) {
+            debug(`[Deer ${this.id}] ERROR: No action at index ${this.currentActionIndex}`, null, 'error');
+            return;
         }
         
-        // Calculate rotation change (incremental, like Car does)
-        const dirOrder = ['N', 'E', 'S', 'W'];
-        const currentIdx = dirOrder.indexOf(currentDir);
-        const nextIdx = dirOrder.indexOf(nextDir);
-        
-        if (currentIdx !== -1 && nextIdx !== -1 && currentDir !== nextDir) {
-            // Calculate shortest rotation
-            let diff = nextIdx - currentIdx;
-            if (diff > 2) diff -= 4;
-            if (diff < -2) diff += 4;
-            this.visualRotation += diff * 90;
+        if (action.type === 'move') {
+            // Execute move action
+            this.executeMoveAction(action);
+        } else if (action.type === 'rotate') {
+            // Execute rotate action
+            this.executeRotateAction(action);
         }
         
-        this.lastDirection = nextDir;
+        // Move to next action (circular)
+        this.currentActionIndex = (this.currentActionIndex + 1) % this.pathActions.length;
         
-        // Update world entity tracking
+        // Update visual
+        this.updateVisualPosition();
+    }
+    
+    executeMoveAction(action) {
         const oldX = this.x;
         const oldY = this.y;
         
-        // UPDATE POSITION IMMEDIATELY (not gradually)
-        this.x = nextTile.x;
-        this.y = nextTile.y;
+        // Update position immediately
+        this.x = action.x;
+        this.y = action.y;
         
+        // Update world tracking
         if (window.world) {
             window.world.moveEntity(this, oldX, oldY, this.x, this.y);
         }
         
-        // Update visual position with rotation - CSS transition makes it smooth
-        this.updateVisualPosition();
+        debug(`[Deer ${this.id}] Moved to (${this.x}, ${this.y})`);
+    }
+    
+    executeRotateAction(action) {
+        // Update visual rotation
+        if (action.direction === 'right') {
+            this.visualRotation += action.degrees;
+            // Update current direction
+            const dirOrder = ['N', 'E', 'S', 'W'];
+            const currentIdx = dirOrder.indexOf(this.currentDirection);
+            this.currentDirection = dirOrder[(currentIdx + action.degrees / 90) % 4];
+        } else if (action.direction === 'left') {
+            this.visualRotation -= action.degrees;
+            // Update current direction
+            const dirOrder = ['N', 'E', 'S', 'W'];
+            const currentIdx = dirOrder.indexOf(this.currentDirection);
+            this.currentDirection = dirOrder[(currentIdx - action.degrees / 90 + 4) % 4];
+        }
+        
+        debug(`[Deer ${this.id}] Rotated ${action.direction} ${action.degrees}° (now facing ${this.currentDirection}, visualRotation: ${this.visualRotation}°)`);
     }
     
     updateVisualPosition() {
@@ -217,18 +301,34 @@ class Deer extends Entity {
         const oldX = this.x;
         const oldY = this.y;
         
-        // Return to first tile in path
-        this.currentTileIndex = this.initialTileIndex;
-        const firstTile = this.tilePath[this.currentTileIndex];
-        this.setPosition(firstTile.x, firstTile.y);
+        // Return to first action
+        this.currentActionIndex = this.initialActionIndex;
+        
+        // Find first move action to get initial position
+        const firstMoveAction = this.pathActions.find(action => action.type === 'move');
+        if (firstMoveAction) {
+            this.setPosition(firstMoveAction.x, firstMoveAction.y);
+        }
+        
+        // Reset direction and rotation to initial state
+        if (this.positions.length >= 2) {
+            const first = this.positions[0];
+            const second = this.positions[1];
+            this.currentDirection = this.getDirectionToTile(first, second);
+            this.visualRotation = this.directionMap[this.currentDirection];
+        } else {
+            this.currentDirection = 'N';
+            this.visualRotation = 0;
+        }
+        
         this.lastMoveTime = Date.now();
         
-        // Update World's entity tracking if world exists
+        // Update world tracking
         if (window.world) {
             window.world.moveEntity(this, oldX, oldY, this.x, this.y);
         }
         
-        debug(`[Deer ${this.id}] Reset to position (${this.x}, ${this.y})`);
+        debug(`[Deer ${this.id}] Reset to position (${this.x}, ${this.y}), direction: ${this.currentDirection}`);
     }
     
     blocksMovement(x, y) {
@@ -258,16 +358,19 @@ class Deer extends Entity {
             id: this.id,
             type: this.type,
             positions: this.positions.map(pos => ({x: pos.x, y: pos.y})),
-            currentTileIndex: this.currentTileIndex
+            currentActionIndex: this.currentActionIndex
         };
     }
     
     static fromData(data) {
         const deer = new Deer(data.id, data.positions);
-        if (typeof data.currentTileIndex === 'number') {
-            deer.currentTileIndex = data.currentTileIndex;
-            const tile = deer.tilePath[deer.currentTileIndex];
-            deer.setPosition(tile.x, tile.y);
+        if (typeof data.currentActionIndex === 'number') {
+            deer.currentActionIndex = data.currentActionIndex;
+            // Find the action and update position if it's a move action
+            const action = deer.pathActions[deer.currentActionIndex];
+            if (action && action.type === 'move') {
+                deer.setPosition(action.x, action.y);
+            }
         }
         return deer;
     }
