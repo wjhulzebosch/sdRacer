@@ -512,7 +512,7 @@ async function loadLevel(levelId, customLevelData = null) {
         if (customLevelData) {
             // Use provided custom level data
             levelData = customLevelData;
-            currentLevelId = levelData.id || 'custom';
+            currentLevelId = 'custom';
         } else {
             // Fetch from API
             if (!levelId) {
@@ -1218,9 +1218,6 @@ function validateLevelData(levelData) {
     const errors = [];
     const warnings = [];
     
-    // if (!levelData.id) {
-    //     errors.push('Level missing required field: id');
-    // }
     if (!levelData.name) {
         warnings.push('Level missing recommended field: name');
     }

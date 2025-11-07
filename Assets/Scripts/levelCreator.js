@@ -165,13 +165,12 @@ function countRoadPieces() {
 
 // Function to check if all level info fields are filled
 function checkLevelInfoComplete() {
-    const id = document.getElementById('id').value.trim();
     const category = document.getElementById('category').value.trim();
     const name = document.getElementById('name').value.trim();
     const author = document.getElementById('author').value.trim();
     const instructions = document.getElementById('instructions').value.trim();
     
-    return id && category && name && author && instructions;
+    return category && name && author && instructions;
 }
 
 // Function to update checklist UI
@@ -895,7 +894,7 @@ document.addEventListener('DOMContentLoaded', () => {
     addPlayLevelButton();
     
     // Add checklist update listeners for level info fields
-    ['id', 'category', 'name', 'author', 'instructions'].forEach(fieldId => {
+    ['category', 'name', 'author', 'instructions'].forEach(fieldId => {
         const field = document.getElementById(fieldId);
         if (field) {
             field.addEventListener('input', scheduleChecklistUpdate);
