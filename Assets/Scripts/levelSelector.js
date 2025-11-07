@@ -20,7 +20,7 @@ function loadLevelsFromAPI() {
     return fetch('https://wjhulzebosch.nl/json_ape/api.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({ action: 'list', category: 'sd_racer' })
+        body: new URLSearchParams({ action: 'list', category: 'simple_sd_racer' })
     }).then(r => r.json())
     .then(response => {
         // Extract ids from response and fetch each level
@@ -30,7 +30,7 @@ function loadLevelsFromAPI() {
                 const level = await fetch('https://wjhulzebosch.nl/json_ape/api.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: new URLSearchParams({ action: 'get', category: 'sd_racer', id })
+                    body: new URLSearchParams({ action: 'get', category: 'simple_sd_racer', id })
                 }).then(r => r.json());
                 level.apiId = id;
                 return level;
@@ -77,16 +77,7 @@ function displayLevels(levels) {
             levelName.className = 'level-name';
             levelName.textContent = levelData.name || `Level ${levelData.apiId}`;
             
-            const difficulty = document.createElement('span');
-            const difficultyLevel = getLevelDifficulty(levelData);
-            difficulty.className = `level-difficulty difficulty-${difficultyLevel}`;
-            
-            // Convert numeric difficulty to string representation
-            const difficultyText = ['Easy', 'Easy', 'Medium', 'Hard', 'Expert'][difficultyLevel - 1] || 'Easy';
-            difficulty.textContent = difficultyText;
-            
             levelItem.appendChild(levelName);
-            levelItem.appendChild(difficulty);
             levelList.appendChild(levelItem);
         });
         

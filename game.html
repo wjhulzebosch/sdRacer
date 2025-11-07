@@ -2,41 +2,40 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>sdRacer - Programming Game</title>
-    <link rel="stylesheet" href="Assets/Styles/style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>sdRacer - code your way out</title>
+    <link rel="stylesheet" href="Assets/Styles/newGameStyles.css">
     <link rel="stylesheet" href="Assets/External/CodeMirror/codemirror.min.css">
 </head>
 <body>
-    <h1>sdRacer</h1>
-    <div class="container">
-        <div id="game"></div>
-        <div class="right-panel">
-            <div class="code-container">
-                <!-- Mode Indicator -->
-                <div id="mode-indicator" class="mode-indicator">
-                    <div class="mode-badge">
-                        <span id="mode-text">Single Car Mode</span>
-                        <span id="car-count"></span>
-                    </div>
-                </div>
-                
-                <!-- Control Buttons -->
-                <div class="button-row">
-                    <button id="homeBtn" class="btn-primary">🏠 Home</button>
-                    <button id="infoBtn" class="btn-secondary">ℹ️ Info</button>
-                    <button id="saveBtn" class="btn-secondary">💾 Save</button>
-                    <button id="loadBtn" class="btn-secondary">📂 Load</button>
-                    <button id="checkCodeBtn" class="btn-secondary">🔍 Check Code</button>
-                    <button id="fixIndentationBtn" class="btn-secondary">📝 Fix Indentation</button>
-                    <button id="playBtn" class="btn-play">▶️ Play</button>
-                    <button id="resetLvlBtn" class="btn-warning">🔄 Reset Level</button>
-                    <button id="resetBtn" class="btn-warning">↺ Reset Code</button>
-                </div>
-                
-                <!-- Instructions Panel -->
-                <div id="instructions" class="instructions-panel"></div>
-                
-                <!-- Code Editor -->
+    <div class="content">
+        <div class="title">
+            <h1>sdRacer - code your way out</h1>
+        </div>
+
+        <div id="instructions" class="instructions">
+            <h2>Instructions</h2>
+            <p>Loading level instructions...</p>
+        </div>
+        
+        <div class="gameButtons">
+            <button id="homeBtn">Levels</button>
+            <button id="infoBtn">Help</button>
+            <button id="saveBtn">Save</button>
+            <button id="loadBtn">Load</button>
+            <button id="checkCodeBtn">Check Code</button>
+            <button id="fixIndentationBtn">Fix Indentation</button>
+            <button id="playBtn">Play</button>
+            <button id="resetLvlBtn">Reset Level</button>
+            <button id="resetBtn">Reset Code</button>
+        </div>
+        
+        <div class="main">
+            <div class="gameContainer">
+                <div id="game"></div>
+            </div>
+            
+            <div class="codeContainer">
                 <div id="code-editor-container" class="code-editor-container">
                     <div class="editor-header">
                         <span class="editor-title">CarLang Code Editor</span>
@@ -45,18 +44,19 @@
                         </div>
                     </div>
                     <div class="editor-body">
-                        <div id="code-editor" style="height: 300px;"></div>
+                        <div id="code-editor"></div>
                     </div>
                 </div>
                 
-                <!-- Parser Display -->
-                <div id="parser-display" class="parser-display">
-                    <div class="parser-header">
-                        <span class="parser-title">Code Analysis</span>
-                        <span id="validation-status" class="validation-status">Ready</span>
-                    </div>
-                    <div class="parser-content">
-                        <span class="unparsed">Click "Check Code" to analyze your CarLang code</span>
+                <div class="debug">
+                    <div id="parser-display" class="parser-display">
+                        <div class="parser-header">
+                            <span class="parser-title">Code Analysis</span>
+                            <span id="validation-status" class="validation-status">Ready</span>
+                        </div>
+                        <div class="parser-content">
+                            <span class="unparsed">Click "Check Code" to analyze your CarLang code</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -67,13 +67,13 @@
     <div id="win-message">
         <div class="win-message-content">
             <div class="win-message-modal">
-                <h2>🎉 Level Complete! 🎉</h2>
+                <h2>Level Complete!</h2>
                 <div id="win-details" class="win-details">
                     <p>Congratulations! You completed the level!</p>
                 </div>
                 <div class="win-message-buttons">
-                    <button id="retryBtn" class="btn-secondary">🔄 Try Again</button>
-                    <button id="nextLevelBtn" class="btn-primary">➡️ Next Level</button>
+                    <button id="retryBtn">Try Again</button>
+                    <button id="nextLevelBtn">Next Level</button>
                 </div>
             </div>
         </div>
@@ -89,13 +89,13 @@
             <div class="info-body">
                 <p>sdRacer is a programming game where you write code to control cars and navigate them to the finish line.</p>
                 
-                <h3>🎮 Game Modes</h3>
+                <h3>Game Modes</h3>
                 <ul>
                     <li><strong>Single Car Mode:</strong> Control one car using simple function calls</li>
                     <li><strong>Multi-Car Mode:</strong> Control multiple cars using object-oriented syntax</li>
                 </ul>
                 
-                <h3>🚗 Available Commands</h3>
+                <h3>Available Commands</h3>
                 <div class="command-section">
                     <h4>Movement Commands:</h4>
                     <ul>
@@ -122,47 +122,18 @@
                     </ul>
                 </div>
                 
-                <h3>🔧 Control Structures</h3>
+                <h3>Control Structures</h3>
                 <ul>
                     <li><code>if (condition) { ... }</code> - Execute code if condition is true</li>
                     <li><code>while (condition) { ... }</code> - Execute code while condition is true</li>
                     <li><code>for (int i = 0; i < 10; i = i + 1) { ... }</code> - Execute code 10 times</li>
                 </ul>
                 
-                <h3>🏗️ OOP Syntax (Multi-Car Mode)</h3>
-                <p>In multi-car levels, use object-oriented syntax to control specific cars:</p>
-                <ul>
-                    <li><code>redCar.moveForward()</code> - Move the red car forward</li>
-                    <li><code>blueCar.turnRight()</code> - Turn the blue car right</li>
-                    <li><code>greenCar.honk()</code> - Honk the green car's horn</li>
-                </ul>
-                
-                <h3>🎯 Custom Car Methods</h3>
-                <p>You can define custom methods for cars using the Class Car syntax:</p>
-                <div class="code-example">
-                    <pre><code>Class Car {
-  void moveOrTurn() {
-    if(self.isRoadAhead()) {
-      self.moveForward();
-    } else {
-      self.turnLeft();
-    }
-  }
-}
-
-while(true) {
-  greenCar.moveOrTurn();
-  blueCar.moveOrTurn();
-}</code></pre>
-                </div>
-                <p>Inside custom methods, use <code>self.methodName()</code> to call methods on the current car instance. Available methods: <code>moveForward()</code>, <code>turnLeft()</code>, <code>turnRight()</code>, <code>isRoadAhead()</code>, <code>isCowAhead()</code>, <code>honk()</code>, etc.</p>
-                
-                <h3>💡 Tips</h3>
+                <h3>Tips</h3>
                 <ul>
                     <li>Use "Check Code" to validate your syntax before running</li>
                     <li>Save your code frequently with the "Save" button</li>
                     <li>Use loops to avoid repetitive code</li>
-                    <li>In multi-car levels, coordinate your cars carefully</li>
                 </ul>
             </div>
         </div>

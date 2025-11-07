@@ -17,6 +17,8 @@ let placeMode = null; // 'redCar', 'blueCar', 'greenCar', 'yellowCar', 'finish',
 let cowPlacementStep = 'default';
 let tempSecondaryPos = null;
 let editingCarId = null; // For car configuration modal
+let worldGenerated = false; // Track if world has been created
+let checklistUpdateTimer = null; // Debounce timer for checklist updates
 
 // DOM elements
 const gridDiv = document.getElementById('levelGrid');
@@ -25,8 +27,13 @@ const heightInput = document.getElementById('height');
 const carList = document.getElementById('carList');
 const placementStatus = document.getElementById('placementStatus');
 const gridSizeInfo = document.getElementById('gridSizeInfo');
-const carsPlacedInfo = document.getElementById('carsPlacedInfo');
-const finishInfo = document.getElementById('finishInfo');
+
+// Checklist DOM elements
+const checkWorldGenerated = document.getElementById('checkWorldGenerated');
+const checkRoadsPlaced = document.getElementById('checkRoadsPlaced');
+const checkCarPlaced = document.getElementById('checkCarPlaced');
+const checkFinishPlaced = document.getElementById('checkFinishPlaced');
+const checkLevelInfo = document.getElementById('checkLevelInfo');
 
 // Car placement icons
 const redCarIcon = document.getElementById('redCarIcon');
@@ -134,8 +141,85 @@ heightInput.onchange = updateGridSize;
 
 function updateGridInfo() {
     gridSizeInfo.textContent = `${cols}x${rows}`;
-    carsPlacedInfo.textContent = cars.length;
-    finishInfo.textContent = finishPos ? `(${finishPos[1]}, ${finishPos[0]})` : 'Not placed';
+    updateChecklist();
+}
+
+// Function to count road pieces
+function countRoadPieces() {
+    let count = 0;
+    for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) {
+            const cell = grid[y][x];
+            // Count each connection (N, E, S, W)
+            for (let i = 0; i < 4; i++) {
+                if (cell[i] === '1') {
+                    count++;
+                }
+            }
+        }
+    }
+    // Each road connection is counted twice (once from each side)
+    // So divide by 2 to get actual road pieces
+    return Math.floor(count / 2);
+}
+
+// Function to check if all level info fields are filled
+function checkLevelInfoComplete() {
+    const category = document.getElementById('category').value.trim();
+    const name = document.getElementById('name').value.trim();
+    const author = document.getElementById('author').value.trim();
+    const instructions = document.getElementById('instructions').value.trim();
+    
+    return category && name && author && instructions;
+}
+
+// Function to update checklist UI
+function updateChecklist() {
+    if (!checkWorldGenerated) return; // DOM not ready yet
+    
+    // 1. World generated
+    if (worldGenerated) {
+        checkWorldGenerated.classList.add('done');
+    } else {
+        checkWorldGenerated.classList.remove('done');
+    }
+    
+    // 2. Roads placed (at least 1 piece, which requires 2 clicks)
+    const roadCount = countRoadPieces();
+    if (roadCount >= 1) {
+        checkRoadsPlaced.classList.add('done');
+    } else {
+        checkRoadsPlaced.classList.remove('done');
+    }
+    
+    // 3. Car placed
+    if (cars.length > 0) {
+        checkCarPlaced.classList.add('done');
+    } else {
+        checkCarPlaced.classList.remove('done');
+    }
+    
+    // 4. Finish placed
+    if (finishPos !== null) {
+        checkFinishPlaced.classList.add('done');
+    } else {
+        checkFinishPlaced.classList.remove('done');
+    }
+    
+    // 5. Level info complete
+    if (checkLevelInfoComplete()) {
+        checkLevelInfo.classList.add('done');
+    } else {
+        checkLevelInfo.classList.remove('done');
+    }
+}
+
+// Debounced checklist update for input fields
+function scheduleChecklistUpdate() {
+    if (checklistUpdateTimer) {
+        clearTimeout(checklistUpdateTimer);
+    }
+    checklistUpdateTimer = setTimeout(updateChecklist, 300);
 }
 
 function renderGrid() {
@@ -220,6 +304,7 @@ function handleCellClick(y, x) {
         updatePlaceModeUI();
         updatePlacementStatus();
         updateGridInfo();
+        updateChecklist();
         renderGrid();
     } else if (placeMode === 'cow') {
         handleCowPlacement(y, x);
@@ -261,6 +346,7 @@ function handleCarPlacement(y, x) {
     updateGridInfo();
     renderGrid();
     renderCarList();
+    updateChecklist();
 }
 
 function handleCowPlacement(y, x) {
@@ -408,6 +494,7 @@ function toggleConnection(y1, x1, y2, x2, dir1, dir2) {
     grid[y2][x2] = current2.join('');
     
     renderGrid();
+    updateChecklist();
 }
 
 // Car Management Functions
@@ -459,6 +546,7 @@ function removeCar(carId) {
         updateGridInfo();
         renderGrid();
         renderCarList();
+        updateChecklist();
     }
 }
 
@@ -470,6 +558,7 @@ function clearAllCars() {
         updateGridInfo();
         renderGrid();
         renderCarList();
+        updateChecklist();
     }
 }
 
@@ -650,9 +739,11 @@ function setLevelDetails(level) {
         trafficLights = [];
     }
     
+    worldGenerated = true;
     updateGridInfo();
     renderGrid();
     renderCarList();
+    updateChecklist();
 }
 
 // JSON Export/Import
@@ -699,6 +790,60 @@ document.getElementById('generateMazeBtn').onclick = () => {
     generateMazeForLevel();
 };
 
+// Create Level button - creates a new empty grid with defined size
+document.getElementById('createLevelBtn').onclick = () => {
+    const newWidth = parseInt(widthInput.value) || 4;
+    const newHeight = parseInt(heightInput.value) || 4;
+    
+    if (newWidth < 1 || newHeight < 1) {
+        alert('Width and height must be at least 1');
+        return;
+    }
+    
+    if (newWidth > 20 || newHeight > 20) {
+        alert('Maximum grid size is 20x20');
+        return;
+    }
+    
+    // Update grid dimensions
+    cols = newWidth;
+    rows = newHeight;
+    
+    // Create empty grid
+    grid = emptyGrid(rows, cols);
+    
+    // Clear all placed items
+    cars = [];
+    finishPos = null;
+    cows = [];
+    trafficLights = [];
+    placeMode = null;
+    
+    // Set world generated flag
+    worldGenerated = true;
+    
+    // Update UI
+    updateGridInfo();
+    renderGrid();
+    renderCarList();
+    updatePlaceModeUI();
+    updatePlacementStatus();
+    updateChecklist();
+    
+    debug(`Created new ${cols}x${rows} level`);
+};
+
+// Load Level button - triggers the selector change
+document.getElementById('loadLevelBtn').onclick = () => {
+    const selector = document.getElementById('levelSelector');
+    if (selector.value) {
+        // Trigger the change event
+        selector.dispatchEvent(new Event('change'));
+    } else {
+        alert('Please select a level from the dropdown first.');
+    }
+};
+
 // Load levels from file
 async function loadLevelsFromFile() {
     try {
@@ -706,7 +851,7 @@ async function loadLevelsFromFile() {
         const { ids } = await fetch('https://wjhulzebosch.nl/json_ape/api.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams({ action: 'list', category: 'sd_racer' })
+            body: new URLSearchParams({ action: 'list', category: 'simple_sd_racer' })
         }).then(r => r.json());
         // Fetch each level by ID
         const levels = await Promise.all(
@@ -714,7 +859,7 @@ async function loadLevelsFromFile() {
                 return await fetch('https://wjhulzebosch.nl/json_ape/api.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: new URLSearchParams({ action: 'get', category: 'sd_racer', id })
+                    body: new URLSearchParams({ action: 'get', category: 'simple_sd_racer', id })
                 }).then(r => r.json());
             })
         );
@@ -747,6 +892,27 @@ document.addEventListener('DOMContentLoaded', () => {
     renderCarList();
     loadLevelsFromFile();
     addPlayLevelButton();
+    
+    // Add checklist update listeners for level info fields
+    ['category', 'name', 'author', 'instructions'].forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            field.addEventListener('input', scheduleChecklistUpdate);
+        }
+    });
+    
+    // Add Enter key support for Create Level
+    widthInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            document.getElementById('createLevelBtn').click();
+        }
+    });
+    
+    heightInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            document.getElementById('createLevelBtn').click();
+        }
+    });
 });
 
 // On load, if ?loadTemp=1, load the temp level
@@ -771,17 +937,18 @@ function addPlayLevelButton() {
         btn.style.position = 'absolute';
         btn.style.top = '10px';
         btn.style.right = '10px';
-        btn.onclick = () => {
-            // Export current level as JSON
-            const level = getLevelDetails();
-            const levelJson = JSON.stringify(level);
-            // Store in localStorage for transfer
-            localStorage.setItem('sdRacer_tempLevel', levelJson);
-            // Open game with a flag to load from temp
-            window.location.href = 'index.html?loadTemp=1';
-        };
         document.body.appendChild(btn);
     }
+    // Always set the click handler (in case button already exists in HTML)
+    btn.onclick = () => {
+        // Export current level as JSON
+        const level = getLevelDetails();
+        const levelJson = JSON.stringify(level);
+        // Store in localStorage for transfer
+        localStorage.setItem('sdRacer_tempLevel', levelJson);
+        // Open game with a flag to load from temp
+        window.location.href = 'game.html?loadTemp=1';
+    };
 }
 
 // Maze generation function

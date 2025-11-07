@@ -3,22 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <title>sdRacer - Level Selector</title>
-    <link rel="stylesheet" href="Assets/Styles/style.css">
-    <link rel="stylesheet" href="Assets/Styles/levelSelector.css">
+    <link rel="stylesheet" href="Assets/Styles/newGameStyles.css">
 </head>
 <body>
-    <h1>sdRacer</h1>
-    <div class="level-selector-container">
-        <div id="loading" class="loading">
-            <h2>Loading levels...</h2>
+    <div class="content">
+        <div class="title">
+            <h1>sdRacer</h1>
         </div>
-        <div id="error" class="error-message" style="display: none;"></div>
-        <div id="level-selector" style="display: none;">
-            <h2 class="level-selector-title">Select a Level</h2>
-            <div id="level-categories" class="level-categories"></div>
-            <div class="custom-buttons">
-                <a href="levelCreator.html" class="custom-btn create-level-btn">Create Your Own Level</a>
-                <button id="loadCustomBtn" class="custom-btn load-custom-btn">Load Custom Level</button>
+        
+        <div class="level-selector-container">
+            <div id="loading" class="loading">
+                <h2>Loading levels...</h2>
+            </div>
+            <div id="error" class="error-message" style="display: none;"></div>
+            <div id="level-selector" style="display: none;">
+                <h2 class="level-selector-title">Select a Level</h2>
+                <div id="level-categories" class="level-categories"></div>
+                <div class="custom-buttons">
+                    <a href="levelCreator.html" class="custom-btn">Create Your Own Level</a>
+                    <button id="loadCustomBtn" class="custom-btn">Load Custom Level</button>
+                </div>
             </div>
         </div>
     </div>
@@ -30,8 +34,8 @@
             <p>Paste your level JSON here:</p>
             <textarea id="custom-level-textarea" placeholder="Paste your level JSON here..."></textarea>
             <div class="custom-level-buttons">
-                <button id="cancelCustomBtn" class="cancel-btn">Cancel</button>
-                <button id="loadCustomLevelBtn" class="load-level-btn">Load Level</button>
+                <button id="cancelCustomBtn">Cancel</button>
+                <button id="loadCustomLevelBtn">Load Level</button>
             </div>
         </div>
     </div>

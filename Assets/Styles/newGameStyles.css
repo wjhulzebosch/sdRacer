@@ -1,0 +1,780 @@
+/* ABSOLUTE MINIMAL CSS - POSITIONING ONLY */
+
+/* Reset basics */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: system-ui, -apple-system, sans-serif;
+}
+
+/* Main content container - vertical layout */
+.content {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    padding: 10px;
+}
+
+/* Title section */
+.title {
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+/* Button container - horizontal layout */
+.gameButtons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-bottom: 10px;
+    justify-content: center;
+}
+
+button {
+    padding: 8px 12px;
+    border: 1px solid;
+    cursor: pointer;
+}
+
+/* Main game+code container - horizontal with wrap */
+.main {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+/* Game container - vertical layout */
+.gameContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex: 1;
+    min-width: 45%;
+    align-items: center;
+}
+
+/* Code container - vertical layout */
+.codeContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex: 1;
+    min-width: 45%;
+}
+
+/* Debug section - inside codeContainer now */
+.debug {
+    width: 100%;
+}
+
+/* Game canvas */
+#game {
+    position: relative;
+    min-width: 500px;
+    min-height: 500px;
+    width: fit-content;
+    height: fit-content;
+    border: 1px solid;
+}
+
+/* Instructions */
+#instructions {
+    width: 100%;
+    padding: 10px;
+}
+
+/* Mode indicator */
+#mode-indicator {
+    border: 1px solid;
+    padding: 8px;
+}
+
+.mode-badge {
+    display: flex;
+    gap: 8px;
+}
+
+/* Code editor container */
+.code-editor-container {
+    border: 1px solid;
+    display: flex;
+    flex-direction: column;
+}
+
+.editor-header {
+    border-bottom: 1px solid;
+    padding: 8px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.editor-body {
+    display: flex;
+    flex: 1;
+}
+
+#code-editor {
+    width: 100%;
+    height: 400px;
+}
+
+/* Parser display */
+.parser-display {
+    border: 1px solid;
+    display: flex;
+    flex-direction: column;
+}
+
+.parser-header {
+    border-bottom: 1px solid;
+    padding: 8px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.parser-content {
+    padding: 10px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+/* Modals - hidden by default */
+#win-message,
+#info-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.7);
+}
+
+#win-message.show,
+#info-overlay.show {
+    display: flex;
+}
+
+.win-message-content,
+.info-content {
+    margin: auto;
+    border: 1px solid;
+    padding: 20px;
+    max-width: 600px;
+    max-height: 80vh;
+    overflow-y: auto;
+    background: white;
+}
+
+.win-message-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.info-header {
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 1px solid;
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+}
+
+.close-btn {
+    width: 30px;
+    height: 30px;
+    padding: 0;
+}
+
+.info-body {
+    line-height: 1.5;
+}
+
+.info-body h3 {
+    margin-top: 15px;
+    margin-bottom: 8px;
+}
+
+.info-body ul {
+    margin-left: 20px;
+    margin-bottom: 10px;
+}
+
+.command-section {
+    margin: 10px 0;
+    padding: 10px;
+    border-left: 3px solid;
+}
+
+/* Car animation */
+.car {
+    position: absolute;
+    transition: left 1s linear, top 1s linear, transform 1s linear;
+}
+
+/* Tile styling */
+.level-tile {
+    position: absolute;
+    width: 64px;
+    height: 64px;
+    border: 1px solid;
+}
+
+.finish-tile {
+    position: absolute;
+    width: 64px;
+    height: 64px;
+}
+
+.cow {
+    position: absolute;
+    width: 64px;
+    height: 64px;
+}
+
+.traffic-light {
+    position: absolute;
+    width: 64px;
+    height: 64px;
+}
+
+.traffic-light-indicator {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border: 1px solid;
+}
+
+.traffic-light-indicator.green {
+    background-color: #00ff00;
+    box-shadow: 0 0 8px #00ff00;
+}
+
+.traffic-light-indicator.yellow {
+    background-color: #ffff00;
+    box-shadow: 0 0 8px #ffff00;
+}
+
+.traffic-light-indicator.red {
+    background-color: #ff0000;
+    box-shadow: 0 0 8px #ff0000;
+}
+
+/* Level Selector Styles */
+.level-selector-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.level-selector-title {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.level-categories {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.level-category {
+    border: 1px solid;
+    padding: 15px;
+}
+
+.category-header {
+    font-weight: bold;
+    margin-bottom: 10px;
+    border-bottom: 1px solid;
+    padding-bottom: 8px;
+}
+
+.level-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.level-item {
+    border: 1px solid;
+    padding: 10px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+}
+
+.level-difficulty {
+    padding: 4px 8px;
+    border: 1px solid;
+}
+
+.custom-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.custom-btn {
+    padding: 10px 20px;
+    border: 1px solid;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.loading {
+    text-align: center;
+    padding: 40px;
+}
+
+.error-message {
+    border: 1px solid;
+    padding: 15px;
+    margin: 20px 0;
+    text-align: center;
+}
+
+.custom-level-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.7);
+}
+
+.custom-level-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    padding: 30px;
+    border: 1px solid;
+    max-width: 500px;
+    width: 90%;
+}
+
+.custom-level-content h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+}
+
+.custom-level-content p {
+    margin-bottom: 15px;
+}
+
+#custom-level-textarea {
+    width: 100%;
+    height: 200px;
+    margin: 15px 0;
+    padding: 10px;
+    border: 1px solid;
+    font-family: monospace;
+}
+
+.custom-level-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+/* Level Creator Styles */
+.explanation {
+    border: 1px solid;
+    padding: 15px;
+    margin-bottom: 15px;
+}
+
+.explanation p {
+    margin: 5px 0;
+}
+
+.creator-main {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.left-column,
+.right-column {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    flex: 1;
+    min-width: 45%;
+}
+
+.panel {
+    border: 1px solid;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.panel h3 {
+    margin: 0 0 10px 0;
+    border-bottom: 1px solid;
+    padding-bottom: 5px;
+}
+
+.panel h4 {
+    margin: 5px 0;
+}
+
+.section {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-bottom: 10px;
+}
+
+.section label {
+    display: block;
+    margin-bottom: 5px;
+}
+
+.section input,
+.section select,
+.section textarea {
+    width: 100%;
+    padding: 5px;
+    border: 1px solid;
+}
+
+.section textarea {
+    min-height: 60px;
+    font-family: monospace;
+}
+
+#jsonArea {
+    min-height: 100px;
+}
+
+.tool-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+
+.tool-label {
+    font-weight: bold;
+    min-width: 60px;
+}
+
+.tool-icon {
+    width: 40px;
+    height: 40px;
+    border: 1px solid;
+    cursor: pointer;
+    display: inline-block;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.tool-icon.place-mode {
+    border: 2px solid;
+}
+
+.red-car {
+    background-image: url('../Textures/RedCar.png');
+}
+
+.blue-car {
+    background-image: url('../Textures/BlueCar.png');
+}
+
+.green-car {
+    background-image: url('../Textures/GreenCar.png');
+}
+
+.yellow-car {
+    background-image: url('../Textures/YellowCar.png');
+}
+
+.finish-icon {
+    background-image: url('../Textures/Finish.png');
+}
+
+.cow-icon {
+    background-image: url('../Textures/Cow.png');
+}
+
+.traffic-light-icon {
+    background: linear-gradient(to bottom, #ff0000 0%, #ff0000 45%, #00ff00 55%, #00ff00 100%);
+}
+
+.placement-status {
+    padding: 10px;
+    border: 1px solid;
+    text-align: center;
+}
+
+.grid-info {
+    display: flex;
+    gap: 15px;
+    padding: 10px;
+    border-top: 1px solid;
+    justify-content: center;
+}
+
+/* Level Creator Grid Styles */
+.level-creator-grid {
+    position: relative;
+    margin: 10px auto;
+    display: inline-block;
+}
+
+.level-creator-cell {
+    position: absolute;
+    width: 48px;
+    height: 48px;
+    border: 1px solid;
+    box-sizing: border-box;
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.level-creator-border-btn {
+    position: absolute;
+    background: transparent;
+    border: none;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+}
+
+.level-creator-border-btn.active {
+    background: gray;
+}
+
+.level-creator-border-btn.h {
+    width: 48px;
+    height: 8px;
+    transform: translateY(-4px);
+}
+
+.level-creator-border-btn.v {
+    width: 8px;
+    height: 48px;
+    transform: translateX(-4px);
+}
+
+.level-creator-cell.car-here::after,
+.level-creator-cell.finish-here::after,
+.level-creator-cell.cow-here::after,
+.level-creator-cell.cow-secondary-preview::after,
+.level-creator-cell.traffic-light-here::after {
+    content: '';
+    position: absolute;
+    left: 4px;
+    top: 4px;
+    right: 4px;
+    bottom: 4px;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    pointer-events: none;
+}
+
+.level-creator-cell.car-here::after {
+    background-image: var(--car-image, url('../Textures/Car.png'));
+}
+
+.level-creator-cell.finish-here::after {
+    background-image: url('../Textures/Finish.png');
+}
+
+.level-creator-cell.cow-here::after {
+    background-image: url('../Textures/Cow.png');
+}
+
+.level-creator-cell.cow-secondary-preview::after {
+    background-image: url('../Textures/Cow.png');
+    opacity: 0.5;
+}
+
+.level-creator-cell.traffic-light-here::after {
+    background: linear-gradient(to bottom, #ff0000 0%, #ff0000 45%, #00ff00 55%, #00ff00 100%);
+}
+
+/* Car List */
+#carList {
+    border: 1px solid;
+    padding: 10px;
+    min-height: 50px;
+}
+
+.car-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px;
+    margin-bottom: 5px;
+    border: 1px solid;
+}
+
+.car-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.car-preview {
+    width: 24px;
+    height: 24px;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.car-actions {
+    display: flex;
+    gap: 5px;
+}
+
+.car-actions button {
+    padding: 3px 8px;
+}
+
+/* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+}
+
+.modal-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    border: 1px solid;
+    padding: 0;
+    max-width: 500px;
+    width: 90%;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    border-bottom: 1px solid;
+}
+
+.modal-header h3 {
+    margin: 0;
+}
+
+.close-btn {
+    width: 30px;
+    height: 30px;
+    border: 1px solid;
+    cursor: pointer;
+    padding: 0;
+}
+
+.modal-body {
+    padding: 15px;
+}
+
+.modal-body label {
+    display: block;
+    margin-bottom: 10px;
+}
+
+.modal-body input,
+.modal-body select {
+    width: 100%;
+    padding: 5px;
+    border: 1px solid;
+    margin-top: 5px;
+}
+
+.modal-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 15px;
+}
+
+.instructions {
+    max-width: 800px;
+    margin: 20px;
+    margin: 0 auto;
+}
+
+/* Level Creator Checklist */
+.checklist-panel {
+    border: 1px solid black;
+    padding: 10px;
+    margin-bottom: 10px;
+}
+
+.checklist {
+    display: flex;
+    flex-direction: column;
+}
+
+.checklist-item {
+    display: flex;
+    align-items: center;
+    padding: 5px;
+    border-left: 1px solid black;
+    margin-bottom: 5px;
+}
+
+.checklist-item.done {
+    color: green;
+}
+
+.check-icon {
+    margin-right: 10px;
+}
+
+.checklist-item.done .check-icon::before {
+    content: '✓';
+}
+
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.experimental-badge {
+    color: red;
+    border: 1px solid red;
+    padding: 2px 5px;
+}
+
+.car-controls {
+    display: flex;
+    margin-bottom: 10px;
+}
+
+.car-controls button {
+    margin-right: 5px;
+}

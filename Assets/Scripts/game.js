@@ -236,7 +236,7 @@ function setupWinButtons() {
     };
     nextLevelBtn.onclick = () => {
         hideWinMessage();
-        showLevelSelector();
+        goHome();
     };
 }
 
@@ -250,6 +250,13 @@ function updateURLAndLoadLevel(levelId) {
     url.searchParams.set('levelId', levelId);
     window.history.pushState({}, '', url);
     loadLevel(levelId);
+}
+
+function showDefaultInstructions() {
+    const instructionsDiv = document.getElementById('instructions');
+    if (instructionsDiv) {
+        instructionsDiv.innerHTML = `<h2>Instructions</h2><p>Welcome to sdRacer! In this game, your goal is to drive the car to the finish line by programming it. Write your code in the code editor and press "Play" to see what your car does.</p><p>Select a level to get started. Each level starts with a small hint. Click 'Help' to see which commands you can use.</p>`;
+    }
 }
 
 function showLevelSelector() {
@@ -505,30 +512,43 @@ function resetLevelState() {
     }
 }
 
-async function loadLevel(levelId) {
+async function loadLevel(levelId, customLevelData = null) {
     try {
-        if (!levelId) {
-            throw new Error('CRITICAL: loadLevel called with null/undefined levelId');
-        }
+        let levelData;
         
-        const levelData = await fetch('https://wjhulzebosch.nl/json_ape/api.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams({ action: 'get', category: 'sd_racer', id: levelId })
-        }).then(r => r.json());
-        
-        if (!levelData) {
-            throw new Error('CRITICAL: Level not found for id: ' + levelId);
+        if (customLevelData) {
+            // Use provided custom level data
+            levelData = customLevelData;
+            currentLevelId = 'custom';
+        } else {
+            // Fetch from API
+            if (!levelId) {
+                throw new Error('CRITICAL: loadLevel called with null/undefined levelId');
+            }
+            
+            levelData = await fetch('https://wjhulzebosch.nl/json_ape/api.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({ action: 'get', category: 'simple_sd_racer', id: levelId })
+            }).then(r => r.json());
+            
+            if (!levelData) {
+                throw new Error('CRITICAL: Level not found for id: ' + levelId);
+            }
+            currentLevelId = levelId;
         }
         
         // Store current level data for win condition checking
         currentLevelData = levelData;
-        currentCustomLevelData = null;
+        currentCustomLevelData = customLevelData;
         
         // Validate level data
         const validation = validateLevelData(levelData);
         if (validation.errors.length > 0) {
-            throw new Error('CRITICAL: Level validation errors: ' + validation.errors.join(', '));
+            // Show user-friendly error message
+            const errorMsg = validation.errors.join('\n');
+            alert('⚠️ Level Creation Error:\n\n' + errorMsg + '\n\nPlease fix these issues in the level creator before playing.');
+            throw new Error('Level validation failed: ' + validation.errors.join(', '));
         }
         if (validation.warnings.length > 0) {
             console.warn('Level validation warnings:', validation.warnings);
@@ -601,18 +621,17 @@ async function loadLevel(levelId) {
         autoIndent();
         // Display level instructions with mode information
         const instructionsDiv = document.getElementById('instructions');
-        if (instructionsDiv && levelData.Instructions) {
-            let instructionText = `<h3>Instructions:</h3><p>${levelData.Instructions}</p>`;
+        if (instructionsDiv) {
+            let instructionText = '';
             
-            // Add mode-specific information
-            if (mode === 'multi-car') {
-                const carNames = levelData.cars.map(car => car.name).join(', ');
-                instructionText += `<p><strong>Mode:</strong> Multi-car (${carNames})</p>`;
-            } else if (mode === 'single-car-oop') {
-                instructionText += `<p><strong>Mode:</strong> Single car with OOP syntax</p>`;
+            if (levelData.Instructions) {
+                instructionText = `<h2>Instructions</h2><p>${levelData.Instructions}</p>`;
             } else {
-                instructionText += `<p><strong>Mode:</strong> Single car</p>`;
+                // Fallback instructions when level has no specific instructions
+                instructionText = `<h2>Instructions</h2><p>In this game, your goal is to drive the car to the finish line by programming it. Write your code in the code editor and press "Play" to see what your car does.</p><p>Each level starts with a small hint. See what the code does by pressing 'Play'. Click 'Help' to see which commands you can use.</p>`;
             }
+            
+
             
             instructionsDiv.innerHTML = instructionText;
         }
@@ -789,7 +808,7 @@ async function playCode() {
             }
             
             // Update car status indicator for multi-car levels
-            updateCarStatus();
+            // updateCarStatus();
             
             // Highlight the current line and block
             if (result.currentLine) {
@@ -984,20 +1003,21 @@ function startGame() {
                 const { ids } = await fetch('https://wjhulzebosch.nl/json_ape/api.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: new URLSearchParams({ action: 'list', category: 'sd_racer' })
+                    body: new URLSearchParams({ action: 'list', category: 'simple_sd_racer' })
                 }).then(r => r.json());
                 allLevels = await Promise.all(
                     ids.map(async id => {
                         const level = await fetch('https://wjhulzebosch.nl/json_ape/api.php', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                            body: new URLSearchParams({ action: 'get', category: 'sd_racer', id })
+                            body: new URLSearchParams({ action: 'get', category: 'simple_sd_racer', id })
                         }).then(r => r.json());
                         level.apiId = id;
                         return level;
                     })
                 );
                 allLevels.forEach(level => debug(`[LEVEL LIST] apiId: ${level.apiId}, name: ${level.name}, Instructions: ${level.Instructions}`));
+                showDefaultInstructions();
                 showLevelSelector();
             } catch (err) {
                 debug('Failed to load levels: ' + err, null, 'error');
@@ -1205,9 +1225,6 @@ function validateLevelData(levelData) {
     const errors = [];
     const warnings = [];
     
-    // if (!levelData.id) {
-    //     errors.push('Level missing required field: id');
-    // }
     if (!levelData.name) {
         warnings.push('Level missing recommended field: name');
     }
@@ -1454,7 +1471,8 @@ window.addEventListener('DOMContentLoaded', () => {
         const tempLevel = localStorage.getItem('sdRacer_tempLevel');
         if (tempLevel) {
             try {
-                loadCustomLevel(JSON.parse(tempLevel));
+                const levelData = JSON.parse(tempLevel);
+                loadLevel(null, levelData);
                 startGame();
                 return;
             } catch (e) {
