@@ -699,6 +699,45 @@ document.getElementById('generateMazeBtn').onclick = () => {
     generateMazeForLevel();
 };
 
+// Create Level button - creates a new empty grid with defined size
+document.getElementById('createLevelBtn').onclick = () => {
+    const newWidth = parseInt(widthInput.value) || 4;
+    const newHeight = parseInt(heightInput.value) || 4;
+    
+    if (newWidth < 1 || newHeight < 1) {
+        alert('Width and height must be at least 1');
+        return;
+    }
+    
+    if (newWidth > 20 || newHeight > 20) {
+        alert('Maximum grid size is 20x20');
+        return;
+    }
+    
+    // Update grid dimensions
+    cols = newWidth;
+    rows = newHeight;
+    
+    // Create empty grid
+    grid = emptyGrid(rows, cols);
+    
+    // Clear all placed items
+    cars = [];
+    finishPos = null;
+    cows = [];
+    trafficLights = [];
+    placeMode = null;
+    
+    // Update UI
+    updateGridInfo();
+    renderGrid();
+    renderCarList();
+    updatePlaceModeUI();
+    updatePlacementStatus();
+    
+    debug(`Created new ${cols}x${rows} level`);
+};
+
 // Load Level button - triggers the selector change
 document.getElementById('loadLevelBtn').onclick = () => {
     const selector = document.getElementById('levelSelector');
