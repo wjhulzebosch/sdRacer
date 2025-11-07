@@ -200,7 +200,7 @@ button:hover {
     min-width: 80px;
 }
 
-.car-icon, .finish-icon, .cow-icon, .traffic-light-icon {
+.car-icon, .finish-icon, .cow-icon, .deer-icon, .traffic-light-icon {
     width: 40px;
     height: 40px;
     display: inline-block;
@@ -214,13 +214,13 @@ button:hover {
     position: relative;
 }
 
-.car-icon:hover, .finish-icon:hover, .cow-icon:hover, .traffic-light-icon:hover {
+.car-icon:hover, .finish-icon:hover, .cow-icon:hover, .deer-icon:hover, .traffic-light-icon:hover {
     border-color: #3b82f6;
     transform: scale(1.05);
     box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
-.car-icon.place-mode, .finish-icon.place-mode, .cow-icon.place-mode, .traffic-light-icon.place-mode {
+.car-icon.place-mode, .finish-icon.place-mode, .cow-icon.place-mode, .deer-icon.place-mode, .traffic-light-icon.place-mode {
     border: 2px solid #10b981;
     box-shadow: 0 0 12px #10b98188;
     transform: scale(1.1);
@@ -249,6 +249,19 @@ button:hover {
 
 .cow-icon {
     background-image: url('../Textures/Cow.png') !important;
+}
+
+.deer-icon {
+    content: '🦌';
+    background: linear-gradient(135deg, #8b5a3c 0%, #a0694a 100%) !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+}
+
+.deer-icon::before {
+    content: '🦌';
 }
 
 .traffic-light-icon {
@@ -616,6 +629,64 @@ button:hover {
     box-shadow: 0 0 3px #ff0000;
     pointer-events: none;
     z-index: 11;
+}
+
+/* Deer Waypoint Styles */
+.level-creator-cell.deer-waypoint,
+.level-creator-cell.deer-waypoint-preview {
+    position: relative;
+}
+
+.level-creator-cell.deer-waypoint::before,
+.level-creator-cell.deer-waypoint-preview::before {
+    content: attr(data-waypoint-number);
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 14px;
+    height: 14px;
+    background: var(--deer-color, #FF6B6B);
+    color: white;
+    font-size: 9px;
+    font-weight: bold;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 15;
+    box-shadow: 0 0 4px rgba(0,0,0,0.3);
+}
+
+.level-creator-cell.deer-waypoint::after,
+.level-creator-cell.deer-waypoint-preview::after {
+    content: '';
+    position: absolute;
+    inset: 2px;
+    border: 3px solid var(--deer-color, #FF6B6B);
+    border-radius: 4px;
+    pointer-events: none;
+    z-index: 10;
+    box-shadow: 0 0 6px var(--deer-color, #FF6B6B);
+}
+
+.level-creator-cell.deer-waypoint-preview::after {
+    opacity: 0.7;
+    animation: pulse-border 1s ease-in-out infinite;
+}
+
+@keyframes pulse-border {
+    0%, 100% { opacity: 0.7; }
+    50% { opacity: 1; }
+}
+
+/* Deer Path Line */
+.deer-path-line {
+    position: absolute;
+    height: 2px;
+    background: #FF6B6B;
+    pointer-events: none;
+    z-index: 5;
+    opacity: 0.6;
 }
 
 /* Responsive Design */

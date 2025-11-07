@@ -515,6 +515,19 @@ button {
     background-image: url('../Textures/Cow.png');
 }
 
+.deer-icon {
+    content: '🦌';
+    background: linear-gradient(135deg, #8b5a3c 0%, #a0694a 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+}
+
+.deer-icon::before {
+    content: '🦌';
+}
+
 .traffic-light-icon {
     background: linear-gradient(to bottom, #ff0000 0%, #ff0000 45%, #00ff00 55%, #00ff00 100%);
 }
@@ -612,6 +625,64 @@ button {
 
 .level-creator-cell.traffic-light-here::after {
     background: linear-gradient(to bottom, #ff0000 0%, #ff0000 45%, #00ff00 55%, #00ff00 100%);
+}
+
+/* Deer Waypoint Styles */
+.level-creator-cell.deer-waypoint,
+.level-creator-cell.deer-waypoint-preview {
+    position: relative;
+}
+
+.level-creator-cell.deer-waypoint::before,
+.level-creator-cell.deer-waypoint-preview::before {
+    content: attr(data-waypoint-number);
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 14px;
+    height: 14px;
+    background: var(--deer-color, #FF6B6B);
+    color: white;
+    font-size: 9px;
+    font-weight: bold;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 15;
+    box-shadow: 0 0 4px rgba(0,0,0,0.3);
+}
+
+.level-creator-cell.deer-waypoint::after,
+.level-creator-cell.deer-waypoint-preview::after {
+    content: '';
+    position: absolute;
+    inset: 2px;
+    border: 3px solid var(--deer-color, #FF6B6B);
+    border-radius: 4px;
+    pointer-events: none;
+    z-index: 10;
+    box-shadow: 0 0 6px var(--deer-color, #FF6B6B);
+}
+
+.level-creator-cell.deer-waypoint-preview::after {
+    opacity: 0.7;
+    animation: pulse-border 1s ease-in-out infinite;
+}
+
+@keyframes pulse-border {
+    0%, 100% { opacity: 0.7; }
+    50% { opacity: 1; }
+}
+
+/* Deer Path Line */
+.deer-path-line {
+    position: absolute;
+    height: 2px;
+    background: #FF6B6B;
+    pointer-events: none;
+    z-index: 5;
+    opacity: 0.6;
 }
 
 /* Car List */

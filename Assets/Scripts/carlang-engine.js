@@ -66,6 +66,8 @@ class CarLangEngine {
             'explode': () => this.defaultCommandableObject.crash(),
             'isRoadAhead': () => this.defaultCommandableObject.isRoadAhead(),
             'isCowAhead': () => this.defaultCommandableObject.isCowAhead(),
+            'isObstacleAhead': () => this.defaultCommandableObject.isObstacleAhead(),
+            'isRoadClear': () => this.defaultCommandableObject.isRoadClear(),
             'honk': () => this.honk(),
             'not': (value) => !value,
             'GetDirectionToFinish': () => this.defaultCommandableObject.getDirectionToFinish(),
@@ -82,6 +84,8 @@ class CarLangEngine {
             'explode': { args: 0, description: 'Make car crash' },
             'isRoadAhead': { args: 0, description: 'Check if there is a road ahead (ignores cows)' },
             'isCowAhead': { args: 0, description: 'Check if there is a cow ahead (ignores roads)' },
+            'isObstacleAhead': { args: 0, description: 'Check if there is an obstacle (cow or deer) ahead' },
+            'isRoadClear': { args: 0, description: 'Check if the road ahead is clear (no obstacles)' },
             'honk': { args: 0, description: 'Honk the car horn' },
             'GetDirectionToFinish': { args: 0, description: 'Get direction to finish line (North, East, South, West, or null if no path)' },
             'GetCurrentDirection': { args: 0, description: 'Get current car direction (North, East, South, West)' },
@@ -522,6 +526,8 @@ class CarLangEngine {
                     'explode': () => targetCommandableObject.crash(),
                     'isRoadAhead': () => targetCommandableObject.isRoadAhead(),
                     'isCowAhead': () => targetCommandableObject.isCowAhead(),
+                    'isObstacleAhead': () => targetCommandableObject.isObstacleAhead(),
+                    'isRoadClear': () => targetCommandableObject.isRoadClear(),
                     'honk': () => this.honkForCar(targetCommandableObject),
                     'not': (value) => !value
                 };
@@ -1198,6 +1204,8 @@ class CarLangEngine {
             'explode': () => commandableObject.crash(),
             'isRoadAhead': () => commandableObject.isRoadAhead(),
             'isCowAhead': () => commandableObject.isCowAhead(),
+            'isObstacleAhead': () => commandableObject.isObstacleAhead(),
+            'isRoadClear': () => commandableObject.isRoadClear(),
             'honk': () => this.honkForCar(commandableObject),
             'GetDirectionToFinish': () => commandableObject.getDirectionToFinish(),
             'GetCurrentDirection': () => commandableObject.getCurrentDirection()

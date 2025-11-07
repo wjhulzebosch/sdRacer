@@ -1,6 +1,7 @@
 import Tile from './Tile.js';
 import Car from './Car.js';
 import Cow from './Cow.js';
+import Deer from './Deer.js';
 import Finish from './Finish.js';
 import WinCondition from './WinCondition.js';
 import GPS from './GPS.js';
@@ -297,6 +298,30 @@ class World {
                     throw new Error('CRITICAL: Failed to create TrafficLight entity for index ' + index);
                 }
                 this.addEntity(trafficLight, trafficLightX, trafficLightY);
+            });
+        }
+        
+        // Add deer
+        if (levelData.deer && Array.isArray(levelData.deer)) {
+            levelData.deer.forEach((deerConfig, index) => {
+                if (!deerConfig || typeof deerConfig !== 'object') {
+                    throw new Error('CRITICAL: Invalid deer config at index ' + index + ': ' + typeof deerConfig);
+                }
+                if (!deerConfig.positions || !Array.isArray(deerConfig.positions) || deerConfig.positions.length < 2) {
+                    throw new Error('CRITICAL: Deer config missing valid positions array at index ' + index);
+                }
+                
+                const deerId = this.generateEntityId();
+                // Adjust positions for grass border (+1 offset)
+                const positions = deerConfig.positions.map(pos => ({
+                    x: pos[0] + 1,
+                    y: pos[1] + 1
+                }));
+                const deer = new Deer(deerId, positions);
+                if (!deer) {
+                    throw new Error('CRITICAL: Failed to create Deer entity for index ' + index);
+                }
+                this.addEntity(deer, positions[0].x, positions[0].y);
             });
         }
         
