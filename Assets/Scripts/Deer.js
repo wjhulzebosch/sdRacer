@@ -104,6 +104,10 @@ class Deer extends Entity {
     calculatePathActions() {
         const actions = [];
         
+        // Start with first tile
+        const firstTile = this.positions[0];
+        actions.push({type: 'move', x: firstTile.x, y: firstTile.y});
+        
         // Set initial direction based on first two positions
         if (this.positions.length >= 2) {
             const first = this.positions[0];
@@ -124,8 +128,7 @@ class Deer extends Entity {
             const end = this.positions[(i + 1) % this.positions.length];
             
             // Get tiles between waypoints
-            // For the first segment (i=0), skip the first tile since deer is already there
-            const segment = this.getManhattenPath(start, end, true); // Always skip first tile to avoid duplicates
+            const segment = this.getManhattenPath(start, end, true); // Skip first tile
             
             // Convert tiles to move actions with rotation checks
             segment.forEach((tile) => {
@@ -298,37 +301,9 @@ class Deer extends Entity {
     }
     
     reset() {
-        const oldX = this.x;
-        const oldY = this.y;
-        
-        // Return to first action
-        this.currentActionIndex = this.initialActionIndex;
-        
-        // Find first move action to get initial position
-        const firstMoveAction = this.pathActions.find(action => action.type === 'move');
-        if (firstMoveAction) {
-            this.setPosition(firstMoveAction.x, firstMoveAction.y);
-        }
-        
-        // Reset direction and rotation to initial state
-        if (this.positions.length >= 2) {
-            const first = this.positions[0];
-            const second = this.positions[1];
-            this.currentDirection = this.getDirectionToTile(first, second);
-            this.visualRotation = this.directionMap[this.currentDirection];
-        } else {
-            this.currentDirection = 'N';
-            this.visualRotation = 0;
-        }
-        
-        this.lastMoveTime = Date.now();
-        
-        // Update world tracking
-        if (window.world) {
-            window.world.moveEntity(this, oldX, oldY, this.x, this.y);
-        }
-        
-        debug(`[Deer ${this.id}] Reset to position (${this.x}, ${this.y}), direction: ${this.currentDirection}`);
+        // Deer continues moving and does NOT reset position when level resets
+        // This makes the deer a continuous moving obstacle that players must work around
+        debug(`[Deer ${this.id}] Reset called - continuing movement at position (${this.x}, ${this.y})`);
     }
     
     blocksMovement(x, y) {
