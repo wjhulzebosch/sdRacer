@@ -1122,6 +1122,11 @@ class CarLangEngine {
      * Get line number from line object
      */
     getLineNumber(line) {
+        // Handle null or undefined line
+        if (!line) {
+            return 'unknown';
+        }
+        
         // Try to get line number from various sources
         if (line.statement && line.statement.line) {
             return line.statement.line;
